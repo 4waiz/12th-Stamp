@@ -186,8 +186,12 @@ namespace TwelfthStamp
         float m_Cursor;
         Transform m_Content;
         TextMeshPro m_Title;
-        GameObject m_Bg;
+        GameObject m_Bg, m_Rule, m_Icon;
         readonly List<GameObject> m_Rows = new List<GameObject>();
+
+        /// <summary>Card height in metres after the last layout (the card is centred on the panel's origin).</summary>
+        public float CardHeight { get; private set; } = 0.9f;
+        public const float CardWidth = Width + 0.08f;
 
         static readonly Color Ink = new Color(0.16f, 0.14f, 0.15f);
         static readonly Color InkFaint = new Color(0.16f, 0.14f, 0.15f, 0.38f);
@@ -224,19 +228,39 @@ namespace TwelfthStamp
             m_Title.transform.localRotation = Quaternion.identity;
             m_Title.sortingOrder = OrderText;
             // A short ink rule under the title.
-            var rule = MeshFactory.Quad("TitleRule", m_Title.transform, 0.16f, 0.0016f, Mats.Unlit(new Color(0.5f, 0.09f, 0.08f, 0.55f), null, true), new Vector3(0, -0.034f, 0));
-            rule.layer = Layers.UI3D;
-            Order(rule, OrderLine);
+            m_Rule = MeshFactory.Quad("TitleRule", m_Title.transform, 0.16f, 0.0016f, Mats.Unlit(new Color(0.5f, 0.09f, 0.08f, 0.55f), null, true), new Vector3(0, -0.034f, 0));
+            m_Rule.layer = Layers.UI3D;
+            Order(m_Rule, OrderLine);
+            // Small key-art mark above the title on every card except the welcome screen (Art/Branding/BRANDING.md).
+            var thumb = Branding.Thumb;
+            if (thumb != null)
+            {
+                m_Icon = MeshFactory.Quad("HeaderIcon", m_Content, 0.05f, 0.05f, Mats.Unlit(Color.white, thumb, true), Vector3.zero);
+                m_Icon.layer = Layers.UI3D;
+                Order(m_Icon, OrderText);
+                m_Icon.SetActive(false);
+            }
         }
 
-        public void Clear(string title)
+        /// <summary>Starts a page. An empty title hides the title row (the welcome screen shows the logo instead);
+        /// <paramref name="icon"/> puts the small key-art mark above the title.</summary>
+        public void Clear(string title, bool icon = true)
         {
             foreach (var r in m_Rows) Destroy(r);
             m_Rows.Clear();
-            m_Title.text = title;
+            bool hasTitle = !string.IsNullOrEmpty(title);
+            m_Title.text = title ?? "";
+            m_Title.gameObject.SetActive(hasTitle);
             m_Cursor = 0f;
-            m_Title.transform.localPosition = new Vector3(0, 0, 0);
-            m_Cursor -= 0.07f;
+            bool showIcon = icon && m_Icon != null && hasTitle;
+            if (m_Icon != null)
+            {
+                m_Icon.SetActive(showIcon);
+                m_Icon.transform.localPosition = new Vector3(0f, 0.012f, -0.001f);
+            }
+            if (showIcon) m_Cursor -= 0.062f;
+            m_Title.transform.localPosition = new Vector3(0, m_Cursor, 0);
+            m_Cursor -= hasTitle ? 0.07f : 0.01f;
         }
 
         public void FinishLayout()
@@ -247,6 +271,7 @@ namespace TwelfthStamp
             float h = -m_Cursor + top + bottom;
             m_Content.localPosition = new Vector3(0, h / 2 - top, 0);
             m_Bg.transform.localScale = new Vector3(1f, h / 0.9f, 1f);
+            CardHeight = h;
         }
 
         GameObject Row(string name)

@@ -6,9 +6,10 @@ namespace TwelfthStamp
     /// <summary>
     /// Saeed's Abu Dhabi apartment. One builder, two cells with identical layout and coordinates:
     /// ApartmentNormal (homecoming, real home ending) and ApartmentCorrupt (the Margin copy: UAE encounter).
-    /// The corrupted copy keeps every furniture position; its changes are the horror.
+    /// The corrupted copy keeps every furniture position; its changes are the horror. Set dressing and the night view are
+    /// in Detail_Apartment.cs and Detail_ApartmentView.cs.
     /// </summary>
-    public class ApartmentCell : Cell
+    public partial class ApartmentCell : Cell
     {
         public bool Corrupted;
         public Transform TableTop, Suitcase, BathroomDoorPivot, PhoneRoot, FridgeRoot, WindowSeamPoint;
@@ -27,20 +28,24 @@ namespace TwelfthStamp
         {
             Lighting = Corrupted ? new LightingPreset
             {
-                SunColor = new Color(0.45f, 0.55f, 0.7f), SunIntensity = 0.15f, SunEuler = new Vector3(35f, 230f, 0f), ShadowStrength = 0.5f,
-                AmbientSky = new Color(0.13f, 0.16f, 0.2f), AmbientEquator = new Color(0.1f, 0.11f, 0.12f), AmbientGround = new Color(0.05f, 0.05f, 0.055f),
-                FogColor = new Color(0.07f, 0.09f, 0.12f), FogDensity = 0.012f,
-                SkyZenith = new Color(0.02f, 0.03f, 0.06f), SkyHorizon = new Color(0.16f, 0.2f, 0.24f), SkyGround = new Color(0.04f, 0.05f, 0.07f),
+                // The Margin copy: the same room gone cold and too quiet, but readable (playtest: it was near black). A cool
+                // moon through the window, a pale ambient, the lamps drained of warmth rather than switched off.
+                SunColor = new Color(0.5f, 0.6f, 0.76f), SunIntensity = 0.45f, SunEuler = new Vector3(32f, 230f, 0f), ShadowStrength = 0.55f,
+                // The fog is thin so the dead city beyond the window still reads as silhouettes against the pale horizon.
+                AmbientSky = new Color(0.25f, 0.29f, 0.35f), AmbientEquator = new Color(0.2f, 0.21f, 0.23f), AmbientGround = new Color(0.08f, 0.08f, 0.09f),
+                FogColor = new Color(0.14f, 0.17f, 0.21f), FogDensity = 0.006f,
+                SkyZenith = new Color(0.04f, 0.05f, 0.09f), SkyHorizon = new Color(0.3f, 0.35f, 0.42f), SkyGround = new Color(0.07f, 0.08f, 0.1f),
                 SunDiscColor = new Color(0, 0, 0, 0), Stars = 0.15f,
-                PostExposure = 0.25f, Saturation = -25f, Contrast = 14f, ColorFilter = new Color(0.86f, 0.95f, 0.98f), Bloom = 0.6f, Vignette = 0.32f
+                PostExposure = 0.34f, Saturation = -18f, Contrast = 10f, ColorFilter = new Color(0.88f, 0.95f, 0.98f), Bloom = 0.55f, Vignette = 0.26f
             } : new LightingPreset
             {
-                SunColor = new Color(1f, 0.62f, 0.38f), SunIntensity = 0.6f, SunEuler = new Vector3(12f, 250f, 0f), ShadowStrength = 0.7f,
-                AmbientSky = new Color(0.32f, 0.3f, 0.36f), AmbientEquator = new Color(0.3f, 0.24f, 0.2f), AmbientGround = new Color(0.12f, 0.09f, 0.07f),
-                FogColor = new Color(0.32f, 0.25f, 0.24f), FogDensity = 0.006f,
+                // Dusk: a low sun across the floor and up the feature wall, the lamps on, the city lighting up outside.
+                SunColor = new Color(1f, 0.64f, 0.4f), SunIntensity = 0.6f, SunEuler = new Vector3(12f, 250f, 0f), ShadowStrength = 0.7f,
+                AmbientSky = new Color(0.34f, 0.32f, 0.38f), AmbientEquator = new Color(0.31f, 0.26f, 0.22f), AmbientGround = new Color(0.12f, 0.09f, 0.07f),
+                FogColor = new Color(0.32f, 0.25f, 0.24f), FogDensity = 0.0035f,
                 SkyZenith = new Color(0.12f, 0.16f, 0.32f), SkyHorizon = new Color(0.95f, 0.55f, 0.38f), SkyGround = new Color(0.18f, 0.14f, 0.13f),
                 SunDiscColor = new Color(1f, 0.6f, 0.35f, 1f), SunSize = 0.006f, CloudColor = new Color(0.9f, 0.55f, 0.45f, 0.25f),
-                PostExposure = 0.1f, Saturation = 5f, Contrast = 8f, ColorFilter = new Color(1f, 0.96f, 0.9f), Bloom = 0.55f, Vignette = 0.22f
+                PostExposure = 0.16f, Saturation = 5f, Contrast = 8f, ColorFilter = new Color(1f, 0.96f, 0.9f), Bloom = 0.55f, Vignette = 0.22f
             };
             Ambience = Corrupted ? "amb_apartment_corrupt" : "amb_apartment";
             AddSun();
@@ -48,7 +53,7 @@ namespace TwelfthStamp
             var floor = Mats.Lit(new Color(0.55f, 0.42f, 0.3f), 0.5f, 0f, "wood_oak_floor");
             var wall = Mats.Lit(Corrupted ? new Color(0.66f, 0.66f, 0.64f) : new Color(0.84f, 0.78f, 0.7f), 0.18f, 0f, "plaster_warm");
             var tile = Mats.Lit(new Color(0.78f, 0.76f, 0.72f), 0.55f, 0f, "tile_terrazzo");
-            var wood = Mats.Lit(new Color(0.32f, 0.21f, 0.14f), 0.5f, 0f, "wood_dark");
+            var wood = Mats.Lit(new Color(1f, 0.9f, 0.8f), 0.5f, 0f, "wood_dark");
             var fabric = Mats.Lit(Corrupted ? new Color(0.36f, 0.38f, 0.4f) : new Color(0.62f, 0.55f, 0.46f), 0.15f, 0f, "fabric_linen");
             var rug = Mats.Lit(new Color(0.75f, 0.68f, 0.62f), 0.1f, 0f, "carpet_rug");
             var metal = Mats.Lit(new Color(0.7f, 0.7f, 0.72f), 0.7f, 0.9f, "metal_brushed");
@@ -76,15 +81,9 @@ namespace TwelfthStamp
             glassBlock.transform.localPosition = new Vector3(4.6f, 1.65f, 0);
             glassBlock.AddComponent<BoxCollider>().size = new Vector3(0.1f, 2.6f, 8f);
 
-            // Skyline (layers drift apart in the corrupted copy).
-            var towerMat = Mats.Backdrop(new Color(0.12f, 0.13f, 0.17f), Lighting);
-            var lightsMat = Mats.Backdrop(new Color(1f, 0.82f, 0.55f), Lighting, new Color(1.3f, 0.95f, 0.55f));
-            for (int layer = 0; layer < 3; layer++)
-            {
-                var sky = Landmarks.Skyline(g, new Vector3(90f + layer * 70f, -30f, 0), 30f + layer * 20f, 80f, 90f, 9 + layer * 3, towerMat, lightsMat, 11 + layer);
-                SkylineLayers.Add(sky.transform);
-            }
-            Kit.Water(g, new Vector3(140f, -32f, 0), new Vector2(200f, 400f), new Color(0.04f, 0.06f, 0.09f), 0.95f);
+            // The night view: the Corniche below, a marina channel, a skyline across the water (its three layers drift apart
+            // in the corrupted copy, where every window has gone dark).
+            BuildCityView(g);
 
             // Kitchen (north wall): counter, fridge, upper cabinets. The Blender models (Art/Models/MODELS.md) replace the
             // procedural meshes only; every collider below stays where it was.
@@ -96,14 +95,18 @@ namespace TwelfthStamp
             else MeshFactory.Box("CounterTop", g, new Vector3(-1.5f, 0.92f, 3.62f), new Vector3(4.05f, 0.05f, 0.75f), tile, false);
             MeshFactory.Box("Upper", g, new Vector3(-1.5f, 2.2f, 3.82f), new Vector3(4f, 0.8f, 0.36f), wood, false);
             FridgeRoot = MeshFactory.Box("Fridge", g, new Vector3(1.1f, 0.95f, 3.62f), new Vector3(0.85f, 1.9f, 0.72f), white, true).transform;
-            if (Models.Spawn("Fridge", FridgeRoot, Models.Slots(("TS_PlasticWhite", white), ("TS_Metal", metal)), new Vector3(0f, -0.95f, 0f)) != null)
-                Models.StripVisual(FridgeRoot.gameObject);
+            bool fridgeModel = Models.Spawn("Fridge", FridgeRoot, Models.Slots(("TS_PlasticWhite", white), ("TS_Metal", metal)), new Vector3(0f, -0.95f, 0f)) != null;
+            if (fridgeModel) Models.StripVisual(FridgeRoot.gameObject);
             else MeshFactory.Box("FridgeHandle", FridgeRoot, new Vector3(-0.32f, 0.2f, -0.38f), new Vector3(0.03f, 0.5f, 0.04f), metal, false);
-            // Notes on the fridge: in the copy, every note is blank except the genuine one.
+            // Notes on the fridge: in the copy, every note is blank except the genuine one. The modelled fridge has French
+            // doors with their handles on the centre seam, so there the notes all go on the left door, the genuine one
+            // (i = 1) right under the UAE trace, which stays where it is.
             var noteRng = new System.Random(5);
             for (int i = 0; i < 4; i++)
             {
-                var notePos = new Vector3(1.0f + (i % 2) * 0.22f - 0.1f, 1.25f + (i / 2) * 0.2f, 3.255f);
+                var notePos = fridgeModel
+                    ? new Vector3(0.79f + (i % 2) * 0.16f, 1.25f + (i / 2) * 0.2f, 3.255f)
+                    : new Vector3(1.0f + (i % 2) * 0.22f - 0.1f, 1.25f + (i / 2) * 0.2f, 3.255f);
                 var n = MeshFactory.Quad("Note", g, 0.14f, 0.12f, Mats.Lit(new Color(0.95f, 0.92f, 0.78f), 0.1f), notePos, Quaternion.Euler(0, 0, (float)(noteRng.NextDouble() - 0.5) * 10f));
                 if (i == 1) GenuineNote = n;
             }
@@ -120,7 +123,8 @@ namespace TwelfthStamp
                 Models.StripVisual(sofaBase);
                 Models.StripVisual(sofaBack);
             }
-            MeshFactory.Box("CoffeeTable", g, new Vector3(1.2f, 0.2f, -0.7f), new Vector3(1.1f, 0.4f, 0.6f), wood, true);
+            // The coffee table keeps this collider; its visual (oak top, black legs, the coffee set) is in BuildHomeDetail.
+            Models.StripVisual(MeshFactory.Box("CoffeeTable", g, new Vector3(1.2f, 0.2f, -0.7f), new Vector3(1.1f, 0.4f, 0.6f), wood, true));
             var table = MeshFactory.Box("Table", g, new Vector3(-1.6f, 0.74f, 0.4f), new Vector3(1.6f, 0.05f, 0.9f), wood, true);
             var tableModel = Models.Spawn("DiningTable", g, Models.Slots(("TS_Wood", wood)), new Vector3(-1.6f, 0f, 0.4f), 0f);
             if (tableModel != null)
@@ -145,17 +149,14 @@ namespace TwelfthStamp
             TableTop = new GameObject("TableTop").transform;
             TableTop.SetParent(g, false);
             TableTop.localPosition = new Vector3(-1.6f, 0.77f, 0.4f);
-            MeshFactory.Box("Shelf", g, new Vector3(-4.35f, 1.4f, 1.8f), new Vector3(0.3f, 0.04f, 1.6f), wood, false);
-            var photo = MeshFactory.Box("PhotoFrame", g, new Vector3(-4.33f, 1.6f, 1.6f), new Vector3(0.03f, 0.3f, 0.24f), black, false);
-            var postcard = Tex.Art("postcard_1");
-            MeshFactory.Quad("Photo", photo.transform, 0.2f, 0.26f, Mats.Printed(Corrupted ? null : postcard, Corrupted ? new Color(0.85f, 0.85f, 0.83f) : Color.white, 0.2f), new Vector3(0.02f, 0, 0), Quaternion.Euler(0, -90, 0));
+            // (The old shelf's photo now stands on the credenza: BuildHomeDetail.)
 
             // Lighting: pendant over the table, floor lamp, kitchen strip.
             var warm = Corrupted ? new Color(0.75f, 0.85f, 0.95f) : new Color(1f, 0.78f, 0.52f);
-            AddPointLight(g, new Vector3(-1.6f, 2.2f, 0.4f), warm, Corrupted ? 1.2f : 2.6f, 5f, true);
+            AddPointLight(g, new Vector3(-1.6f, 2.2f, 0.4f), warm, Corrupted ? 1.8f : 2.6f, 5f, true);
             MeshFactory.Frustum("Pendant", g, new Vector3(-1.6f, 2.25f, 0.4f), 0.25f, 0.08f, 0.22f, Mats.Emissive(new Color(0.2f, 0.2f, 0.2f), warm * (Corrupted ? 0.6f : 1.4f)), 18);
-            AddPointLight(g, new Vector3(2.8f, 1.6f, -2.4f), warm, Corrupted ? 0.5f : 1.4f, 4f);
-            AddPointLight(g, new Vector3(-1.5f, 1.9f, 3.4f), warm, Corrupted ? 0.5f : 1.1f, 3.5f);
+            AddPointLight(g, new Vector3(2.8f, 1.6f, -2.4f), warm, Corrupted ? 1.0f : 1.4f, 4f);
+            AddPointLight(g, new Vector3(-1.5f, 1.9f, 3.4f), warm, Corrupted ? 0.9f : 1.1f, 3.5f);
 
             // Bathroom (south-east): door in the south wall leads to a small tiled room.
             var bath = Group("Bathroom");
@@ -224,6 +225,9 @@ namespace TwelfthStamp
             ReflectionFigureMat = Mats.UnlitInstance(new Color(0.03f, 0.035f, 0.04f, 0f), Tex.SoftDot, true, 1f);
             ReflectionFigure = MeshFactory.Quad("ReflectionFigure", ReflectionCorridor.transform, 0.5f, 1.9f, ReflectionFigureMat, new Vector3(10.5f, 1.25f, -0.5f), Quaternion.Euler(0, 90, 0));
             MeshFactory.NoShadows(ReflectionCorridor);
+
+            // Set dressing: feature wall, media wall, kitchen, living room, entry, curtains, ceiling, balcony.
+            BuildHomeDetail(g, wall, wood, fabric, metal, black, rug, tile);
 
             // Seams (only meaningful in the Margin copy; harmless in the real one since tears are disabled there).
             AddSeam("window", new Vector3(4.2f, 0f, -0.5f), -90f);

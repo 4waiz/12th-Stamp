@@ -78,11 +78,14 @@ namespace TwelfthStamp
         IEnumerator Run()
         {
             Note("AutoTest '" + m_Name + "' mode=" + Game.Mode + " screen=" + Screen.width + "x" + Screen.height);
+            if (m_Name != "models") yield return BrandingIntro();
             yield return MenuSystem.I.ShowMainMenuRoutine();
             yield return new WaitForSeconds(1.5f);
             Check(Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu, "main menu cell active");
             Check(MenuSystem.I.IsOpen, "main menu panel open");
+            Check(Branding.I != null && Branding.I.WelcomeShowing, "welcome screen shows the key art and the logo beside the menu card");
             yield return Shot("01_menu");
+            if (m_Name != "models") yield return WelcomeRoundTrip();
 
             if (m_Name == "all" || m_Name == "demo") yield return DemoFlow();
             if (m_Name == "all" || m_Name == "egypt") yield return EgyptFlow();
@@ -90,6 +93,10 @@ namespace TwelfthStamp
             if (m_Name == "all" || m_Name == "countries") yield return CountriesFlow();
             if (m_Name == "all" || m_Name == "finale") yield return FinaleFlow();
             if (m_Name == "models") yield return ModelsFlow(); // art review of the Blender models (AutoTestModels.cs); not part of "all"
+            if (m_Name == "shift") yield return ShiftFlow();   // art review of the glasses moment (AutoTestShift.cs); not part of "all"
+            if (m_Name == "all" || m_Name == "lifecycle") yield return LifecycleFlow(); // AutoTestLifecycle.cs
+            if (m_Name == "persist1") yield return Persist1Flow();
+            if (m_Name == "persist2") yield return Persist2Flow();
 
             // Report.
             var frames = m_FrameTimes.Skip(30).OrderBy(x => x).ToList();
@@ -120,6 +127,41 @@ namespace TwelfthStamp
             Application.Quit(m_Fail == 0 ? 0 : 1);
         }
 
+        /// <summary>The branded intro, exactly as a normal launch plays it (the bootstrap skips it for AutoTest).</summary>
+        IEnumerator BrandingIntro()
+        {
+            Note("--- Branding: intro ---");
+            Check(Branding.AllPresent, "branding textures in the build (cover, thumbnail, logo, menu art)");
+            if (Branding.I == null) yield break;
+            StartCoroutine(Branding.I.Intro());
+            // Poll rather than sample once (a slow first frame or a stray startup input made the single sample flaky).
+            bool seen = false;
+            for (float t = 0f; t < 1.4f; t += Time.unscaledDeltaTime) { seen |= Branding.I.IntroShowing; yield return null; }
+            Check(seen || Branding.I.IntroShowing, "intro shows the approved cover");
+            yield return Shot("00a_intro_cover");
+            yield return new WaitForSecondsRealtime(1.7f);
+            yield return Shot("00b_intro_logo");
+            yield return WaitUntil(() => !Branding.I.IntroShowing, 5f, "intro ends by itself");
+        }
+
+        /// <summary>Welcome screen to Controls and back through the real 3D buttons (the same Press a click or laser sends).</summary>
+        IEnumerator WelcomeRoundTrip()
+        {
+            var controls = Find<Button3D>("Button_Controls");
+            Check(controls != null, "Controls button on the welcome screen");
+            if (controls == null) yield break;
+            controls.Press(controls.transform.position, HandSide.Desktop);
+            yield return null;
+            Check(MenuSystem.I.CurrentPage == "Controls" && !Branding.I.WelcomeShowing, "Controls page replaces the welcome layout");
+            yield return new WaitForSeconds(0.3f);
+            yield return Shot("01b_controls");
+            var back = Find<Button3D>("Button_Back");
+            Check(back != null, "Back button on the Controls page");
+            if (back != null) back.Press(back.transform.position, HandSide.Desktop);
+            yield return null;
+            Check(Branding.I.WelcomeShowing && string.IsNullOrEmpty(MenuSystem.I.CurrentPage), "Back returns to the welcome screen");
+        }
+
         IEnumerator DemoFlow()
         {
             Note("--- Judges' demo flow (Paris + Egyptian sunlight) ---");
@@ -138,13 +180,21 @@ namespace TwelfthStamp
             Check(Game.Passport.IsOpen && Game.Passport.Selected == CountryId.Egypt, "passport open with Egypt selected");
             yield return Shot("03_passport_open");
 
-            // Stand where a player would and look at the desk seam.
+            // Negative: with the passport open but aimed at no seam, holding the tear input opens nothing.
             var seam = paris.DeskSeam;
-            var stand = seam.Center + seam.Forward * 3.2f;
-            var look = seam.Center - stand; look.y = 0;
-            Game.Rig.PlaceAt(new Vector3(stand.x, 0f, stand.z), Quaternion.LookRotation(look).eulerAngles.y);
+            Game.Rig.PlaceAt(paris.TearVantage.position, paris.TearVantage.eulerAngles.y + 120f);
+            yield return null; yield return null;
+            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.3f);
+            Check(Game.Tears.Active == null && !Game.Tears.HasTarget, "no tear opens when no seam is aimed at");
+            // Stand where a player naturally would (south of the desk) and aim at the seam on the poster board: from
+            // here the board, the beam's path and the Passenger at the desk are all in view.
+            var aim = seam.Center - (paris.TearVantage.position + Vector3.up * DesktopRig.EyeHeight); // from the eye, not the feet
+            Game.Rig.PlaceAt(paris.TearVantage.position, Mathf.Atan2(aim.x, aim.z) * Mathf.Rad2Deg);
+            if (Game.Rig is DesktopRig vantageRig) vantageRig.SetPitch(-Mathf.Atan2(aim.y, new Vector2(aim.x, aim.z).magnitude) * Mathf.Rad2Deg);
             yield return null; yield return null;
             Check(Game.Tears.HasTarget && Game.Tears.Target == seam, "desk seam targeted from the passport");
+            var toGuard = Game.Passenger.transform.position - Game.Rig.Head.position; toGuard.y = 0f;
+            Check(Vector3.Angle(Game.Rig.Forward, toGuard) < 34f, "the Passenger at the desk is in view while aiming at the seam");
 
             yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.2f);
             Check(Game.Tears.Active != null && Game.Tears.Active.Destination.Id == CountryId.Egypt, "tear opened to Egypt");
@@ -157,7 +207,10 @@ namespace TwelfthStamp
             yield return WaitUntil(() => Game.Passenger.State == PassengerState.Retreat || !Game.Passenger.Visible, 8f, "sunlight drives the Passenger off the desk");
             yield return Shot("05_window_repel");
             yield return WaitUntil(() => FindAnyObjectByType<PassengerHand>() != null && FindAnyObjectByType<PassengerHand>().Active, 10f, "a hand comes through the widened tear");
-            yield return new WaitForSeconds(1.0f);
+            var reaching = FindAnyObjectByType<PassengerHand>();
+            Check(reaching != null && reaching.UsesModel, "the hand is built from the modelled Passenger parts");
+            yield return WaitUntil(() => reaching != null && reaching.FingertipsInFront > 0.05f, 3f, "the fingertips are visibly through the tear (in front of its plane)");
+            yield return new WaitForSeconds(0.3f);
             yield return Shot("06_hand_through_tear");
 
             yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
@@ -260,14 +313,45 @@ namespace TwelfthStamp
             if (bag != null) bag.Use(hand);
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ShopNormal, 12f, "the glasses case brings back Marrakech (flashback)");
             Check(Game.Campaign.HasFlag(StoryFlags.Unpacked), "the bag was gone through");
-            Check(Game.InputLocked, "the flashback is a story: the player does not walk or act");
-            yield return new WaitForSeconds(3f);
-            yield return Shot("21_flashback_lane");
             var shop = (ShopCell)Game.Cells.Active;
-            yield return WaitUntil(() => Game.Rig.Feet.z > shop.DoorPoint.position.z + 0.5f, 25f, "the memory moves inside the shop");
-            yield return new WaitForSeconds(1.2f);
+            yield return WaitUntil(() => !Game.InputLocked, 6f, "the memory is a place to walk through: the player can move");
+            Check(Game.Passport != null && !Game.Passport.Available && !Game.Story.TearsAllowed && !Game.Story.ThreatAllowed, "no passport, tears or threat inside the memory");
+            yield return new WaitForSeconds(2.5f);
+            Check(shop.transform.InverseTransformPoint(Game.Rig.Feet).y > -0.5f, "the memory starts on solid ground at the far end of the souk");
+            yield return Shot("21_flashback_lane");
+            // Walk the souk to the shop door at a walking pace; the market paints itself in ahead of the player.
+            float zStart = shop.transform.InverseTransformPoint(Game.Rig.Feet).z, zDoor = shop.DoorPoint.localPosition.z + 0.7f, walked = 0f;
+            bool midShot = false;
+            while (walked < 40f)
+            {
+                var lp = shop.transform.InverseTransformPoint(Game.Rig.Feet);
+                if (lp.z >= zDoor) break;
+                lp.z = Mathf.Min(zDoor, lp.z + 2.4f * Time.deltaTime);
+                lp.x = Mathf.MoveTowards(lp.x, 0f, Time.deltaTime);
+                lp.y = 0f; // walk on the lane floor (never carry a fall along if the floor were missing)
+                Game.Rig.PlaceAt(shop.transform.TransformPoint(lp), shop.transform.eulerAngles.y);
+                walked += Time.deltaTime;
+                if (!midShot && lp.z > (zStart + zDoor) * 0.5f) { midShot = true; yield return Shot("21b_souk_reveal"); }
+                yield return null;
+            }
+            yield return new WaitForSeconds(1.5f);
+            Check(MemoryReveal.Progress(shop.transform) > 0.8f, "the souk and the shop painted themselves in along the walk (" + (MemoryReveal.Progress(shop.transform) * 100f).ToString("0") + "%)");
             yield return Shot("22_flashback_shopkeeper");
-            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.PrologueDone), 70f, "the purchase is remembered to the end");
+            // Look at the old frames, then pay: the token into the brass tray.
+            var props = shop.transform.Find("FlashbackProps");
+            var frames = props != null ? props.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name.StartsWith("Glasses")) : null;
+            if (frames != null)
+            {
+                var toFrames = frames.position - Game.Rig.Feet; toFrames.y = 0f;
+                Game.Rig.PlaceAt(Game.Rig.Feet, Quaternion.LookRotation(toFrames).eulerAngles.y);
+                if (Game.Rig is DesktopRig dr) dr.SetPitch(25f);
+            }
+            var token = props != null ? props.GetComponentsInChildren<Grabbable>(true).FirstOrDefault(g => g.ItemId == "festival_token") : null;
+            var tray = props != null ? props.GetComponentsInChildren<Socket>(true).FirstOrDefault(s => s.Accepts.Contains("festival_token")) : null;
+            Check(token != null && tray != null, "the festival token and the brass tray are set out on the counter");
+            yield return new WaitForSeconds(9f);
+            if (token != null && tray != null) { hand.Grab(token); yield return null; hand.PlaceInto(tray); }
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.PrologueDone), 60f, "paying with the token completes the purchase and the memory folds away");
             Check(Game.Campaign.HasFlag(StoryFlags.ShopPurchased), "the glasses were bought in Marrakech");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal && !Game.InputLocked, 8f, "back home in the present");
             Interactable wear = null;

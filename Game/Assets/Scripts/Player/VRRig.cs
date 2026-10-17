@@ -23,6 +23,7 @@ namespace TwelfthStamp
         readonly List<Interactor> m_Hands = new List<Interactor>();
         readonly List<Vector3> m_ArcPoints = new List<Vector3>();
         bool m_Aiming, m_ArcValid, m_TurnArmed = true, m_Pointer;
+        float m_RunHold; // seconds the move stick has been pushed fully forward (VR run)
         Vector3 m_ArcTarget;
         float m_DestinationRepeat;
         bool m_HeadBlocked;
@@ -288,11 +289,15 @@ namespace TwelfthStamp
                 m_Arc.enabled = false; m_Reticle.gameObject.SetActive(false);
                 if (move.sqrMagnitude > 0.04f)
                 {
+                    // Push the stick all the way forward to run: the Passenger chases at 2.8 m/s in VR, a walk is 2.0.
+                    m_RunHold = move.y > 0.92f ? m_RunHold + Time.deltaTime : 0f;
+                    float speed = m_RunHold > 0.35f ? 3.3f : 2.0f;
                     var dir = Forward * move.y + Vector3.Cross(Vector3.up, Forward) * move.x;
                     var local = transform.InverseTransformPoint(Head.position);
                     m_Body.center = new Vector3(local.x, 0.8f, local.z);
-                    m_Body.Move(dir * 1.5f * Time.deltaTime + Vector3.down * 2f * Time.deltaTime);
+                    m_Body.Move(dir * speed * Time.deltaTime + Vector3.down * 2f * Time.deltaTime);
                 }
+                else m_RunHold = 0f;
             }
             else
             {

@@ -76,3 +76,6 @@ Desktop.ini
 
 # ---- Zipped QA runs (screenshots live in the run folders; archives stay local) ----
 /Docs/QA/*.zip
+
+# ---- Unity editor caches created at runtime ----
+/Game/DataStore/

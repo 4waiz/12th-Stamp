@@ -4,7 +4,7 @@ namespace TwelfthStamp
 {
     /// <summary>United Kingdom / London — The Minute Before Midnight. The arrival trace only shows in light from another
     /// place; opening a tear is loud. Prepare the passport and open the tear while the clock chime masks it.</summary>
-    public class LondonCell : Cell
+    public partial class LondonCell : Cell
     {
         public SeamAnchor CheckpointSeam;
         public TraceMark Trace;
@@ -18,12 +18,15 @@ namespace TwelfthStamp
             Id = CellId.London;
             Lighting = new LightingPreset
             {
-                SunColor = new Color(0.45f, 0.52f, 0.7f), SunIntensity = 0.16f, SunEuler = new Vector3(55f, 210f, 0f), ShadowStrength = 0.5f,
-                AmbientSky = new Color(0.12f, 0.15f, 0.22f), AmbientEquator = new Color(0.12f, 0.12f, 0.14f), AmbientGround = new Color(0.05f, 0.05f, 0.06f),
-                FogColor = new Color(0.12f, 0.15f, 0.2f), FogDensity = 0.032f,
-                SkyZenith = new Color(0.02f, 0.03f, 0.07f), SkyHorizon = new Color(0.2f, 0.24f, 0.32f), SkyGround = new Color(0.05f, 0.06f, 0.08f),
-                SunDiscColor = new Color(0, 0, 0, 0), CloudColor = new Color(0.2f, 0.24f, 0.3f, 0.6f),
-                PostExposure = 0.2f, Saturation = -14f, Contrast = 12f, ColorFilter = new Color(0.9f, 0.95f, 1f), Bloom = 0.65f, Vignette = 0.28f
+                // Midnight that reads: moonlit key, a fog lighter than the shapes in it, a horizon that separates the
+                // clock tower, the far bank and the terrace roofline, and warm lamps on both sides of the promenade.
+                // Ambient and exposure lifted a step (playtest: too dark to read on a monitor).
+                SunColor = new Color(0.55f, 0.62f, 0.8f), SunIntensity = 0.48f, SunEuler = new Vector3(42f, 210f, 0f), ShadowStrength = 0.55f,
+                AmbientSky = new Color(0.27f, 0.31f, 0.41f), AmbientEquator = new Color(0.22f, 0.22f, 0.26f), AmbientGround = new Color(0.1f, 0.1f, 0.11f),
+                FogColor = new Color(0.23f, 0.27f, 0.34f), FogDensity = 0.019f,
+                SkyZenith = new Color(0.05f, 0.07f, 0.12f), SkyHorizon = new Color(0.38f, 0.42f, 0.5f), SkyGround = new Color(0.08f, 0.09f, 0.11f),
+                SunDiscColor = new Color(0, 0, 0, 0), CloudColor = new Color(0.24f, 0.27f, 0.33f, 0.6f),
+                PostExposure = 0.4f, Saturation = -8f, Contrast = 11f, ColorFilter = new Color(0.93f, 0.96f, 1f), Bloom = 0.6f, Vignette = 0.22f
             };
             Ambience = "amb_london_river";
             AddSun();
@@ -32,11 +35,13 @@ namespace TwelfthStamp
             var metal = Mats.Lit(new Color(0.08f, 0.09f, 0.09f), 0.6f, 0.85f);
             var wood = Mats.Lit(new Color(0.3f, 0.2f, 0.13f), 0.45f, 0f, "wood_dark");
             var g = Group("Embankment");
-            MeshFactory.Floor("Promenade", g, new Vector3(0, 0, 2f), new Vector2(9f, 18f), granite, "stone", 0.3f, 1.2f);
-            MeshFactory.Box("RiverWall", g, new Vector3(4.7f, 0.5f, 2f), new Vector3(0.5f, 1f, 18f), granite, true, 1f);
-            MeshFactory.Box("BrickWall", g, new Vector3(-4.7f, 2f, 2f), new Vector3(0.6f, 4f, 18f), brick, true, 1.4f);
+            // The promenade slab, the river wall and the embankment wall keep their colliders; their visuals (in runs, with
+            // the terrace above, the lanterns and the river lamps) are built in Detail_London.cs.
+            var promenade = MeshFactory.Floor("Promenade", g, new Vector3(0, 0, 2f), new Vector2(9f, 18f), granite, "stone", 0.3f, 1.2f);
+            var riverWall = MeshFactory.Box("RiverWall", g, new Vector3(4.7f, 0.5f, 2f), new Vector3(0.5f, 1f, 18f), granite, true, 1f);
+            var brickWall = MeshFactory.Box("BrickWall", g, new Vector3(-4.7f, 2f, 2f), new Vector3(0.6f, 4f, 18f), brick, true, 1.4f);
+            foreach (var slab in new[] { promenade, riverWall, brickWall }) slab.GetComponent<MeshRenderer>().enabled = false;
             Kit.Water(g, new Vector3(40f, -1.4f, 2f), new Vector2(70f, 120f), new Color(0.04f, 0.06f, 0.08f));
-            for (int i = 0; i < 3; i++) Kit.LampPost(g, new Vector3(4.2f, 0f, -4f + i * 6f), new Color(0.95f, 0.85f, 0.7f), 2f, metal, out _);
             // Suspended water: rain that hangs in the air.
             var drops = Kit.Weather(g, new Vector3(0, 2f, 2f), new Vector3(9f, 3.5f, 17f), true, new Color(0.75f, 0.85f, 0.95f, 0.5f), 0f, 0f);
             var em = drops.emission; em.rateOverTime = 0f; em.SetBursts(new[] { new ParticleSystem.Burst(0f, 900) });
@@ -51,6 +56,8 @@ namespace TwelfthStamp
             kiosk.localPosition = new Vector3(-2.6f, 0, 7.5f);
             MeshFactory.Box("Kiosk", kiosk, new Vector3(0, 1.3f, 0), new Vector3(2.2f, 2.6f, 1.6f), wood, true);
             MeshFactory.Box("KioskRoof", kiosk, new Vector3(0, 2.7f, 0), new Vector3(2.5f, 0.2f, 1.9f), metal, false);
+            MeshFactory.Box("KioskWindow", kiosk, new Vector3(0, 1.45f, -0.81f), new Vector3(1.4f, 0.8f, 0.02f), Mats.Emissive(new Color(0.3f, 0.24f, 0.16f), new Color(0.9f, 0.62f, 0.32f)), false);
+            AddPointLight(kiosk, new Vector3(0, 1.6f, -1.3f), new Color(1f, 0.8f, 0.52f), 1.2f, 5f); // the checkpoint reads from the promenade
             MeshFactory.Cylinder("ClockBody", kiosk, new Vector3(1.15f, 2.2f, 0), 0.42f, 0.08f, metal, 24, false).transform.localRotation = Quaternion.Euler(0, 0, 90);
             MeshFactory.Make("ClockFace", MeshFactory.QuadMesh(0.76f, 0.76f), Mats.Unlit(new Color(0.95f, 0.92f, 0.82f), faceTex, false, 0.9f), kiosk, new Vector3(1.24f, 2.2f, 0), Quaternion.Euler(0, -90, 0));
             MinuteHand = new GameObject("MinuteHand").transform;
@@ -67,11 +74,14 @@ namespace TwelfthStamp
             ChimeGlow.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
             MeshFactory.Quad("ChimeGlow", kiosk, 1.4f, 1.4f, ChimeGlow, new Vector3(1.3f, 2.2f, 0), Quaternion.Euler(0, -90, 0));
 
+            BuildEmbankmentDetail(g, kiosk, granite, brick);
+
             CheckpointSeam = AddSeam("checkpoint", new Vector3(-4.3f, 0f, 3f), 90f);
             AddSeam("arrival", new Vector3(0f, 0f, -6.6f), 0f);
             Trace = TraceMark.Create(transform, CountryId.UnitedKingdom, new Vector3(-1.2f, 0.02f, 3.0f), Quaternion.identity, 0.55f, true);
             SetArrival(new Vector3(0f, 0f, -5.6f), 0f);
-            AddBounds(new Vector3(0, 0, 2f), new Vector3(8.6f, 5f, 17f));
+            // Bounds: BuildBridgeWalk adds one box round the promenade and the way over the bridge to the far embankment,
+            // and keeps the promenade's river-side limit.
             SetEncounter(gameObject.AddComponent<LondonEncounter>());
         }
     }

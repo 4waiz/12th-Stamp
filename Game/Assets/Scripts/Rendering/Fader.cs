@@ -15,6 +15,8 @@ namespace TwelfthStamp
         Material m_Mat;
         GameObject m_Sphere;
         Image m_Overlay;
+        RawImage m_Mark;          // small key-art mark while the screen stays black (desktop)
+        float m_BlackFor;
         float m_Alpha;
         float m_Target;
         float m_Speed = 2f;
@@ -47,12 +49,29 @@ namespace TwelfthStamp
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 1000;
+            var scaler = canvasGo.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.matchWidthOrHeight = 1f;
             var img = new GameObject("Fade", typeof(RectTransform), typeof(Image));
             img.transform.SetParent(canvasGo.transform, false);
             var rt = img.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
             m_Overlay = img.GetComponent<Image>();
             m_Overlay.raycastTarget = false;
+            var thumb = Branding.Thumb;
+            if (thumb != null)
+            {
+                m_Mark = new GameObject("LoadingMark", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+                m_Mark.transform.SetParent(canvasGo.transform, false);
+                m_Mark.texture = thumb;
+                m_Mark.raycastTarget = false;
+                var mrt = m_Mark.rectTransform;
+                mrt.anchorMin = mrt.anchorMax = mrt.pivot = new Vector2(1f, 0f);
+                mrt.anchoredPosition = new Vector2(-36f, 36f);
+                mrt.sizeDelta = new Vector2(64f, 64f);
+                m_Mark.color = new Color(1f, 1f, 1f, 0f);
+            }
             Apply();
         }
 
@@ -102,6 +121,17 @@ namespace TwelfthStamp
             {
                 m_Alpha = Mathf.MoveTowards(m_Alpha, m_Target, m_Speed * Time.unscaledDeltaTime);
                 Apply();
+            }
+            if (m_Mark != null)
+            {
+                // Only for a real wait (black for a moment and staying black), never for quick dips or fades.
+                // Only for a loading wait on black (never on the red death fade, menus or quick dips).
+                bool black = m_Alpha > 0.99f && m_Target > 0.99f && Game.Mode == GameMode.Desktop && m_Color.maxColorComponent < 0.02f && !Game.InMenu;
+                m_BlackFor = black ? m_BlackFor + Time.unscaledDeltaTime : 0f;
+                float a = m_BlackFor > 0.35f ? Mathf.Clamp01((m_BlackFor - 0.35f) * 3f) * (0.6f + 0.25f * Mathf.Sin(Time.unscaledTime * 2.4f)) : 0f;
+                var c = m_Mark.color;
+                c.a = black ? a : Mathf.MoveTowards(c.a, 0f, Time.unscaledDeltaTime * 6f);
+                m_Mark.color = c;
             }
         }
 

@@ -419,6 +419,7 @@ namespace TwelfthStamp.EditorTools
                 m.SetFloat("_DstBlend", (float)BlendMode.One);
             });
             MakeSimple("TS_Beam", Shader.Find("TwelfthStamp/Beam"), null);
+            MakeSimple("TS_Rim", Shader.Find("TwelfthStamp/Rim"), null);
             MakeSimple("TS_Unlit", Shader.Find("TwelfthStamp/Unlit"), null);
             MakeSimple("TS_UnlitTransparent", Shader.Find("TwelfthStamp/Unlit"), m =>
             {
@@ -549,6 +550,21 @@ namespace TwelfthStamp.EditorTools
     {
         void OnPreprocessTexture()
         {
+            if (assetPath.StartsWith("Assets/Branding/Icons/"))
+            {
+                // Application icons: exact pixels for Unity's icon writer (no compression, no mips, no resizing).
+                var ii = (TextureImporter)assetImporter;
+                ii.textureType = TextureImporterType.Default;
+                ii.sRGBTexture = true;
+                ii.alphaIsTransparency = true;
+                ii.mipmapEnabled = false;
+                ii.npotScale = TextureImporterNPOTScale.None;
+                ii.isReadable = true;
+                ii.textureCompression = TextureImporterCompression.Uncompressed;
+                ii.maxTextureSize = 2048;
+                ii.wrapMode = TextureWrapMode.Clamp;
+                return;
+            }
             if (!assetPath.StartsWith("Assets/Resources/")) return;
             var ti = (TextureImporter)assetImporter;
             var file = Path.GetFileNameWithoutExtension(assetPath);
@@ -569,6 +585,7 @@ namespace TwelfthStamp.EditorTools
             ti.anisoLevel = 4;
             ti.maxTextureSize = assetPath.Contains("/Art/") ? 2048 : 1024;
             ti.textureCompression = TextureImporterCompression.CompressedHQ;
+            if (assetPath.Contains("/Art/Branding/")) ti.npotScale = TextureImporterNPOTScale.None; // never resized to a power of two
         }
 
         void OnPreprocessAudio()

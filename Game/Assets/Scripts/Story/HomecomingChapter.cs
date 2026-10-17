@@ -138,42 +138,44 @@ namespace TwelfthStamp
             }
         }
 
+        /// <summary>
+        /// The glasses go on, and the world comes apart. They rise from the case to the eyes as an object (the camera stays
+        /// where the player has it); the fridge dies and the voicemail starts repeating; then a dimension shift throws him
+        /// into the Between (BetweenRun), where something is already running after him. With the three pieces of his home
+        /// stamp, the seal at the far end shifts him into the Margin: the same apartment, copied, where the tutorial begins.
+        /// </summary>
         static IEnumerator WearAndCorrupt(ApartmentCell apt, GameObject glasses)
         {
             var c = Game.Campaign;
-            glasses.SetActive(false);
-            AudioDirector.I?.Play("glasses_unfold", Game.Rig.Head.position, 0.6f);
-            Fader.I.FadeTo(0.55f, 0.35f);
-            yield return new WaitForSeconds(0.45f);
-            Fader.I.FadeTo(0f, 0.8f);
+            var homeFeet = Game.Rig.Feet;
+            float homeYaw = Game.Rig.Head.eulerAngles.y;
+            Game.InputLocks++;
+            yield return GlassesOn(glasses.transform);
             c.SetFlag(StoryFlags.GlassesWorn);
             Game.SaveNow();
             Hud.I?.SetObjective("", false);
 
-            // Subtraction: the fridge hum stops.
+            // Subtraction first: the fridge stops, a recorded word repeats.
             AudioDirector.I?.Play("fridge_stop", apt.FridgeRoot.position, 0.9f);
-            AudioDirector.I?.SetAmbience("amb_margin", 4f, 0.5f);
-            Hud.I?.ShowCaption("the fridge stops humming", 3f);
-            yield return new WaitForSeconds(3.5f);
-            // A recorded word repeats.
+            AudioDirector.I?.SetAmbience("amb_margin", 3f, 0.5f);
+            Hud.I?.ShowCaption("the fridge stops humming", 2.5f);
+            yield return new WaitForSeconds(Game.IsAutoTest ? 0.4f : 1.6f);
             AudioDirector.I?.Play("mom_01_glitch", apt.PhoneRoot.position, 0.9f, 1f, Bus.Voice);
-            Hud.I?.ShowCaption("the voicemail repeats: \"unpacked... unpacked...\"", 4f);
-            yield return new WaitForSeconds(4.5f);
-            // The reflection becomes wrong: a corridor that exists only in the glass.
-            AudioDirector.I?.Play("reflection_sting", null, 0.7f, 1f, Bus.SFX, true);
-            float t = 0f;
-            while (t < 1f) { t += Time.deltaTime / 3f; apt.ReflectionMat.SetColor("_Color", new Color(0.75f, 0.75f, 0.7f, t * 0.16f)); yield return null; }
-            Narration.I?.Say("home_03");
-            yield return new WaitForSeconds(3f);
-            AudioDirector.I?.Play("skyline_shift", null, 0.8f);
-            yield return new WaitForSeconds(1.5f);
+            Hud.I?.ShowCaption("the voicemail repeats: \"unpacked... unpacked...\"", 3.5f);
+            Game.InputLocks--;
 
-            // The copy takes over (same layout, same coordinates: the player is not moved).
-            Fader.I.FadeTo(0.85f, 0.5f);
-            yield return new WaitForSeconds(0.55f);
-            var corrupt = Game.Cells.Activate(CellId.ApartmentCorrupt);
-            corrupt.RefreshProbe();
-            Fader.I.FadeTo(0f, 1.2f);
+            // Then the room comes apart and throws him into the Between.
+            yield return DimensionShift.Run(() =>
+            {
+                var margin = Game.Cells.Activate(CellId.ApartmentCorrupt);
+                margin.RefreshProbe();
+                BetweenRun.Enter(margin);
+            }, Game.IsAutoTest ? 2f : 4.5f);
+            yield return BetweenRun.Play();
+
+            // The seal throws him into the Margin copy of the apartment, where he stood.
+            yield return DimensionShift.Run(() => BetweenRun.Leave(homeFeet, homeYaw), Game.IsAutoTest ? 1f : 2f);
+            var corrupt = (ApartmentCell)Game.Cells.Active;
             c.SetFlag(StoryFlags.SeamRevealed);
             Game.Passport.Available = true;
             c.MarkVisited(CountryId.UAE); // UAE is verified later, by the encounter
@@ -183,6 +185,39 @@ namespace TwelfthStamp
             StoryDirector.I.ThreatAllowed = true;
             StoryDirector.I.ShowVitality = true;
             if (corrupt.Encounter != null) { corrupt.Encounter.Entered = true; corrupt.Encounter.OnEnter(true); }
+        }
+
+        /// <summary>
+        /// The glasses rise from the open case to the eyes as an object, turning to face the way the player looks, and
+        /// settle with a click: on desktop just in front of the eyes, so the rims and bridge frame the view for a moment; in VR
+        /// a hand's width from the face (nothing is drawn against the eyes). The camera is never moved.
+        /// </summary>
+        public static IEnumerator GlassesOn(Transform glasses)
+        {
+            var head = Game.Rig.Head;
+            bool vr = Game.Mode == GameMode.VR;
+            float stop = vr ? 0.24f : 0.058f, drop = vr ? 0.02f : 0.006f;
+            var from = glasses.position;
+            var r0 = glasses.rotation;
+            AudioDirector.I?.Play("glasses_unfold", from, 0.7f);
+            const float Seconds = 1.5f;
+            for (float k = 0f; k < 1f; )
+            {
+                k = Mathf.Min(1f, k + Time.deltaTime / Seconds);
+                float e = Mathf.SmoothStep(0f, 1f, k);
+                var to = head.position + head.forward * stop - head.up * drop;
+                glasses.position = Vector3.Lerp(from, to, e) + Vector3.up * Mathf.Sin(e * Mathf.PI) * 0.08f;
+                glasses.rotation = Quaternion.Slerp(r0, Quaternion.LookRotation(-head.forward, head.up), Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(k * 1.4f)));
+                yield return null;
+            }
+            AudioDirector.I?.Play("case_close", head.position, 0.35f, 1.6f);
+            for (float t = 0f; t < (vr ? 0.25f : 0.9f); t += Time.deltaTime)
+            {
+                glasses.position = head.position + head.forward * stop - head.up * drop;
+                glasses.rotation = Quaternion.LookRotation(-head.forward, head.up);
+                yield return null;
+            }
+            glasses.gameObject.SetActive(false);
         }
     }
 
@@ -278,6 +313,7 @@ namespace TwelfthStamp
             pc.RetreatPoint = A.transform.TransformPoint(new Vector3(2.75f, 0f, -6.2f));
             pc.RetreatSeconds = 14f;
             pc.Spawn(Cell, new Vector3(2.75f, 0.01f, -5.2f), 0f, PassengerState.Observe, Disguise.Kandura);
+            pc.AllowChase = false; // the tutorial's first threat stays a slow stalk (the chase was the Between's)
             pc.Threatening = true;
             AudioDirector.I?.Play("pass_creak_1", pc.ChestPosition, 0.8f);
             Hud.I?.ShowCaption("glass creaks in the bathroom doorway", 3f);

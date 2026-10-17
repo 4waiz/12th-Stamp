@@ -1,93 +1,188 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>France / Paris — The Street That Folds. Rainy riverside checkpoint; the signature encounter.</summary>
-    public class ParisCell : Cell
+    /// <summary>
+    /// France / Paris — The Street That Folds. A rainy Seine embankment on festival night; the signature encounter.
+    /// Layout (cell-local, metres): the street runs north (+Z) between Haussmann blocks on the west and the river
+    /// parapet on the east. The festival checkpoint (desk under an awning) stands at z = 6 with the Passenger guarding
+    /// it. The seam for borrowed light is on the festival poster board north-west of the desk, angled so that from the
+    /// approach the tear, the sunbeam and the Passenger are all in one view.
+    /// </summary>
+    public partial class ParisCell : Cell
     {
         public Transform DeskRoot;
         public TraceMark Trace;
         public SeamAnchor DeskSeam, RiverSeam, ArrivalSeam;
+        /// <summary>Where a player naturally stands to open the desk seam with the desk in view (AutoTest and judges).</summary>
+        public Transform TearVantage;
         public Vector3 GuardLocal = new Vector3(0f, 0f, 6.75f);
-        public Vector3 RetreatLocal = new Vector3(-2.6f, 0f, 10.2f);
+        public Vector3 RetreatLocal = new Vector3(-2.6f, 0f, 10.6f);
+        public static readonly Vector3 BoardLocal = new Vector3(-2.2f, 0f, 8.0f);
+        public const float BoardYaw = 120f;
 
         protected override void Build()
         {
             Id = CellId.Paris;
+            // Rainy night that still reads: a cool moonlit key raking along the street, warm practicals (lamps, shop
+            // windows, the booth and desk lamps), a lighter horizon so roofs and the tower separate from the sky.
             Lighting = new LightingPreset
             {
-                SunColor = new Color(0.55f, 0.62f, 0.78f), SunIntensity = 0.28f, SunEuler = new Vector3(62f, -30f, 0f), ShadowStrength = 0.6f,
-                AmbientSky = new Color(0.2f, 0.25f, 0.33f), AmbientEquator = new Color(0.16f, 0.18f, 0.22f), AmbientGround = new Color(0.07f, 0.075f, 0.085f),
-                FogColor = new Color(0.22f, 0.26f, 0.32f), FogDensity = 0.035f,
-                SkyZenith = new Color(0.07f, 0.09f, 0.13f), SkyHorizon = new Color(0.3f, 0.34f, 0.4f), SkyGround = new Color(0.1f, 0.11f, 0.13f),
-                SunDiscColor = new Color(0, 0, 0, 0), CloudColor = new Color(0.22f, 0.25f, 0.3f, 0.7f),
-                PostExposure = 0.15f, Saturation = -12f, Contrast = 12f, ColorFilter = new Color(0.9f, 0.95f, 1f), Bloom = 0.65f, Vignette = 0.28f
+                SunColor = new Color(0.6f, 0.68f, 0.84f), SunIntensity = 0.55f, SunEuler = new Vector3(40f, -38f, 0f), ShadowStrength = 0.62f,
+                AmbientSky = new Color(0.27f, 0.32f, 0.42f), AmbientEquator = new Color(0.21f, 0.23f, 0.28f), AmbientGround = new Color(0.1f, 0.1f, 0.115f),
+                FogColor = new Color(0.25f, 0.29f, 0.37f), FogDensity = 0.022f,
+                SkyZenith = new Color(0.08f, 0.1f, 0.15f), SkyHorizon = new Color(0.4f, 0.44f, 0.52f), SkyGround = new Color(0.1f, 0.11f, 0.13f),
+                SunDiscColor = new Color(0, 0, 0, 0), CloudColor = new Color(0.26f, 0.29f, 0.35f, 0.65f),
+                PostExposure = 0.35f, Saturation = -8f, Contrast = 10f, ColorFilter = new Color(0.93f, 0.96f, 1f), Bloom = 0.6f, Vignette = 0.24f
             };
             Ambience = "amb_paris_rain";
             AddSun();
 
-            var cobble = Mats.Lit(new Color(0.42f, 0.42f, 0.44f), 0.78f, 0f, "cobble_wet");
-            var stone = Mats.Lit(new Color(0.78f, 0.74f, 0.66f), 0.35f, 0f, "limestone_blocks");
-            var trim = Mats.Lit(new Color(0.68f, 0.64f, 0.57f), 0.3f, 0f, "limestone_blocks");
-            var window = Mats.Lit(new Color(0.06f, 0.07f, 0.09f), 0.92f, 0.2f);
+            var cobble = Mats.Lit(new Color(0.95f, 0.95f, 1f), 0.6f, 0f, "cobble_wet");
+            var pavers = Mats.Lit(new Color(0.9f, 0.89f, 0.87f), 0.5f, 0f, "granite_pavers");
+            var curb = Mats.Lit(new Color(0.95f, 0.94f, 0.92f), 0.4f, 0f, "granite_pavers");
+            var puddle = Mats.Lit(new Color(0.03f, 0.035f, 0.045f), 0.96f, 0f);
+            var stone = Mats.Lit(new Color(0.8f, 0.76f, 0.68f), 0.3f, 0f, "limestone_blocks");
             var metal = Mats.Lit(new Color(0.06f, 0.07f, 0.07f), 0.55f, 0.8f);
-            var wood = Mats.Lit(new Color(0.35f, 0.22f, 0.14f), 0.45f, 0f, "wood_dark");
+            var wood = Mats.Lit(new Color(1f, 0.92f, 0.85f), 0.45f, 0f, "wood_dark");
             var paper = Mats.Lit(new Color(0.92f, 0.89f, 0.8f), 0.2f, 0f, "paper_ivory");
             var brass = Mats.Lit(new Color(0.75f, 0.58f, 0.3f), 0.6f, 0.9f);
-            var canvas = Mats.Lit(new Color(0.28f, 0.1f, 0.1f), 0.3f, 0f, "fabric_linen");
+            var canvas = Mats.Lit(new Color(0.85f, 0.3f, 0.26f), 0.3f, 0f, "fabric_linen");
+            var facade = new UrbanKit.FacadeMats
+            {
+                Stone = stone,
+                StoneBase = Mats.Lit(new Color(0.7f, 0.66f, 0.59f), 0.3f, 0f, "limestone_blocks"),
+                Trim = Mats.Lit(new Color(0.86f, 0.82f, 0.74f), 0.3f, 0f, "limestone_blocks"),
+                Zinc = Mats.Lit(new Color(0.85f, 0.9f, 0.97f), 0.55f, 0.6f, "metal_brushed"),
+                Iron = Mats.Lit(new Color(0.03f, 0.03f, 0.032f), 0.45f, 0.7f),
+                Frame = Mats.Lit(new Color(0.1f, 0.13f, 0.12f), 0.4f, 0f),
+                GlassDark = Mats.Lit(new Color(0.04f, 0.05f, 0.065f), 0.92f, 0.2f),
+                GlassLit = Mats.Emissive(new Color(0.3f, 0.25f, 0.18f), new Color(0.75f, 0.47f, 0.25f)),
+                Chimney = Mats.Lit(new Color(1f, 0.92f, 0.88f), 0.3f, 0f, "brick_london"),
+                ShopGlow = Mats.Emissive(new Color(0.24f, 0.17f, 0.11f), new Color(0.3f, 0.18f, 0.085f)),
+                ShopLamp = Mats.Emissive(new Color(1f, 0.9f, 0.72f), new Color(2.4f, 1.7f, 0.95f)),
+                ShopGlass = Mats.Glass(new Color(0.55f, 0.65f, 0.7f, 0.1f)),
+                Goods = new[]
+                {
+                    Mats.Lit(new Color(0.58f, 0.15f, 0.11f), 0.3f), Mats.Lit(new Color(0.15f, 0.32f, 0.22f), 0.55f),
+                    Mats.Lit(new Color(0.86f, 0.79f, 0.62f), 0.25f, 0f, "paper_ivory"), Mats.Lit(new Color(0.2f, 0.25f, 0.44f), 0.35f),
+                    Mats.Lit(new Color(0.72f, 0.54f, 0.26f), 0.6f, 0.7f),
+                },
+                Fascias = new[] { Mats.Lit(new Color(0.09f, 0.2f, 0.16f), 0.45f), Mats.Lit(new Color(0.3f, 0.06f, 0.06f), 0.45f), Mats.Lit(new Color(0.06f, 0.09f, 0.2f), 0.45f) },
+                Awnings = new[] { Mats.Lit(new Color(0.85f, 0.28f, 0.24f), 0.25f, 0f, "fabric_linen"), Mats.Lit(new Color(0.35f, 0.7f, 0.5f), 0.25f, 0f, "fabric_linen") },
+            };
 
             var g = Group("Geometry");
-            MeshFactory.Floor("Street", g, new Vector3(-0.2f, 0, 1.5f), new Vector2(8.6f, 23f), cobble, "stone", 0.3f, 1f);
-            MeshFactory.Floor("Pavement", g, new Vector3(-3.4f, 0.06f, 1.5f), new Vector2(1.6f, 23f), Mats.Lit(new Color(0.5f, 0.49f, 0.47f), 0.6f, 0f, "granite_pavers"), "stone", 0.3f, 1f);
+            // Street in segments (forward rendering lights each object with its eight nearest lights).
+            for (int i = 0; i < 4; i++)
+            {
+                float z0 = -10f + i * 5.75f;
+                MeshFactory.Floor("Street" + i, g, new Vector3(-0.2f, 0, z0 + 2.875f), new Vector2(8.6f, 5.75f), cobble, "stone", 0.3f, 1f);
+                MeshFactory.Floor("Pavement" + i, g, new Vector3(-3.55f, 0.12f, z0 + 2.875f), new Vector2(1.5f, 5.75f), pavers, "stone", 0.3f, 1.2f);
+            }
+            MeshFactory.Box("Curb", g, new Vector3(-2.78f, 0.06f, 1.5f), new Vector3(0.16f, 0.13f, 23f), curb, true, 1f);
+            UrbanKit.Puddles(g, new Vector3(0.2f, 0f, 1.5f), new Vector2(5.5f, 19f), 11, 75, puddle);
 
-            // West side: three Haussmann-style facades; the upper storeys fold inward over the street.
+            // West side: three Haussmann blocks facing the street (front = local -Z, so yaw -90 faces +X). The upper
+            // storeys fold slowly inward over the street: the one impossible event the player can watch.
+            var rnd = new System.Random(1789);
+            var shopNames = new[] { "Café des Voyageurs", "Librairie", "Tabac", "Pâtisserie", "Café du Quai", "Fleuriste" };
+            int si = 0;
             for (int i = 0; i < 3; i++)
             {
-                float z = -6f + i * 7.4f;
-                var f = Kit.Facade(g, "Facade" + i, new Vector3(-4.3f, 0.06f, z), 90f, 7.2f, 2, 3.4f, stone, window, trim, false, true, 0.45f);
-                MeshFactory.Box("ShopFront", f.transform, new Vector3(0, 1.4f, -0.04f), new Vector3(5.5f, 2.6f, 0.06f), window, false);
-                MeshFactory.Box("ShopSign", f.transform, new Vector3(0, 2.95f, -0.1f), new Vector3(5.8f, 0.4f, 0.12f), Mats.Lit(new Color(0.1f, 0.13f, 0.12f), 0.5f), false);
-                var upper = Kit.Facade(g, "UpperFacade" + i, new Vector3(-4.3f, 6.86f, z), 90f, 7.2f, 3, 3.2f, stone, window, trim, i == 1, true, 0.3f);
-                var fold = upper.AddComponent<FoldingFacade>();
-                fold.MaxAngle = 7f + i * 2f;
+                float z = -6.4f + i * 7.4f;
+                var names = new[] { shopNames[si++ % shopNames.Length], shopNames[si++ % shopNames.Length] };
+                UrbanKit.Haussmann(g, "Haussmann" + i, new Vector3(-4.35f, 0.12f, z), -90f, 3, facade, rnd, names, out var upper, out var shopLights);
+                var fold = upper.gameObject.AddComponent<FoldingFacade>();
+                fold.MaxAngle = 4f + i * 1.6f;
                 fold.Phase = i * 1.3f;
+                if (shopLights.Count > 0)
+                    AddPointLight(g, shopLights[shopLights.Count / 2], new Color(1f, 0.74f, 0.46f), 1.7f, 6f);
             }
-            // East side: river parapet, benches, the river, the far bank.
-            MeshFactory.Box("Parapet", g, new Vector3(3.85f, 0.45f, 1.5f), new Vector3(0.45f, 0.9f, 23f), stone, true, 1f);
+            UrbanKit.CafeSet(g, new Vector3(-3.2f, 0.12f, -4.0f), 90f, Mats.Lit(new Color(0.8f, 0.78f, 0.72f), 0.6f, 0f, "marble_white"), metal, Mats.Lit(new Color(0.55f, 0.4f, 0.22f), 0.3f, 0f, "fabric_linen"));
+            UrbanKit.CafeSet(g, new Vector3(-3.25f, 0.12f, -2.3f), 70f, Mats.Lit(new Color(0.8f, 0.78f, 0.72f), 0.6f, 0f, "marble_white"), metal, Mats.Lit(new Color(0.55f, 0.4f, 0.22f), 0.3f, 0f, "fabric_linen"));
+
+            // East side: the river parapet with a stone coping, benches, the Seine, the far bank, a bridge, the tower.
+            MeshFactory.Box("Parapet", g, new Vector3(3.85f, 0.45f, 1.5f), new Vector3(0.45f, 0.9f, 23f), stone, true, 2.5f);
+            MeshFactory.Box("Coping", g, new Vector3(3.85f, 0.94f, 1.5f), new Vector3(0.6f, 0.09f, 23.2f), facade.Trim, false, 2.5f);
             Kit.Bench(g, new Vector3(3.0f, 0, -3.5f), -90f, wood, metal);
             Kit.Water(g, new Vector3(30f, -1.4f, 10f), new Vector2(52f, 90f), new Color(0.05f, 0.07f, 0.08f));
-            var farBank = Mats.Backdrop(new Color(0.22f, 0.24f, 0.28f), Lighting);
-            for (int i = 0; i < 9; i++)
-                MeshFactory.Box("FarBank", g, new Vector3(62f + (i % 3) * 6f, 6f + (i * 7) % 9, -30f + i * 11f), new Vector3(14f, 12f + (i * 5) % 10, 10f), farBank, false);
-            var lamps = Mats.Backdrop(new Color(0.9f, 0.7f, 0.45f), Lighting, new Color(1.4f, 0.9f, 0.5f));
-            Landmarks.LatticeTower(g, new Vector3(120f, -2f, 150f), 0.9f, Mats.Backdrop(new Color(0.2f, 0.21f, 0.25f), Lighting), lamps);
+            // The far bank (x > 55) and the river beyond z = 55 are the landmark vista's (Landmarks.cs); the bridge stops short.
+            var lampGlow = Mats.Backdrop(new Color(0.9f, 0.7f, 0.45f), Lighting, new Color(1.4f, 0.9f, 0.5f));
+            // The bridge at z 38 is a walkable stone bridge now, built with the way to it: BuildRiverWalk (Detail_ParisWalk.cs).
+            Landmarks.LatticeTower(g, new Vector3(120f, -2f, 150f), 0.9f, Mats.Backdrop(new Color(0.2f, 0.21f, 0.25f), Lighting), lampGlow);
             // North end: the street continues into an alley mouth (shadow, the retreat point).
-            MeshFactory.Box("NorthWall", g, new Vector3(0.6f, 3f, 12.6f), new Vector3(6.8f, 6f, 0.6f), stone, true, 1.5f);
-            MeshFactory.Box("AlleyDark", g, new Vector3(-2.6f, 2f, 12.2f), new Vector3(2.2f, 4f, 0.2f), Mats.Lit(new Color(0.01f, 0.01f, 0.012f), 0.1f), false);
+            MeshFactory.Box("NorthWall", g, new Vector3(0.6f, 3f, 12.6f), new Vector3(6.8f, 6f, 0.6f), stone, true, 4f);
+            MeshFactory.Box("AlleyDark", g, new Vector3(-2.6f, 2f, 12.25f), new Vector3(2.2f, 4f, 0.2f), Mats.Lit(new Color(0.01f, 0.01f, 0.012f), 0.1f), false);
 
-            // The festival verification checkpoint.
+            // The festival verification checkpoint: desk, awning with a string of bulbs, rope line, programmes.
             DeskRoot = Kit.Desk(g, new Vector3(0f, 0f, 6f), 180f, wood, paper, brass, out var ledgerTop, out _).transform;
             Kit.Awning(g, new Vector3(0, 0, 6.2f), 0f, 3.6f, 2.6f, 2.7f, canvas, metal);
+            var bulbs = Mats.Emissive(new Color(1f, 0.85f, 0.6f), new Color(2.2f, 1.5f, 0.8f));
+            var bulbLine = new MeshBuilder();
+            for (int i = 0; i < 9; i++) bulbLine.AddSphere(new Vector3(-1.6f + i * 0.4f, 2.45f - 0.08f * Mathf.Sin(i / 8f * Mathf.PI), 4.95f), 0.035f, 8, 6);
+            MeshFactory.FromBuilder("BoothBulbs", bulbLine, bulbs, g).GetComponent<MeshRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            AddPointLight(g, new Vector3(0f, 2.35f, 5.4f), new Color(1f, 0.8f, 0.55f), 1.3f, 5.5f); // lights the guard from the front
             var rope = Mats.Lit(new Color(0.5f, 0.1f, 0.1f), 0.3f);
             foreach (var x in new[] { -1.4f, 1.4f }) MeshFactory.Cylinder("Stanchion", g, new Vector3(x, 0, 4.6f), 0.04f, 0.95f, brass, 10);
             MeshFactory.Box("Rope", g, new Vector3(0, 0.85f, 4.6f), new Vector3(2.8f, 0.03f, 0.03f), rope, false);
+            var prints = new[] { Tex.Art("stamp_france"), Tex.Art("stamp_egypt"), Tex.Art("stamp_japan"), Tex.Art("stamp_brazil"), Tex.Art("postcard_1"), Tex.Art("postcard_3") };
+            UrbanKit.Litter(g, new Vector3(0.3f, 0f, 3.6f), new Vector2(3.4f, 2.4f), 7, 12, System.Array.FindAll(prints, t => t != null));
+            UrbanKit.Banner(g, new Vector3(3.62f, 0.98f, -1.2f), -90f, 2.4f, 0.9f, canvas, metal, "FESTIVAL OF PASSPORTS", "PARIS  ·  CHECKPOINT");
 
             Trace = TraceMark.Create(transform, CountryId.France, transform.InverseTransformPoint(ledgerTop.position) + Vector3.up * 0.003f, Quaternion.identity, 0.2f, true);
             Trace.Reveal(false);
 
-            Kit.LampPost(g, new Vector3(-2.9f, 0.06f, -2f), new Color(1f, 0.75f, 0.45f), 2.2f, metal, out _, "StreetLamp_Paris");
-            Kit.LampPost(g, new Vector3(3.2f, 0f, 2.8f), new Color(1f, 0.75f, 0.45f), 2.2f, metal, out _, "StreetLamp_Paris");
-            Kit.LampPost(g, new Vector3(-2.9f, 0.06f, 9f), new Color(1f, 0.72f, 0.42f), 1.6f, metal, out _, "StreetLamp_Paris");
+            Kit.LampPost(g, new Vector3(-2.75f, 0.12f, -2f), new Color(1f, 0.75f, 0.45f), 2.4f, metal, out _, "StreetLamp_Paris");
+            Kit.LampPost(g, new Vector3(3.2f, 0f, 2.8f), new Color(1f, 0.75f, 0.45f), 2.4f, metal, out _, "StreetLamp_Paris");
+            Kit.LampPost(g, new Vector3(-2.75f, 0.12f, 9.4f), new Color(1f, 0.72f, 0.42f), 1.8f, metal, out _, "StreetLamp_Paris");
+            // Festival bunting strung from the building line to the river lamps.
+            var cord = Mats.Lit(new Color(0.08f, 0.07f, 0.06f), 0.3f);
+            var cloth = new[] { Mats.Lit(new Color(0.9f, 0.3f, 0.25f), 0.25f, 0f, "fabric_linen"), Mats.Lit(new Color(1f, 0.92f, 0.7f), 0.25f, 0f, "fabric_linen"), Mats.Lit(new Color(0.35f, 0.5f, 0.9f), 0.25f, 0f, "fabric_linen"), Mats.Lit(new Color(0.4f, 0.75f, 0.55f), 0.25f, 0f, "fabric_linen") };
+            UrbanKit.Bunting(g, new Vector3(-4.2f, 6.4f, -1.0f), new Vector3(3.2f, 3.9f, 2.8f), 0.6f, cord, cloth);
+            // A festival flagpole on the parapet carries the second string.
+            MeshFactory.Cylinder("FlagPole", g, new Vector3(3.75f, 0.98f, 7.6f), 0.035f, 3.6f, metal, 8, false);
+            MeshFactory.Box("Flag", g, new Vector3(3.75f, 4.15f, 8.05f), new Vector3(0.02f, 0.55f, 0.85f), cloth[0], false);
+            UrbanKit.Bunting(g, new Vector3(-4.2f, 6.2f, 5.0f), new Vector3(3.75f, 4.5f, 7.6f), 0.7f, cord, cloth);
 
-            Kit.Weather(g, new Vector3(0, 7f, 2f), new Vector3(14f, 0.5f, 26f), true, new Color(0.75f, 0.8f, 0.9f, 0.45f), 1400f, 9f);
+            // The seam for borrowed light: on the festival poster board, angled across the desk (see class summary).
+            var posters = new[] { Tex.Art("postcard_2"), Tex.Art("postcard_1"), Tex.Art("postcard_3"), Tex.Art("postcard_4") };
+            UrbanKit.PosterBoard(g, BoardLocal, BoardYaw, wood, metal, paper, posters, "FESTIVAL DES PASSEPORTS", "Pavillons du monde  ·  douze pays  ·  entrée libre");
 
-            // Seams: one faces the desk (the right choice for borrowed light), one faces the street, one at arrival.
-            // Aimed so borrowed light crosses the desk at chest height (verified by geometry: ~5.3 m to the guard point).
-            DeskSeam = AddSeam("desk", new Vector3(-3.35f, 0.06f, 2.6f), 40f, 1.45f);
+            // Street furniture: an advertising column, a cast-iron drinking fountain, the booksellers' boxes shut for the
+            // night on the parapet, and a building closing the north end (the alley mouth stays dark).
+            var iron = Mats.Lit(new Color(0.07f, 0.17f, 0.12f), 0.45f, 0.6f);
+            var bills = new[]
+            {
+                Mats.Lit(new Color(0.86f, 0.8f, 0.66f), 0.2f, 0f, "paper_ivory"), Mats.Lit(new Color(0.62f, 0.16f, 0.12f), 0.25f),
+                Mats.Lit(new Color(0.18f, 0.26f, 0.46f), 0.25f), Mats.Lit(new Color(0.8f, 0.6f, 0.22f), 0.25f), Mats.Lit(new Color(0.2f, 0.36f, 0.26f), 0.25f),
+            };
+            UrbanKit.MorrisColumn(g, new Vector3(2.75f, 0f, 10.4f), iron, Mats.Lit(new Color(0.12f, 0.12f, 0.12f), 0.3f), bills, new System.Random(7),
+                new[] { "THÉÂTRE", "CONCERT", "EXPOSITION" });
+            UrbanKit.WallaceFountain(g, new Vector3(-3.5f, 0.12f, 2.6f), iron, Mats.Glass(new Color(0.7f, 0.8f, 0.85f, 0.35f)));
+            var stall = Mats.Lit(new Color(0.16f, 0.34f, 0.24f), 0.4f, 0.3f);
+            foreach (float z in new[] { -8.6f, -6.4f, 4.7f, 9.7f, 11.7f })
+                UrbanKit.Bouquiniste(g, new Vector3(3.85f, 0.985f, z), 90f, stall, brass); // fronts face the street
+            UrbanKit.Haussmann(g, "HaussmannNorth", new Vector3(1.35f, 0f, 12.27f), 0f, 2, facade, new System.Random(1830), new[] { "Brasserie" }, out _, out var northShop);
+            if (northShop.Count > 0) AddPointLight(g, northShop[0], new Color(1f, 0.74f, 0.46f), 1.2f, 5f);
+
+            Kit.Weather(g, new Vector3(0, 7f, 2f), new Vector3(14f, 0.5f, 26f), true, new Color(0.75f, 0.8f, 0.9f, 0.4f), 900f, 9f);
+            BuildRiverWalk(g); // open world: the way from the street over the river to the tower's garden
+
+            var boardFwd = Quaternion.Euler(0, BoardYaw, 0) * Vector3.forward;
+            DeskSeam = AddSeam("desk", BoardLocal + boardFwd * 0.06f, BoardYaw, 1.45f);
             RiverSeam = AddSeam("river", new Vector3(3.35f, 0f, -0.5f), -90f);
             ArrivalSeam = AddSeam("arrival", new Vector3(0.5f, 0f, -7.6f), 0f);
-            SetArrival(new Vector3(0.5f, 0f, -6.6f), 0f);
-            AddBounds(new Vector3(-0.2f, 0, 2f), new Vector3(7.6f, 6f, 20.5f));
+            TearVantage = new GameObject("TearVantage").transform;
+            TearVantage.SetParent(transform, false);
+            TearVantage.localPosition = new Vector3(-0.3f, 0f, 2.8f);
+            var toBoard = BoardLocal - TearVantage.localPosition; toBoard.y = 0f;
+            TearVantage.localRotation = Quaternion.LookRotation(toBoard.normalized, Vector3.up);
+            SetArrival(new Vector3(0.6f, 0f, -2.6f), 0f);
+            // One box round the street, the river walk, the bridge and the far bank up to the stamp (x -6..104, z -8.25..142,
+            // walls from y -2.5 to 9.5 so they hold at street, quay and bank level; the south wall is where it always was).
+            AddBounds(new Vector3(49f, -2.5f, 66.875f), new Vector3(110f, 6f, 150.25f), 12f);
 
             SetEncounter(gameObject.AddComponent<ParisEncounter>());
         }
@@ -112,12 +207,14 @@ namespace TwelfthStamp
         ParisCell P => (ParisCell)Cell;
         PassengerHand m_Hand;
         float m_WindowTime;
-        bool m_HandShown, m_NearMiss, m_LightTaught, m_Cleared;
+        bool m_HandShown, m_LightTaught, m_Cleared;
         float m_RespawnTimer = -1f;
+
+        public PassengerHand Hand => m_Hand;
 
         public override void OnEnter(bool firstVisit)
         {
-            m_HandShown = false; m_WindowTime = 0f; m_NearMiss = false; m_Cleared = false; m_RespawnTimer = -1f;
+            m_HandShown = false; m_WindowTime = 0f; m_Cleared = false; m_RespawnTimer = -1f;
             if (m_Hand == null) m_Hand = PassengerHand.Create(transform);
             m_Hand.Detach();
             var tears = Game.Tears;
@@ -224,7 +321,6 @@ namespace TwelfthStamp
             if (!IsLive) return;
             if (m_HandShown && m_Hand != null && m_Hand.Active)
             {
-                m_NearMiss = true;
                 m_Hand.Recoil();
                 Hud.I?.ShowToast("Sealed. It's caught on the other side.", 3f);
                 Game.Story?.RestoreVitality(0.15f);
@@ -237,14 +333,13 @@ namespace TwelfthStamp
         void OnBreach(Tear t)
         {
             if (!IsLive) return;
-            // Not an instant kill: a heavy drain, the tear snaps shut, and the threat resets to the desk.
+            // The hand closes around your wrist: sudden death, then Retry at the embankment.
             Hud.I?.ShowCaption("the hand closes around your wrist", 2.5f);
-            Game.Story?.DrainVitality(0.42f);
             m_Hand?.Detach();
             Game.Tears.Close(false);
             m_HandShown = false;
             m_Cleared = false;
-            if (Game.Campaign.vitality > 0f) SpawnGuard();
+            Game.Story?.Kill("pulled through the tear");
         }
 
         public override void ResetLocal()

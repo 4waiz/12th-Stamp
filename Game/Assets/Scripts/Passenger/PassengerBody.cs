@@ -5,7 +5,7 @@ namespace TwelfthStamp
 {
     public enum Disguise { None, Kandura, ExhibitLinen, RainCoat, LostLuggage, LanternPaper, MirageMirror, PetalWet, Confetti, ClockCoat, OpticianCoat, Mimic }
 
-    public enum Pose { Idle, Walk, Shuffle, Reach, Recoil, Shield, HoldPassport, Rise, Crouch, Point }
+    public enum Pose { Idle, Walk, Shuffle, Reach, Recoil, Shield, HoldPassport, Rise, Crouch, Point, Run }
 
     /// <summary>
     /// The Passenger's body: rigid layered plates of charcoal smoked glass with faint sea-green fracture edges, an
@@ -44,13 +44,13 @@ namespace TwelfthStamp
 
         void Build()
         {
-            m_Glass = Mats.Lit(new Color(0.055f, 0.06f, 0.068f), 0.94f, 0.35f);
-            // Bronze seams (as in approved reference C) with a faint sea-green glint that stays readable in the dark.
-            m_Edge = Mats.Lit(new Color(0.55f, 0.42f, 0.25f), 0.75f, 1f, null, false, new Color(0.06f, 0.16f, 0.13f));
-            var faceTex = Tex.Art("passenger_face");
-            m_Face = Mats.Unlit(new Color(0.82f, 0.81f, 0.77f), faceTex, false, 0.75f);
-            var mimicTex = Tex.Art("passenger_face_mimic");
-            m_FaceMimic = Mats.Unlit(new Color(0.82f, 0.81f, 0.77f), mimicTex, false, 0.75f);
+            // Smoked glass: dark, glossy, mostly opaque. Its edges catch light through the rim layer (TwelfthStamp/Rim), so the
+            // silhouette reads in the dark without the body glowing.
+            m_Glass = Glass();
+            // Bronze seams (approved reference C), darkened so they read as fracture edges rather than panel lines.
+            m_Edge = Seam();
+            m_Face = FaceMaterial(Tex.Art("passenger_face"));
+            m_FaceMimic = FaceMaterial(Tex.Art("passenger_face_mimic"));
 
             Hips = Bone("Hips", transform, new Vector3(0, 1.08f, 0));
             Chest = Bone("Chest", Hips, new Vector3(0, 0.3f, 0));
@@ -106,6 +106,45 @@ namespace TwelfthStamp
         /// <summary>True when the Blender-modelled body is in use (false: procedural shards).</summary>
         public bool UsesModel { get; private set; }
 
+        public static Material Glass() => Mats.Lit(new Color(0.042f, 0.047f, 0.052f), 0.86f, 0.12f);
+        public static Material Seam() => Mats.Lit(new Color(0.19f, 0.145f, 0.095f), 0.6f, 0.85f, null, false, new Color(0.01f, 0.026f, 0.022f));
+        public static Material RimLayer() => Mats.Rim(new Color(0.62f, 0.78f, 0.74f), 3.2f, 0.42f);
+
+        /// <summary>The empty ID photo: a printed, lit oval set inside the face recess (a faint self-light keeps the blank
+        /// silhouette legible in the dark without turning it into a lamp).</summary>
+        static Material FaceMaterial(Texture2D tex)
+        {
+            var m = new Material(Mats.Template("Lit_Emissive")) { name = "PassengerFace" };
+            if (tex != null) { m.SetTexture("_BaseMap", tex); m.SetTexture("_EmissionMap", tex); }
+            m.SetColor("_BaseColor", new Color(0.34f, 0.33f, 0.31f));
+            m.SetFloat("_Smoothness", 0.3f);
+            m.SetFloat("_Metallic", 0f);
+            m.SetColor("_EmissionColor", new Color(0.035f, 0.036f, 0.034f));
+            return m;
+        }
+
+        /// <summary>
+        /// Adds the edge-light layer: a copy of each glass mesh drawn with TwelfthStamp/Rim on every submesh. It lives on the
+        /// same transform, so it animates, wears disguises and moves into pockets with the part it lights.
+        /// </summary>
+        public static void AddRimLayer(GameObject part, Material rim)
+        {
+            foreach (var mf in part.GetComponentsInChildren<MeshFilter>(true))
+            {
+                if (mf.sharedMesh == null || mf.name == "RimLayer") continue;
+                var go = new GameObject("RimLayer");
+                go.transform.SetParent(mf.transform, false);
+                go.layer = mf.gameObject.layer;
+                go.AddComponent<MeshFilter>().sharedMesh = mf.sharedMesh;
+                var r = go.AddComponent<MeshRenderer>();
+                var mats = new Material[Mathf.Max(1, mf.sharedMesh.subMeshCount)];
+                for (int i = 0; i < mats.Length; i++) mats[i] = rim;
+                r.sharedMaterials = mats;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+            }
+        }
+
         /// <summary>
         /// Swaps the procedural shards for the Blender-modelled parts (Resources/Models/Passenger_Parts, described in
         /// Art/Models/MODELS.md) when that file is present. Every part's origin is its joint, so each hangs off the same
@@ -156,8 +195,16 @@ namespace TwelfthStamp
             Attach("Part_Chest", Chest, Vector3.zero);
             Attach("Part_Head", Head, headOrigin);
             Attach("Part_FacePlate", Head, headOrigin + new Vector3(0f, 0.1552f, 0.0834f));
-            // The photo oval sits just in front of the modelled face plate.
-            FaceRoot.localPosition = headOrigin + new Vector3(0f, 0.1552f, 0.095f);
+            // The missing photo sits inside the recess, just over the face plate (the plate is about 1 cm below the head's
+            // surface) and slightly smaller than the opening: an empty frame set into the glass, not a lamp.
+            FaceRoot.localPosition = headOrigin + new Vector3(0f, 0.1552f, 0.0834f + 0.0045f);
+            var oval = FaceRoot.Find("FaceOval");
+            if (oval != null) oval.localScale = new Vector3(0.066f, 0.093f, 1f);
+            var ring = FaceRoot.Find("FaceRim");
+            if (ring != null) ring.gameObject.SetActive(false); // the head shell already has its own recess edge
+            // Deliberate asymmetry: a lifted, cracked plate on the left shoulder (added live in Blender, see MODELS.md).
+            if (parts.ContainsKey("Part_ShoulderShard")) Attach("Part_ShoulderShard", UpperArmL.parent, new Vector3(0f, 0.015f, 0f));
+            else Debug.LogWarning("[TS-Passenger] Passenger_Parts has no Part_ShoulderShard (older export)");
             foreach (var (upper, fore, hand, fingers) in new[] { (UpperArmL, ForearmL, HandL, m_FingersL), (UpperArmR, ForearmR, HandR, m_FingersR) })
             {
                 Attach("Part_UpperArm", upper, Vector3.zero);
@@ -171,6 +218,12 @@ namespace TwelfthStamp
                 Attach("Part_Shin", shin, Vector3.zero);
                 Attach("Part_Foot", shin, new Vector3(0f, -0.52f, 0f));
             }
+            // Edge light on every glass part (not the face plate or the photo).
+            var rim = RimLayer();
+            foreach (var r in GetComponentsInChildren<MeshRenderer>(true))
+                if (r.name.StartsWith("Part_") && r.name != "Part_FacePlate") AddRimLayer(r.gameObject, rim);
+            // A slightly dropped left shoulder: it stands like something that learned posture from a photograph.
+            UpperArmL.parent.localPosition += new Vector3(0f, -0.022f, 0f);
             return true;
         }
 
@@ -293,7 +346,7 @@ namespace TwelfthStamp
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-            m_Phase += dt * (Pose == Pose.Shuffle ? 2.2f : 3.6f) * Mathf.Max(0.15f, Speed01);
+            m_Phase += dt * (Pose == Pose.Shuffle ? 2.2f : Pose == Pose.Run ? 8.2f : 3.6f) * Mathf.Max(0.15f, Speed01);
             if (Pose != m_PrevPose) { m_PoseBlend = 0f; m_PrevPose = Pose; }
             m_PoseBlend = Mathf.MoveTowards(m_PoseBlend, 1f, dt * 3.5f);
 
@@ -315,7 +368,7 @@ namespace TwelfthStamp
             Quaternion thighL = Quaternion.Euler(-walk * swing, 0, 0), thighR = Quaternion.Euler(walk * swing, 0, 0);
             Quaternion shinL = Quaternion.Euler(Mathf.Max(0, walk) * swing * 1.2f, 0, 0), shinR = Quaternion.Euler(Mathf.Max(0, -walk) * swing * 1.2f, 0, 0);
             Quaternion chest = Quaternion.Euler(2f + breathe * 100f, walk * swing * 0.15f, 0);
-            Quaternion head = Quaternion.Euler(6f, 0, m_Twitch);
+            Quaternion head = Quaternion.Euler(6f, 0, m_Twitch + 7f); // a constant tilt: deliberate asymmetry
             float fingerCurl = 8f;
             float hipsY = 1.08f + Mathf.Abs(walk) * 0.02f * Speed01;
 
@@ -362,6 +415,20 @@ namespace TwelfthStamp
                 case Pose.Point:
                     upperR = Quaternion.Euler(-85f, 15f, 0);
                     foreR = Quaternion.Euler(-5f, 0, 0);
+                    break;
+                case Pose.Run:
+                    // A loping sprint, leaning in, both arms reaching ahead with splayed fingers: what you see behind you.
+                    upperL = Quaternion.Euler(-70f + walk * 16f, 0, 10f);
+                    upperR = Quaternion.Euler(-76f - walk * 16f, 0, -10f);
+                    foreL = foreR = Quaternion.Euler(-14f, 0, 0);
+                    thighL = Quaternion.Euler(-walk * 48f * Speed01 - 8f, 0, 0);
+                    thighR = Quaternion.Euler(walk * 48f * Speed01 - 8f, 0, 0);
+                    shinL = Quaternion.Euler(Mathf.Max(0, walk) * 85f * Speed01 + 10f, 0, 0);
+                    shinR = Quaternion.Euler(Mathf.Max(0, -walk) * 85f * Speed01 + 10f, 0, 0);
+                    chest = Quaternion.Euler(24f, walk * 9f, 0);
+                    head = Quaternion.Euler(-16f, 0, m_Twitch * 0.6f + 7f); // chin up: it keeps its face on you
+                    fingerCurl = -12f;
+                    hipsY = 1.0f + Mathf.Abs(walk) * 0.07f * Speed01;
                     break;
             }
 

@@ -3,9 +3,9 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>India / Agra — The Reflection That Stayed. A garden checkpoint at dawn; the pool reflects one person too
+    /// <summary>India / Agra — The Reflection That Stayed. A garden checkpoint at dusk; the pool reflects one person too
     /// many. Set the lamp where its reflection exposes the genuine trace. (No sacred objects are used as tools.)</summary>
-    public class AgraCell : Cell
+    public partial class AgraCell : Cell
     {
         public readonly List<Socket> Pedestals = new List<Socket>();
         public Grabbable Lamp;
@@ -19,28 +19,42 @@ namespace TwelfthStamp
             Id = CellId.Agra;
             Lighting = new LightingPreset
             {
-                SunColor = new Color(1f, 0.78f, 0.65f), SunIntensity = 0.9f, SunEuler = new Vector3(10f, 70f, 0f), ShadowStrength = 0.6f,
-                AmbientSky = new Color(0.55f, 0.52f, 0.62f), AmbientEquator = new Color(0.55f, 0.45f, 0.42f), AmbientGround = new Color(0.25f, 0.24f, 0.2f),
-                FogColor = new Color(0.85f, 0.72f, 0.7f), FogDensity = 0.016f,
-                SkyZenith = new Color(0.45f, 0.55f, 0.75f), SkyHorizon = new Color(0.98f, 0.8f, 0.72f), SkyGround = new Color(0.55f, 0.5f, 0.45f),
-                SunDiscColor = new Color(1f, 0.85f, 0.7f, 0.8f), SunSize = 0.006f, CloudColor = new Color(1f, 0.85f, 0.8f, 0.25f),
-                PostExposure = -0.05f, Saturation = -6f, Contrast = 6f, ColorFilter = new Color(1f, 0.96f, 0.95f), Bloom = 0.6f, Vignette = 0.2f
+                // Dusk: a low golden sun raking across the walks (the cypresses throw long bars of shade over the stone),
+                // a blue-violet sky above a peach horizon, rose haze a little darker than the horizon so the domed
+                // pavilion at the end of the axis still reads as a silhouette, lanterns just lit.
+                SunColor = new Color(1f, 0.7f, 0.48f), SunIntensity = 1.15f, SunEuler = new Vector3(12f, 70f, 0f), ShadowStrength = 0.72f,
+                AmbientSky = new Color(0.46f, 0.5f, 0.68f), AmbientEquator = new Color(0.6f, 0.47f, 0.42f), AmbientGround = new Color(0.27f, 0.23f, 0.19f),
+                FogColor = new Color(0.8f, 0.62f, 0.6f), FogDensity = 0.014f,
+                SkyZenith = new Color(0.27f, 0.33f, 0.6f), SkyHorizon = new Color(1f, 0.72f, 0.55f), SkyGround = new Color(0.5f, 0.42f, 0.38f),
+                SunDiscColor = new Color(1f, 0.8f, 0.55f, 0.9f), SunSize = 0.008f, CloudColor = new Color(1f, 0.76f, 0.68f, 0.3f),
+                PostExposure = 0.1f, Saturation = 4f, Contrast = 10f, ColorFilter = new Color(1f, 0.97f, 0.94f), Bloom = 0.65f, Vignette = 0.2f
             };
             Ambience = "amb_india_garden";
             AddSun();
             var marble = Mats.Lit(new Color(0.92f, 0.9f, 0.88f), 0.6f, 0f, "marble_white");
-            var grass = Mats.Lit(new Color(0.55f, 0.65f, 0.45f), 0.15f, 0f, "grass_short");
+            var redStone = Mats.Lit(new Color(0.9f, 0.55f, 0.55f), 0.25f, 0f, "sandstone_blocks");
+            var grass = Mats.Lit(new Color(0.9f, 1f, 0.72f), 0.15f, 0f, "grass_short");
             var brass = Mats.Lit(new Color(0.78f, 0.6f, 0.32f), 0.7f, 0.9f, "metal_brushed");
-            var cypress = Mats.Lit(new Color(0.12f, 0.22f, 0.14f), 0.2f);
             var g = Group("Garden");
-            MeshFactory.Floor("Walk", g, new Vector3(0, 0, 4f), new Vector2(9f, 22f), marble, "stone", 0.3f, 1.2f);
-            MeshFactory.Floor("LawnL", g, new Vector3(-6.5f, -0.02f, 4f), new Vector2(4f, 22f), grass, "grass", 0.3f, 1.5f);
-            MeshFactory.Floor("LawnR", g, new Vector3(6.5f, -0.02f, 4f), new Vector2(4f, 22f), grass, "grass", 0.3f, 1.5f);
-            MeshFactory.Box("PoolRim", g, new Vector3(0, 0.08f, 5f), new Vector3(2.6f, 0.16f, 16.6f), marble, true);
-            var pool = Kit.Water(g, new Vector3(0, 0.1f, 5f), new Vector2(2.2f, 16f), new Color(0.35f, 0.42f, 0.5f), 0.97f);
+            // Red sandstone walks (inlaid with marble in Detail_Agra.cs); the lawns run out to the enclosure walls.
+            MeshFactory.Floor("Walk", g, new Vector3(0, 0, 3.7f), new Vector2(9f, 22.6f), redStone, "stone", 0.3f, 1.6f);
+            MeshFactory.Floor("LawnL", g, new Vector3(-6.9f, -0.02f, 3.85f), new Vector2(4.8f, 23.7f), grass, "grass", 0.3f, 1.5f);
+            MeshFactory.Floor("LawnR", g, new Vector3(6.9f, -0.02f, 3.85f), new Vector2(4.8f, 23.7f), grass, "grass", 0.3f, 1.5f);
+            // The old solid rim covered the water (and the reflected figure). It keeps its collider (same footing as
+            // before); the moulded kerb around the water is built in Detail_Agra.cs, the water sits just under the figure.
+            var rim = MeshFactory.Box("PoolRim", g, new Vector3(0, 0.08f, 5f), new Vector3(2.6f, 0.16f, 16.6f), marble, true);
+            rim.GetComponent<MeshRenderer>().enabled = false;
+            var pool = Kit.Water(g, new Vector3(0, 0.09f, 5f), new Vector2(2.2f, 16f), new Color(0.1f, 0.16f, 0.2f), 0.97f);
             pool.layer = Layers.Default;
+            // Cypress rows, beds, pavilions and fountains: see Detail_Agra.cs (the trees keep simple trunk colliders).
             for (int i = 0; i < 6; i++) foreach (var x in new[] { -5.2f, 5.2f })
-                MeshFactory.Frustum("Cypress", g, new Vector3(x, 0, -3f + i * 3.4f), 0.55f, 0.05f, 3.6f, cypress, 10, true);
+            {
+                var trunkCol = new GameObject("CypressCollider");
+                trunkCol.transform.SetParent(g, false);
+                trunkCol.transform.localPosition = new Vector3(x, 1.2f, -3f + i * 3.4f);
+                trunkCol.AddComponent<CapsuleCollider>().radius = 0.35f;
+            }
+            BuildGardenDetail(g, marble, redStone, brass);
             Landmarks.DomedPavilion(g, new Vector3(0, -2f, 230f), 0f, Mats.Backdrop(new Color(0.93f, 0.9f, 0.9f), Lighting));
             // The extra reflected person: a figure that exists only below the water surface.
             ExtraPersonMat = Mats.UnlitInstance(new Color(0.05f, 0.06f, 0.07f, 0.45f), Tex.SoftDot, true, 1f);
@@ -87,8 +101,14 @@ namespace TwelfthStamp
             AddSeam("arrival", new Vector3(0f, 0f, -5.6f), 0f);
             AddSeam("lawn", new Vector3(-4.4f, 0f, 6f), 90f);
             SetArrival(new Vector3(0f, 0f, -4.6f), 0f);
-            AddBounds(new Vector3(0, 0, 4f), new Vector3(16f, 5f, 21f));
+            // Open world: the garden opens north (threshold at z 14.35..15) onto the vista's marble walk to the domed pavilion.
+            // One box from the arrival end to just past the stamp spot (3, 1.45, 166): x +-12 keeps the player on the walks
+            // and lawns between the vista's cypress rows and its broadleaf trees, and leaves room to walk round the raised
+            // tank at z 91..109 (x +-9, 0.9 m high). Inside the garden the enclosure's colliders hold the old line.
+            AddEnclosureColliders(g);
+            AddBounds(new Vector3(0, 0, (-6.5f + 170f) / 2f), new Vector3(24f, 5f, 170f + 6.5f));
             SetEncounter(gameObject.AddComponent<AgraEncounter>());
+            Landmarks.MarkReachable(this); // the way to the stamp spot is open
         }
     }
 
@@ -157,7 +177,7 @@ namespace TwelfthStamp
 
     /// <summary>Brazil / Rio — The Carnival Without Breathing. Everything is frozen except one drum. Stamp only on the
     /// beat so the drum masks the sound from the float's moving shadow. Off-beat stamps are recoverable mistakes.</summary>
-    public class RioCell : Cell
+    public partial class RioCell : Cell
     {
         public Transform Beater, Ring, FloatShadow, Plate;
         public Material RingMat;
@@ -170,19 +190,25 @@ namespace TwelfthStamp
             Id = CellId.Rio;
             Lighting = new LightingPreset
             {
-                SunColor = new Color(0.5f, 0.5f, 0.7f), SunIntensity = 0.15f, SunEuler = new Vector3(60f, 30f, 0f), ShadowStrength = 0.5f,
-                AmbientSky = new Color(0.14f, 0.12f, 0.2f), AmbientEquator = new Color(0.18f, 0.12f, 0.12f), AmbientGround = new Color(0.06f, 0.05f, 0.05f),
-                FogColor = new Color(0.12f, 0.09f, 0.14f), FogDensity = 0.028f,
-                SkyZenith = new Color(0.03f, 0.03f, 0.08f), SkyHorizon = new Color(0.25f, 0.15f, 0.25f), SkyGround = new Color(0.06f, 0.05f, 0.07f),
-                SunDiscColor = new Color(0, 0, 0, 0), Stars = 0.3f,
-                PostExposure = 0.25f, Saturation = -18f, Contrast = 12f, ColorFilter = new Color(1f, 0.95f, 0.95f), Bloom = 0.8f, Vignette = 0.3f
+                // Carnival night that reads at a glance: warm floodlights and coloured spots do the key work, a lifted
+                // violet ambient fills the shadows, the horizon glows with the city behind the palms, a magenta haze.
+                // Colour stays saturated; only the stillness is wrong.
+                SunColor = new Color(0.62f, 0.62f, 0.95f), SunIntensity = 0.35f, SunEuler = new Vector3(50f, 30f, 0f), ShadowStrength = 0.5f,
+                AmbientSky = new Color(0.4f, 0.34f, 0.58f), AmbientEquator = new Color(0.46f, 0.3f, 0.4f), AmbientGround = new Color(0.17f, 0.12f, 0.15f),
+                FogColor = new Color(0.3f, 0.16f, 0.3f), FogDensity = 0.012f,
+                SkyZenith = new Color(0.04f, 0.04f, 0.13f), SkyHorizon = new Color(0.62f, 0.3f, 0.42f), SkyGround = new Color(0.12f, 0.08f, 0.12f),
+                SunDiscColor = new Color(0, 0, 0, 0), Stars = 0.25f,
+                PostExposure = 0.55f, Saturation = 12f, Contrast = 12f, ColorFilter = new Color(1f, 0.97f, 1f), Bloom = 0.8f, Vignette = 0.22f
             };
             Ambience = "amb_rio_frozen";
             AddSun();
-            var asphalt = Mats.Lit(new Color(0.3f, 0.3f, 0.32f), 0.5f, 0f, "asphalt_wet");
+            var paving = Mats.Lit(new Color(0.93f, 0.92f, 0.97f), 0.5f, 0f, "granite_pavers");
             var concrete = Mats.Lit(new Color(0.55f, 0.55f, 0.55f), 0.25f, 0f, "concrete_panels");
             var g = Group("Avenue");
-            MeshFactory.Floor("Avenue", g, new Vector3(0, 0, 4f), new Vector2(10f, 22f), asphalt, "stone", 0.3f, 1.5f);
+            // Pale granite paving (the float's shadow must read on it), in three pieces so each one's lights stay local;
+            // the wave mosaic on the plaza and promenades is laid over it in Detail_Rio.cs.
+            for (int i = 0; i < 3; i++)
+                MeshFactory.Floor("Avenue" + i, g, new Vector3(0, 0, -7f + 22f / 6f + i * 22f / 3f), new Vector2(10f, 22f / 3f), paving, "stone", 0.3f, 2.4f);
             // Bleachers on both sides.
             for (int side = -1; side <= 1; side += 2)
                 for (int step = 0; step < 5; step++)
@@ -193,7 +219,7 @@ namespace TwelfthStamp
                 for (int i = 0; i < 2; i++)
                 {
                     MeshFactory.Cylinder("Pole", g, new Vector3(x, 0, 0f + i * 9f), 0.1f, 6f, concrete, 8);
-                    AddSpotLight(g, new Vector3(x, 6f, 0f + i * 9f), new Vector3(70f, x < 0 ? 60f : -60f, 0f), new Color(1f, 0.85f, 0.7f), 3f, 14f, 60f);
+                    AddSpotLight(g, new Vector3(x, 6f, 0f + i * 9f), new Vector3(62f, x < 0 ? 60f : -60f, 0f), new Color(1f, 0.85f, 0.7f), 6.5f, 18f, 70f);
                 }
             // The parade float: a desaturated platform with stylised feathers/fans and the one running drum.
             var floatRoot = new GameObject("Float").transform;
@@ -205,16 +231,26 @@ namespace TwelfthStamp
             {
                 var fan = MeshFactory.Box("Fan", floatRoot, new Vector3(-2f + i * 0.66f, 2.4f, 1.2f), new Vector3(0.45f, 2.2f, 0.06f), Mats.Lit(colors[i % 3], 0.5f), false, 1f, Quaternion.Euler(0, 0, -30f + i * 10f));
             }
-            var drum = MeshFactory.Cylinder("Drum", floatRoot, new Vector3(1.2f, 1.2f, -0.6f), 0.45f, 0.6f, Mats.Lit(new Color(0.7f, 0.66f, 0.6f), 0.4f), 18, true);
+            // The one running drum: a chrome surdo (rims, head and rods in Detail_RioFloat.cs) and a felt mallet whose
+            // pivot sits so the head meets the drum skin on the beat instead of sinking into it.
+            var drum = MeshFactory.Cylinder("Drum", floatRoot, new Vector3(1.2f, 1.2f, -0.6f), 0.45f, 0.6f, Mats.Lit(new Color(0.82f, 0.83f, 0.86f), 0.8f, 0.85f), 20, true);
             Beater = new GameObject("Beater").transform;
             Beater.SetParent(floatRoot, false);
-            Beater.localPosition = new Vector3(1.2f, 2.3f, -0.6f);
-            MeshFactory.Box("Arm", Beater, new Vector3(0, -0.3f, 0), new Vector3(0.05f, 0.6f, 0.05f), concrete, false);
-            MeshFactory.Sphere("Head", Beater, new Vector3(0, -0.62f, 0), 0.07f, Mats.Lit(new Color(0.2f, 0.18f, 0.16f), 0.4f));
-            // Frozen confetti.
+            Beater.localPosition = new Vector3(1.2f, 2.5f, -0.6f);
+            MeshFactory.Box("Arm", Beater, new Vector3(0, -0.3f, 0), new Vector3(0.05f, 0.6f, 0.05f), Mats.Lit(new Color(1f, 0.9f, 0.8f), 0.4f, 0f, "wood_dark"), false);
+            MeshFactory.Sphere("Head", Beater, new Vector3(0, -0.62f, 0), 0.07f, Mats.Lit(new Color(0.95f, 0.94f, 0.9f), 0.3f));
+            // Frozen confetti (glinting specks; the paper pieces are geometry in Detail_Rio.cs), in carnival colours.
             var confetti = Kit.Weather(g, new Vector3(0, 2f, 4f), new Vector3(9f, 3f, 18f), false, new Color(0.9f, 0.75f, 0.55f, 0.9f), 0f, 0f);
             var em = confetti.emission; em.rateOverTime = 0f; em.SetBursts(new[] { new ParticleSystem.Burst(0f, 500) });
-            var main = confetti.main; main.startLifetime = 9999f; main.loop = false; main.startColor = new ParticleSystem.MinMaxGradient(new Color(0.8f, 0.5f, 0.35f), new Color(0.45f, 0.6f, 0.75f));
+            var confettiColours = new Gradient { mode = GradientMode.Fixed };
+            confettiColours.SetKeys(new[]
+            {
+                new GradientColorKey(new Color(1f, 0.25f, 0.7f), 0.2f), new GradientColorKey(new Color(1f, 0.85f, 0.2f), 0.4f), new GradientColorKey(new Color(0.2f, 0.9f, 0.9f), 0.6f),
+                new GradientColorKey(new Color(1f, 0.55f, 0.15f), 0.8f), new GradientColorKey(new Color(0.7f, 0.4f, 1f), 1f),
+            }, new[] { new GradientAlphaKey(0.9f, 0f), new GradientAlphaKey(0.9f, 1f) });
+            var main = confetti.main; main.startLifetime = 9999f; main.loop = false;
+            main.startColor = new ParticleSystem.MinMaxGradient(confettiColours) { mode = ParticleSystemGradientMode.RandomColor };
+            main.startSize = new ParticleSystem.MinMaxCurve(0.018f, 0.04f);
 
             // The stamp plate with its rhythm ring.
             Plate = new GameObject("StampPlate").transform;
@@ -231,6 +267,7 @@ namespace TwelfthStamp
             // The float's shadow that moves on its own.
             FloatShadow = MeshFactory.Quad("FloatShadow", g, 2.6f, 1.6f, Mats.UnlitInstance(new Color(0f, 0f, 0f, 0.65f), Tex.SoftDot, true, 1f), new Vector3(0, 0.013f, 4f), Quaternion.Euler(90, 0, 0)).transform;
 
+            BuildCarnivalDetail(g, floatRoot);
             AddSeam("arrival", new Vector3(0f, 0f, -5.6f), 0f);
             AddSeam("stand", new Vector3(4.6f, 0f, 3f), -90f);
             SetArrival(new Vector3(0f, 0f, -4.6f), 0f);

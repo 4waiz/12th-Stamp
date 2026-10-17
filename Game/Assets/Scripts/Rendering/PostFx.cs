@@ -22,6 +22,7 @@ namespace TwelfthStamp
         float m_Contamination;   // 0..1 from the open tear
         float m_Drain;           // 0..1 vitality loss feedback
         float m_Flash;           // brief white/sun flash
+        float m_Shift;           // 0..1 dimension shift (DimensionShift): red grade, contrast, vignette, aberration
 
         public static PostFx Create(Transform parent)
         {
@@ -71,6 +72,8 @@ namespace TwelfthStamp
         public void SetContamination(float c) => m_Contamination = Mathf.Clamp01(c);
         public void SetDrain(float d) => m_Drain = Mathf.Clamp01(d);
         public void Flash(float amount) => m_Flash = Mathf.Max(m_Flash, amount);
+        /// <summary>Dimension-shift grade, 0..1 (set every frame by DimensionShift; it never flashes).</summary>
+        public void SetShift(float s) => m_Shift = Mathf.Clamp01(s);
 
         public void ApplySettings()
         {
@@ -104,6 +107,15 @@ namespace TwelfthStamp
             {
                 m_Chroma.intensity.overrideState = true;
                 m_Chroma.intensity.value = Game.Mode == GameMode.VR ? 0f : m_Contamination * 0.35f;
+            }
+            if (m_Shift > 0f)
+            {
+                m_Color.saturation.value -= m_Shift * 30f;
+                m_Color.contrast.value += m_Shift * 22f;
+                m_Color.colorFilter.value = Color.Lerp(m_Color.colorFilter.value, new Color(1f, 0.42f, 0.36f), m_Shift * 0.7f);
+                m_Vignette.intensity.value = Mathf.Clamp01(m_Vignette.intensity.value + m_Shift * 0.3f);
+                m_Vignette.color.value = Color.Lerp(m_Vignette.color.value, new Color(0.22f, 0f, 0.01f), m_Shift);
+                if (m_Chroma.active && Game.Mode != GameMode.VR) m_Chroma.intensity.value = Mathf.Max(m_Chroma.intensity.value, m_Shift * 0.85f);
             }
         }
     }

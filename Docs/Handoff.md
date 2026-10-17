@@ -30,7 +30,7 @@ All commands run from any folder. Close the Unity editor first if it has the pro
 "%LOCALAPPDATA%\TheTwelfthStamp\Builds\Windows\TheTwelfthStamp.exe" --mode=desktop --autotest=all --report-dir="C:\Dev\12th-Stamp\Docs\QA\latest" -screen-fullscreen 0 -screen-width 1600 -screen-height 900
 ```
 
-`--autotest` accepts `demo`, `egypt`, `story`, `countries`, `finale` or `all`. The test drives the real game systems, writes `autotest_<name>.md` plus screenshots, and exits with code 0 only if every check passed. It never writes to your save.
+`--autotest` accepts `demo`, `egypt`, `story`, `countries`, `finale` or `all`. The test drives the real game systems, writes `autotest_<name>.md` plus screenshots, and exits with code 0 only if every check passed. It never writes to your save. `--autotest=models` and `--autotest=shift` are separate art-review passes, not part of `all`: `models` frames every Blender model and landmark, and `shift` frames the glasses moment, the dimension shift and the Between. It checks that every Blender model is in place and frames each one for a screenshot.
 
 ```bash
 "%LOCALAPPDATA%\TheTwelfthStamp\Builds\Windows\Install Shortcuts.cmd"
@@ -40,7 +40,7 @@ The installer creates "The Twelfth Stamp - Quest 3" and "The Twelfth Stamp - Des
 
 ## Story flow (all eleven countries are playable)
 
-Marrakech shop prologue → Abu Dhabi homecoming → the apartment turns into the Margin copy (UAE tutorial: first tear, first seal, first threat) → Egypt, France, USA, Japan, Saudi Arabia, India, Brazil, UK, Morocco (any order after the tutorial; Egypt unlocks sunlight, New York the noisemaker, Marrakech the calibration insert) → Berlin finale (validate eleven seals, expose the forged doors with sunlight, stamp VOID, open the true return on the blank wall) → near miss and the virtual glasses removal → real home, break the glasses, bathroom, epilogue → results → credits → menu.
+Marrakech shop prologue → Abu Dhabi homecoming → the glasses go on and the room comes apart (dimension shift) → the Between: run from the ghost along a causeway over a red void, grab three pieces of the home stamp, reach the seal → the Margin copy of the apartment (UAE tutorial: first tear, first seal, first threat) → Egypt, France, USA, Japan, Saudi Arabia, India, Brazil, UK, Morocco (any order after the tutorial; Egypt unlocks sunlight, New York the noisemaker, Marrakech the calibration insert) → Berlin finale (validate eleven seals, expose the forged doors with sunlight, stamp VOID, open the true return on the blank wall) → near miss and the virtual glasses removal → real home, break the glasses, bathroom, epilogue → results → credits → menu.
 
 ## Needs you (cannot be done or verified by me)
 
@@ -59,5 +59,16 @@ Marrakech shop prologue → Abu Dhabi homecoming → the apartment turns into th
 
 - VR has been compiled and its start-up fallback path exists, but no person has played it in the headset.
 - New York and London are very dark on a laptop screen. Raise Brightness in Settings, or ask me to lift those scenes.
-- The glasses, the glasses case and the Passenger's body use Blender models (`Game/Assets/Resources/Models`, documented in `Art/Models/MODELS.md`). If a model file is missing, the game falls back to its procedural version. Everything else is procedural. The passport FBX files are not used yet.
+- Blender models (`Game/Assets/Resources/Models`, documented in `Art/Models/MODELS.md`) are used for these:
+  - the hand props (glasses, case, closed passport, camera, phone, festival token);
+  - the VR controllers;
+  - the Passenger's body;
+  - the apartment furniture and suitcase;
+  - the country props (Paris desk and street lamps, Egypt reflector, noisemaker, hand lantern, optical panel, garden lamp, VOID stamp);
+  - the seven landmarks.
+
+  Each one replaces only a procedural mesh: colliders and gameplay positions are unchanged, and a missing file falls back to the procedural version. The full list and the places where a model had to be adapted are in `Docs/QA/QA_Report.md` ("Blender models in the game"). Two stay procedural on purpose. The open passport in hand keeps its procedural pages, because its overlays would not line up with the model's curled pages. The bathroom door is 1.9 m wide and closes in the ending, so the 0.9 m door model is used for the front door instead.
+- The landmarks stand in procedural surroundings built for each cell's view (`World/Vista.cs`, called from `World/Landmarks.cs`): ground, buildings with lit windows, trees, lamps, bridges, water and mist, under a gentler haze than the cell's fog. The skylines seen from New York, Riyadh, Rio, the menu and the apartment use the same buildings. Their ground, walls, quays and bridges have colliders. Each country's play area still has to be opened out to its landmark (polish session); `Landmarks.TryStampSpot` offers a stamp spot there only after the cell calls `Landmarks.MarkReachable`.
+- The glasses moment (`Story/HomecomingChapter.cs`, `DimensionShift.cs`, `BetweenRun.cs`, `World/StampPortal.cs`) has not been seen in a headset. In VR the glasses stop short of the face and there is no streak tunnel.
+- The controller models have not been seen in a headset yet. Add "do the controllers sit right in your hands?" to the headset check.
 - No Android module is installed, so there is no standalone Quest APK. The game runs on Quest 3 as PC VR over Link.

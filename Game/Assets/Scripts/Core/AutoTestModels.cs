@@ -8,7 +8,8 @@ namespace TwelfthStamp
     /// --autotest=models: an art-review pass over the Blender models (Art/Models/MODELS.md). It activates each cell without
     /// its encounter, checks that every model replaced its procedural mesh, and frames each one for a screenshot. Landmarks
     /// are shot from closer than the player gets: once as the game shows them (a fogged silhouette) and once with their
-    /// backdrop fog switched off for that shot, so the model itself can be judged. Desktop only.
+    /// backdrop fog switched off for that shot, so the model itself can be judged. The two props that sit in corners the
+    /// scenes leave dark (New York's radio, Berlin's stamp) get a temporary lamp for their shots. Desktop only.
     /// </summary>
     public partial class AutoTest
     {
@@ -70,6 +71,7 @@ namespace TwelfthStamp
             ExpectModels(egypt, ("Reflector", 1));
             var turning = egypt.Reflector.Target.Find("Pivot");
             Check(turning != null, "Egypt: the reflector model's mirror turns with the puzzle pivot");
+            EgyptGroundToStamp(egypt);
             yield return Frame(egypt, new Vector3(-1.5f, 1.6f, 3.8f), new Vector3(-2.5f, 1.1f, 1.5f), "m15_egypt_reflector");
             egypt.Reflector.SetIndex(4);
             yield return Frame(egypt, new Vector3(-1.5f, 1.6f, 3.8f), new Vector3(-2.5f, 1.1f, 1.5f), "m16_egypt_reflector_turned");
@@ -78,7 +80,9 @@ namespace TwelfthStamp
             var ny = (NewYorkCell)Game.Cells.Activate(CellId.NewYork);
             ExpectModels(ny, ("Noisemaker", 1), ("Landmark_Liberty", 1));
             var radio = ny.Noisemaker.transform.position;
+            var radioLight = ReviewLight(ny, radio + new Vector3(0.2f, 0.5f, -0.5f));
             yield return Frame(ny, radio + new Vector3(0.25f, 0.45f, -0.75f), radio + new Vector3(0f, 0.08f, 0f), "m17_newyork_noisemaker");
+            Destroy(radioLight);
             yield return Landmark(ny, "LibertySilhouette", 93f, 110f, "m18_newyork_liberty");
 
             var japan = (JapanCell)Game.Cells.Activate(CellId.Japan);
@@ -86,6 +90,16 @@ namespace TwelfthStamp
             var lantern = japan.HandLantern.transform.position;
             yield return Frame(japan, lantern + new Vector3(-0.5f, 1.1f, -0.95f), lantern + new Vector3(0f, 0.28f, 0f), "m19_japan_lantern");
             yield return Landmark(japan, "PagodaSilhouette", 39f, 50f, "m20_japan_pagoda");
+            // The precinct gate seen from the street's lane: an open passage on the pagoda's sight line.
+            var pagoda = japan.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == "PagodaSilhouette");
+            if (pagoda != null)
+            {
+                var pp = japan.transform.InverseTransformPoint(pagoda.position);
+                var toViewer = new Vector3(-pp.x, 0f, -pp.z).normalized;
+                var laneEye = pp + toViewer * 84f;
+                laneEye.y = pp.y + 1.6f;
+                yield return Frame(japan, laneEye, pp + toViewer * 60f + Vector3.up * 1.2f, "m20b_japan_gate");
+            }
 
             var riyadh = (RiyadhCell)Game.Cells.Activate(CellId.Riyadh);
             ExpectModels(riyadh, ("OpticalPanel", 1), ("Landmark_ArchTower", 1));
@@ -100,6 +114,8 @@ namespace TwelfthStamp
             var lamp = agra.Lamp.transform.position;
             yield return Frame(agra, lamp + new Vector3(0.3f, 0.75f, -0.75f), lamp + new Vector3(0f, 0.15f, 0f), "m24_agra_lamp");
             yield return Landmark(agra, "DomedPavilion", 65f, 120f, "m25_agra_pavilion");
+            // The open garden: the raised tank on the axis, with its steps and the sandstone paths round it.
+            yield return Frame(agra, new Vector3(6.5f, 1.6f, 80f), new Vector3(0f, 0.4f, 96f), "m25b_agra_tank");
 
             var london = Game.Cells.Activate(CellId.London);
             ExpectModels(london, ("Landmark_ClockTower", 1));
@@ -108,10 +124,42 @@ namespace TwelfthStamp
             var berlin = (BerlinCell)Game.Cells.Activate(CellId.Berlin);
             ExpectModels(berlin, ("VoidStamp", 1), ("Landmark_ColumnGate", 1));
             var stamp = berlin.VoidStamp.transform.position;
+            var stampLight = ReviewLight(berlin, stamp + new Vector3(0.2f, 0.55f, 0.4f));
             yield return Frame(berlin, stamp + new Vector3(0.25f, 0.5f, 0.55f), stamp + new Vector3(0f, 0.07f, 0f), "m27_berlin_void_stamp");
+            Destroy(stampLight);
             yield return Landmark(berlin, "ColumnGate", 27f, 40f, "m28_berlin_gate");
 
             rig.enabled = true;
+        }
+
+        /// <summary>
+        /// Open world, Egypt: solid ground every metre along the straight line from the court's sand floor to the stamp spot
+        /// by the pyramids (no gaps, no step the player cannot take), sand underfoot out there, and the spot itself.
+        /// </summary>
+        void EgyptGroundToStamp(Cell egypt)
+        {
+            var site = egypt.GetComponentsInChildren<VistaInfo>(true).FirstOrDefault(i => i.HasStampSpot);
+            if (site == null) { Check(false, "Egypt: the pyramids have a stamp spot"); return; }
+            var space = site.transform.parent != null ? site.transform.parent : egypt.transform;
+            var spot = space.TransformPoint(site.StampLocal);
+            var from = egypt.transform.TransformPoint(new Vector3(0f, 0f, 8f)); // the middle of the court's sand floor
+            from.y = spot.y;
+            // Every 25 cm, so a dune's slope reads as small rises and only a real ledge shows up as a step the player
+            // cannot climb (the VR body steps 30 cm, the desktop one 32 cm).
+            float length = Vector3.Distance(from, spot);
+            int samples = Mathf.CeilToInt(length / 0.25f), gaps = 0;
+            float step = 0f, stepAt = 0f, last = float.NaN;
+            string underfoot = "";
+            for (int i = 0; i <= samples; i++)
+            {
+                var p = Vector3.Lerp(from, spot, i / (float)samples);
+                if (!Physics.Raycast(p + Vector3.up * 6f, Vector3.down, out var hit, 12f, Layers.FloorMask, QueryTriggerInteraction.Ignore)) { gaps++; continue; }
+                if (!float.IsNaN(last) && Mathf.Abs(hit.point.y - last) > step) { step = Mathf.Abs(hit.point.y - last); stepAt = egypt.transform.InverseTransformPoint(p).z; }
+                last = hit.point.y;
+                if (i == samples) underfoot = Surface.Of(hit.collider);
+            }
+            Check(gaps == 0 && step <= 0.3f, "Egypt: solid ground all the way from the court to the stamp spot (" + length.ToString("0") + " m every 25 cm, " + gaps + " gaps, largest rise " + (step * 100f).ToString("0") + " cm at z " + stepAt.ToString("0") + ")");
+            Check(underfoot == "sand", "Egypt: sand underfoot at the stamp spot (" + underfoot + ")");
         }
 
         /// <summary>Both VR controllers held up in front of the camera, with the binding callouts they show when looked at.</summary>
@@ -143,6 +191,19 @@ namespace TwelfthStamp
             }
         }
 
+        /// <summary>A temporary lamp for a prop in a corner the scene leaves too dark to judge (review shots only).</summary>
+        GameObject ReviewLight(Cell cell, Vector3 position)
+        {
+            var l = new GameObject("ReviewLight").AddComponent<Light>();
+            l.transform.SetParent(cell.transform, false);
+            l.transform.position = position;
+            l.type = LightType.Point;
+            l.color = new Color(1f, 0.95f, 0.88f);
+            l.intensity = 1.6f;
+            l.range = 2.5f;
+            return l.gameObject;
+        }
+
         /// <summary>Places the eye at <paramref name="eye"/> looking at <paramref name="target"/> (cell-local points), then a screenshot.</summary>
         IEnumerator Frame(Cell cell, Vector3 eye, Vector3 target, string shot)
         {
@@ -154,14 +215,38 @@ namespace TwelfthStamp
             if (shot != null) yield return Shot(shot);
         }
 
-        /// <summary>A landmark seen from <paramref name="distance"/> metres on the side facing the cell, framed to its height.</summary>
+        /// <summary>
+        /// A landmark seen from <paramref name="distance"/> metres on the side facing the cell, standing on its vista's ground
+        /// and framed to its height.
+        /// </summary>
         IEnumerator Landmark(Cell cell, string root, float height, float distance, string shot)
         {
             var t = cell.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == root);
             if (t == null) { Check(false, cell.Id + ": landmark " + root + " found"); yield break; }
+            var site = t.GetComponent<VistaInfo>();
+            int parts = t.GetComponentsInChildren<Renderer>(true).Count(r => r.name.StartsWith("Vista_") || r.name == "Dune");
+            Check(site != null && parts >= 8, cell.Id + ": " + root + " stands in its vista (" + parts + " scenery meshes)");
+            if (site != null && site.HasStampSpot)
+            {
+                // Open world: the ground under the stamp spot is solid, and the spot is only offered once the cell opens up.
+                var space = t.parent != null ? t.parent : cell.transform;
+                var spot = space.TransformPoint(site.StampLocal);
+                bool solid = Physics.Raycast(spot + Vector3.up * 0.5f, Vector3.down, out var hit, 4f, Layers.FloorMask, QueryTriggerInteraction.Ignore);
+                Check(solid, cell.Id + ": walkable ground under its stamp spot" + (solid ? " (" + (spot.y - hit.point.y).ToString("0.0") + " m below the stamp)" : ""));
+                bool opened = site.Reachable; // the cell opens its own route (Landmarks.MarkReachable) once it exists
+                bool offeredNow = Landmarks.TryStampSpot(cell, out var offered);
+                Check(offeredNow == opened && (!opened || Vector3.Distance(offered, spot) < 0.01f),
+                    cell.Id + (opened ? ": its route is open and the stamp spot is offered" : ": its stamp spot stays off until the cell opens a route"));
+                Landmarks.MarkReachable(cell, false);
+                bool off = !Landmarks.TryStampSpot(cell, out _);
+                Landmarks.MarkReachable(cell, true);
+                bool on = Landmarks.TryStampSpot(cell, out var again) && Vector3.Distance(again, spot) < 0.01f;
+                Landmarks.MarkReachable(cell, opened); // leave the cell as it opened itself
+                Check(off && on, cell.Id + ": MarkReachable turns its stamp spot off and on");
+            }
             var p = cell.transform.InverseTransformPoint(t.position);
             var toCell = new Vector3(-p.x, 0f, -p.z).normalized;
-            var eye = new Vector3(p.x, 0f, p.z) + toCell * distance + Vector3.up * 1.6f;
+            var eye = new Vector3(p.x, site != null ? site.GroundY : 0f, p.z) + toCell * distance + Vector3.up * 1.6f;
             yield return Frame(cell, eye, p + Vector3.up * height * 0.42f, shot);
             var mats = t.GetComponentsInChildren<Renderer>(true).SelectMany(r => r.sharedMaterials).Where(m => m != null && m.HasProperty("_FogDensity")).Distinct().ToList();
             var fog = mats.Select(m => m.GetFloat("_FogDensity")).ToList();

@@ -1,8 +1,8 @@
 {
   "root": "Passenger_Parts",
-  "tris": 39598,
+  "tris": 39678,
   "dims_m": [
-    0.464,
+    0.4913,
     0.3054,
     2.1474
   ],
@@ -12,7 +12,7 @@
     -0.0001
   ],
   "bbox_max": [
-    0.2685,
+    0.2958,
     0.1334,
     2.1473
   ],
@@ -172,6 +172,22 @@
       "uv": true
     },
     {
+      "name": "Part_ShoulderShard",
+      "type": "MESH",
+      "parent": "Passenger_Parts",
+      "loc": [
+        0.21,
+        0.0,
+        1.8
+      ],
+      "tris": 80,
+      "slots": [
+        "TS_PassengerGlass",
+        "TS_BronzeSeam"
+      ],
+      "uv": true
+    },
+    {
       "name": "Part_Thigh",
       "type": "MESH",
       "parent": "Passenger_Parts",
@@ -211,17 +227,11 @@
   ],
   "transform_issues": [],
   "file": "Passenger_Parts.fbx",
-  "bytes": 2441948,
+  "bytes": 2451292,
   "faceplate_offset_from_head_blender": [
-    -0.0,
+    0.0,
     -0.0834,
     0.1552
   ],
-  "knuckles_x": [
-    -0.0285,
-    -0.0095,
-    0.0095,
-    0.0285
-  ],
-  "palm_length": 0.09
+  "edited_live": "MCP for Blender session 17 Oct 2026: added Part_ShoulderShard (asymmetric lifted glass plates, wearer's left shoulder)"
 }

@@ -39,6 +39,8 @@ authority. Default layout:
 
 Keyboard and mouse
     Move ........................ W A S D or arrow keys
+    Run ......................... Hold Shift while moving forward (you can outrun the Passenger,
+                                  but not by walking)
     Look ........................ Mouse
     Use / grab / put down ....... E
     Passport (open / close) ..... F
@@ -54,6 +56,7 @@ Keyboard and mouse
 
 Quest 3 controllers (right-handed; left-handed mode swaps them in Settings)
     Teleport .................... Push the left thumbstick, release (smooth movement is an option)
+    Run (smooth movement) ....... Push the left thumbstick fully forward
     Turn ........................ Right thumbstick left / right (snap turn by default)
     Grab ........................ Grip (either hand)
     Use ......................... Trigger (either hand)
@@ -72,8 +75,9 @@ Quest 3 controllers (right-handed; left-handed mode swaps them in Settings)
 - Comfort options: teleport or smooth movement, snap or smooth turning, snap angle, seated mode,
   left-handed mode, haptics strength, reduced effects, subtitles (size and background), and a gentler
   scare intensity. Audio has separate Master, Music, Ambience, Effects, Voice and Interface volumes.
-- The game contains darkness, sudden sounds, a pursuing figure and mild body horror (a reaching hand).
-  No gore.
+- The game contains darkness, sudden sounds, a figure that chases you (if it reaches you, you restart from
+  the last checkpoint) and mild body horror (a reaching hand). No gore, no flashing lights, and the game
+  never moves or shakes your view to scare you.
 
 
 5. SAVES
@@ -97,5 +101,6 @@ The judges' demo never writes to your story save.
 ----------------------------
 See the Credits page in the game. This game was made with AI assistance: Claude Code wrote the code and the
 scripts that generate the textures, models, sound effects, ambience and music; the narration voices come from
-the Kokoro-82M text-to-speech model; ChatGPT image generation was used for concept reference sheets only.
+the Kokoro-82M text-to-speech model; ChatGPT image generation made the key art and the title logo (approved
+by Awaiz Ahmed) and concept reference sheets.
 The full asset and tool ledger is in the project's Docs folder.

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    public enum PassengerState { Dormant, Observe, Stalk, Guard, Investigate, PressSeam, Reach, Repelled, Retreat, Drain, Rise, Mimic }
+    public enum PassengerState { Dormant, Observe, Stalk, Guard, Investigate, PressSeam, Reach, Repelled, Retreat, Drain, Rise, Mimic, Chase }
 
     /// <summary>
     /// The single enemy. A small, explicit state machine (no learning AI): dormant, observe from a distance, stalk,
@@ -20,8 +20,24 @@ namespace TwelfthStamp
         public PassengerBody Body { get; private set; }
         public bool Threatening;                 // false during onboarding / transitions / cutscenes
         public float WalkSpeed = 0.85f;
+        /// <summary>Every encounter's walk speed is multiplied by this (playtest: the Passenger felt far too slow).</summary>
+        public static float SpeedScale = 1.9f;
         public float DrainRange = 1.35f;
         public float DrainPerSecond = 0.12f;
+        /// <summary>
+        /// Running after the player (playtest: "I should be running from the ghost and the ghost running after me"). Faster
+        /// than the player's walk (2.6 m/s), a little slower than their sprint (4.55 m/s), so running away works; VR is
+        /// slower to match comfortable smooth locomotion. Gentle scare intensity runs at 85 %.
+        /// </summary>
+        public static float ChaseSpeed = 3.7f, ChaseSpeedVR = 2.8f;
+        /// <summary>A stalking Passenger breaks into a run inside this distance once it has been on the move a moment.</summary>
+        public float ChaseTriggerDistance = 9f;
+        /// <summary>It gives up and drops back to stalking when the player gets this far away.</summary>
+        public float ChaseGiveUpDistance = 26f;
+        /// <summary>Encounters that must stay slow (guards, puzzles that need a calm moment) can switch the run off.</summary>
+        public bool AllowChase = true;
+        /// <summary>Seconds of lunge between it reaching you and the kill (Standard / Gentle scare intensity).</summary>
+        public const float LungeSeconds = 0.45f, GentleLungeSeconds = 0.9f;
         public float RepelThreshold = 0.28f;
         public float RetreatThreshold = 0.6f;
         public Vector3 GuardPoint;
@@ -73,6 +89,7 @@ namespace TwelfthStamp
             Body.RiseAmount = state == PassengerState.Rise ? 0f : 1f;
             Body.ShowImitationPassport(false);
             m_Exposure = 0f; m_ExposureTime = 0f;
+            AllowChase = true;
             SetState(state);
             if (m_Drone == null) m_Drone = AudioDirector.I?.Loop("pass_drone_loop", Body.Chest, 0.0f, Bus.SFX, 1f, 1.5f, 14f);
         }
@@ -106,9 +123,23 @@ namespace TwelfthStamp
                 case PassengerState.Rise:
                     AudioDirector.I?.Play("pass_breath", transform.position + Vector3.up, 0.8f);
                     break;
+                case PassengerState.Chase:
+                    AudioDirector.I?.Play("pass_whisper", ChestPosition, 1f, 0.8f, Bus.SFX, true);
+                    AudioDirector.I?.Play("pass_breath", ChestPosition, 0.9f, 1.25f, Bus.SFX, true);
+                    break;
             }
             StateChanged?.Invoke(s);
         }
+
+        /// <summary>Start running after the player now (story beats: the glasses, a stamp collected, a theft).</summary>
+        public void StartChase()
+        {
+            if (!Visible) return;
+            AllowChase = true;
+            SetState(PassengerState.Chase);
+        }
+
+        public bool Chasing => State == PassengerState.Chase || (State == PassengerState.Drain && m_ReturnState == PassengerState.Chase);
 
         public void Investigate(Vector3 worldPoint, float seconds = 8f)
         {
@@ -192,6 +223,12 @@ namespace TwelfthStamp
                 case PassengerState.Stalk:
                     Body.Pose = Body.CurrentDisguise == Disguise.ExhibitLinen ? Pose.Shuffle : Pose.Walk;
                     MoveTowards(player, dt, distToPlayer > DrainRange * 0.8f);
+                    // Close enough and moving for a moment: it breaks into a run.
+                    if (Threatening && AllowChase && m_StateTime > 2.5f && distToPlayer < ChaseTriggerDistance && distToPlayer > DrainRange) SetState(PassengerState.Chase);
+                    break;
+                case PassengerState.Chase:
+                    Body.Pose = Pose.Run;
+                    RunAt(player, dt, distToPlayer);
                     break;
                 case PassengerState.Guard:
                     if (Vector3.Distance(Flat(transform.position), Flat(GuardPoint)) > 0.3f) { Body.Pose = Pose.Walk; MoveTowards(GuardPoint, dt, true); }
@@ -235,7 +272,7 @@ namespace TwelfthStamp
                     Body.Pose = Pose.Reach;
                     Body.ReachAmount = Mathf.MoveTowards(Body.ReachAmount, 1f, dt * 2f);
                     FaceTowards(player, dt, 120f);
-                    if (distToPlayer > DrainRange * 1.4f) SetState(PassengerState.Stalk);
+                    if (distToPlayer > DrainRange * 1.4f) SetState(m_ReturnState == PassengerState.Chase ? PassengerState.Chase : PassengerState.Stalk);
                     break;
                 case PassengerState.Mimic:
                     Body.Pose = Pose.HoldPassport;
@@ -260,16 +297,28 @@ namespace TwelfthStamp
             bool close = Threatening && !InPocket && distToPlayer < DrainRange && State != PassengerState.Retreat && State != PassengerState.Repelled && State != PassengerState.Dormant && State != PassengerState.Rise;
             if (close)
             {
-                if (m_DrainTelegraph <= 0f) AudioDirector.I?.Play("pass_breath", ChestPosition, 0.9f, 1f, Bus.SFX, true);
-                m_DrainTelegraph += dt;
-                if (m_DrainTelegraph > 0.9f)
+                // Sudden death: within reach it lunges (anticipation you can still break by stepping away or by light),
+                // then it has you. No slow drain.
+                if (m_DrainTelegraph <= 0f)
                 {
+                    AudioDirector.I?.Play("pass_breath", ChestPosition, 1f, 1.15f, Bus.SFX, true);
+                    if (State == PassengerState.Chase) m_ReturnState = PassengerState.Chase;
                     if (State != PassengerState.Drain && State != PassengerState.Mimic) SetState(PassengerState.Drain);
-                    float scale = Game.Settings != null && Game.Settings.scareIntensity == 0 ? 0.7f : 1f;
-                    Game.Story?.DrainVitality(DrainPerSecond * scale * dt);
-                    Drained?.Invoke();
                 }
-                Game.Story?.SetDrainFeedback(Mathf.Clamp01(m_DrainTelegraph));
+                m_DrainTelegraph += dt;
+                float lunge = Game.Settings != null && Game.Settings.scareIntensity == 0 ? GentleLungeSeconds : LungeSeconds;
+                if (State == PassengerState.Drain && Game.Rig != null)
+                {
+                    var to = Flat(Game.Rig.Feet) - Flat(transform.position);
+                    if (to.magnitude > 0.55f) transform.position += to.normalized * Mathf.Min(to.magnitude - 0.55f, 2.4f * dt);
+                }
+                Game.Story?.SetDrainFeedback(Mathf.Clamp01(m_DrainTelegraph / lunge));
+                if (m_DrainTelegraph >= lunge)
+                {
+                    Drained?.Invoke();
+                    Game.Story?.Kill("reached the player");
+                    m_DrainTelegraph = 0f;
+                }
             }
             else
             {
@@ -280,6 +329,30 @@ namespace TwelfthStamp
 
         static Vector3 Flat(Vector3 v) => new Vector3(v.x, 0, v.z);
 
+        /// <summary>Running after the player: continuous (no glass-stutter), turning hard, heavy fast footfalls.</summary>
+        void RunAt(Vector3 player, float dt, float dist)
+        {
+            FaceTowards(player, dt, 400f);
+            if (dist <= DrainRange * 0.8f) { Body.Speed01 = Mathf.MoveTowards(Body.Speed01, 0.4f, dt * 4f); return; }
+            float speed = Game.Mode == GameMode.VR ? ChaseSpeedVR : ChaseSpeed;
+            if (Game.Settings != null && Game.Settings.scareIntensity == 0) speed *= 0.85f;
+            speed *= Mathf.Clamp01(m_StateTime / 0.6f) * 0.5f + 0.5f; // a short burst to full speed
+            var dir = Flat(player) - Flat(transform.position);
+            var next = transform.position + dir.normalized * Mathf.Min(dir.magnitude, speed * dt);
+            if (Physics.Raycast(next + Vector3.up * 1.2f, Vector3.down, out var hit, 3f, Layers.FloorMask | (1 << Layers.Default), QueryTriggerInteraction.Ignore))
+                next.y = hit.point.y;
+            transform.position = next;
+            Body.Speed01 = Mathf.MoveTowards(Body.Speed01, 1f, dt * 5f);
+            m_StepTimer -= dt;
+            if (m_StepTimer <= 0f)
+            {
+                m_StepTimer = 0.29f;
+                AudioDirector.I?.Play("pass_step_" + UnityEngine.Random.Range(1, 4), transform.position, 0.8f, UnityEngine.Random.Range(1.05f, 1.25f));
+                if (UnityEngine.Random.value < 0.15f) AudioDirector.I?.Play("pass_creak_" + UnityEngine.Random.Range(1, 4), ChestPosition, 0.5f);
+            }
+            if (dist > ChaseGiveUpDistance && m_StateTime > 4f) SetState(PassengerState.Stalk);
+        }
+
         /// <summary>Glass-stutter movement: short bursts with tiny pauses. Returns true while still moving.</summary>
         bool MoveTowards(Vector3 target, float dt, bool shouldMove, float speedScale = 1f)
         {
@@ -287,7 +360,7 @@ namespace TwelfthStamp
             if (!shouldMove) { Body.Speed01 = Mathf.MoveTowards(Body.Speed01, 0f, dt * 3f); return false; }
             m_BurstTimer -= dt;
             if (m_BurstTimer <= 0f) { m_Moving = !m_Moving; m_BurstTimer = m_Moving ? UnityEngine.Random.Range(0.5f, 0.9f) : UnityEngine.Random.Range(0.08f, 0.2f); }
-            float speed = (Body.CurrentDisguise == Disguise.ExhibitLinen ? 0.55f : WalkSpeed) * speedScale;
+            float speed = (Body.CurrentDisguise == Disguise.ExhibitLinen ? 0.55f : WalkSpeed) * speedScale * SpeedScale;
             if (m_Moving)
             {
                 var dir = Flat(target) - Flat(transform.position);

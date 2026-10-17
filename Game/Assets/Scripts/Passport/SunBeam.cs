@@ -35,6 +35,29 @@ namespace TwelfthStamp
         public static void Clear() => s_Sources.Clear();
     }
 
+    /// <summary>
+    /// A pool of light around a lamp (a vertical cylinder): anything in it is fully exposed. Used where a lamp makes a
+    /// safe place, e.g. the Marrakech counter, so the rule "light pushes it back" holds for the whole lit area.
+    /// </summary>
+    public class LightPool : MonoBehaviour, LightVolumes.ISource
+    {
+        public float Radius = 2.4f, Height = 3f, Strength = 1f;
+        public Cell OwnerCell;
+        public bool IsSunlight => false;
+
+        void OnEnable() => LightVolumes.Register(this);
+        void OnDisable() => LightVolumes.Unregister(this);
+
+        public float ExposureAt(Vector3 p)
+        {
+            if (Strength <= 0.01f || (OwnerCell != null && OwnerCell.Mode != CellMode.Active)) return 0f;
+            var local = transform.InverseTransformPoint(p);
+            if (local.y < -0.2f || local.y > Height) return 0f;
+            float d = new Vector2(local.x, local.z).magnitude;
+            return d > Radius ? 0f : Strength * Mathf.Clamp01((Radius - d) / 0.4f + 0.5f);
+        }
+    }
+
     /// <summary>A cone of light: visual shaft + real spot light + gameplay volume.</summary>
     public class LightCone : MonoBehaviour, LightVolumes.ISource
     {
@@ -89,12 +112,21 @@ namespace TwelfthStamp
             LightVolumes.Register(this);
         }
 
+        bool m_ShaftHidden;
+
+        /// <summary>Hide the visible shaft but keep the light and the gameplay volume (for lamps whose cone would fill the view).</summary>
+        public void SetShaftVisible(bool on)
+        {
+            m_ShaftHidden = !on;
+            if (m_Shaft != null) m_Shaft.SetActive(on && Strength > 0.01f);
+        }
+
         public void SetStrength(float s)
         {
             Strength = Mathf.Clamp01(s);
             if (m_Mat != null) m_Mat.SetFloat("_Intensity", 1.4f * Strength);
             if (m_Spot != null) m_Spot.intensity = 9f * Strength;
-            if (m_Shaft != null) m_Shaft.SetActive(Strength > 0.01f);
+            if (m_Shaft != null) m_Shaft.SetActive(Strength > 0.01f && !m_ShaftHidden);
             if (m_Spot != null) m_Spot.enabled = Strength > 0.01f;
         }
 

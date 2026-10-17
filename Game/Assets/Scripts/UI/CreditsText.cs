@@ -8,7 +8,7 @@ namespace TwelfthStamp
             "<b>THE TWELFTH STAMP</b>\n" +
             "Concept, direction and production: Awaiz Ahmed, Bilal Feroz, Mohammad Umar, Fuad Ahamed\n" +
             "Engineering, procedural modelling, sound synthesis and integration: Awaiz Ahmed, Bilal Feroz, Mohammad Umar, Fuad Ahamed\n" +
-            "3D models of the glasses, their case and the Passenger: built in Blender 5.2\n" +
+            "3D models of the props, furniture, landmarks, controllers and the Passenger: built in Blender 5.2\n" +
             "Narration: Hyperframes CLI (run locally)\n" +
             "Selected footsteps and impacts: Kenney.nl (CC0)\n" +
             "Fonts: Inter, © 2020 The Inter Project Authors; EB Garamond, © 2017 The EB Garamond Project Authors (both SIL Open Font License 1.1)\n" +

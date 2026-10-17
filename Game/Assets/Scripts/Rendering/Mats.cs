@@ -133,6 +133,19 @@ namespace TwelfthStamp
             return m;
         }
 
+        /// <summary>Additive fresnel edge light (TwelfthStamp/Rim) for the Passenger's glass; drawn on a copy of the mesh.</summary>
+        public static Material Rim(Color color, float power, float intensity)
+        {
+            var key = Key("rim", color, power, intensity);
+            if (s_Cache.TryGetValue(key, out var cached)) return cached;
+            var m = new Material(Template("TS_Rim")) { name = "Rim" };
+            m.SetColor("_RimColor", color);
+            m.SetFloat("_RimPower", power);
+            m.SetFloat("_RimIntensity", intensity);
+            s_Cache[key] = m;
+            return m;
+        }
+
         public static Material BeamInstance(Color color, float intensity)
         {
             var m = new Material(Template("TS_Beam")) { name = "Beam" };
@@ -245,7 +258,7 @@ namespace TwelfthStamp
                 result.SetFloat("_StencilComp", StencilEqual);
                 result.renderQueue = PocketSkyQueue;
             }
-            else if (shaderName == "TwelfthStamp/Particle" || shaderName == "TwelfthStamp/Beam" || shaderName == "TwelfthStamp/Unlit")
+            else if (shaderName == "TwelfthStamp/Particle" || shaderName == "TwelfthStamp/Beam" || shaderName == "TwelfthStamp/Unlit" || shaderName == "TwelfthStamp/Rim")
             {
                 result = new Material(src) { name = src.name + "_Pocket" };
                 result.SetFloat("_StencilComp", StencilEqual);

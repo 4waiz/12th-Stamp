@@ -17,7 +17,9 @@ namespace TwelfthStamp
         readonly List<Interactor> m_Hands = new List<Interactor>();
 
         public const float EyeHeight = 1.62f;
-        public float WalkSpeed = 2.3f;
+        public float WalkSpeed = 2.6f;
+        /// <summary>Hold Shift while moving forward (playtest: walking felt slow between encounters).</summary>
+        public float SprintMultiplier = 1.75f;
 
         public override IReadOnlyList<Interactor> Hands => m_Hands;
         public override Interactor MainHand => m_Hand;
@@ -141,7 +143,10 @@ namespace TwelfthStamp
             if (dir.sqrMagnitude > 1f) dir.Normalize();
             if (m_Controller.isGrounded) m_VerticalSpeed = -1f; else m_VerticalSpeed -= 9.81f * Time.deltaTime;
             if (m_Controller.enabled && Time.deltaTime > 0f)
-                m_Controller.Move((dir * WalkSpeed + Vector3.up * m_VerticalSpeed) * Time.deltaTime);
+            {
+                bool sprint = canAct && input.Sprint != null && input.Sprint.IsPressed() && move.y > 0.1f;
+                m_Controller.Move((dir * WalkSpeed * (sprint ? SprintMultiplier : 1f) + Vector3.up * m_VerticalSpeed) * Time.deltaTime);
+            }
             UpdateFootsteps(0.66f);
 
             m_Hand.UpdateFocus(canAct);

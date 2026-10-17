@@ -15,6 +15,8 @@ namespace TwelfthStamp
         GameObject m_Props, m_Case;
         LightCone m_SafeLight;
         bool m_DrawerOpen, m_NotesRead, m_ThreatStarted;
+        Vector3 m_DrawerHome;
+        bool m_DrawerHomeSet;
 
         public override string Objective =>
             !m_DrawerOpen ? "Put the counter back the way it was: return the three things to their outlines." :
@@ -33,8 +35,19 @@ namespace TwelfthStamp
                 m_SafeLight = go.AddComponent<LightCone>();
                 m_SafeLight.Length = 2.6f; m_SafeLight.StartRadius = 0.3f; m_SafeLight.EndRadius = 1.9f;
                 m_SafeLight.Sunlight = false; m_SafeLight.OwnerCell = Cell;
-                m_SafeLight.Build(new Color(0.6f, 0.85f, 0.8f), 0.25f);
+                m_SafeLight.Build(new Color(1f, 0.78f, 0.5f), 0.25f);
                 m_SafeLight.SetStrength(0.7f);
+                // Gameplay light volume only: its shell read as giant translucent sheets from the arrival point. The real
+                // lamp and a soft pool on the counter carry the look.
+                m_SafeLight.SetShaftVisible(false);
+                // The whole lamp-lit area around the counter is safe (playtest: with sudden death the narrow cone was not).
+                var poolGo = new GameObject("CounterLightPool");
+                poolGo.transform.SetParent(S.transform, false);
+                poolGo.transform.localPosition = new Vector3(0f, 0f, -0.4f);
+                var lightPool = poolGo.AddComponent<LightPool>();
+                lightPool.Radius = 2.5f; lightPool.Height = 3f; lightPool.OwnerCell = Cell;
+                var pool = MeshFactory.Quad("LampPool", S.transform, 1.6f, 1.2f, Mats.Unlit(new Color(1f, 0.78f, 0.5f, 0.22f), Tex.SoftDot, true), new Vector3(0f, 1.046f, 0.1f), Quaternion.Euler(90, 0, 0));
+                pool.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
             if (Game.Campaign.IsVerified(CountryId.Morocco))
             {
@@ -43,14 +56,38 @@ namespace TwelfthStamp
                 return;
             }
             Narration.I?.Say("mor_01", null, false, null, false, true);
+            if (m_Props != null && (m_DrawerOpen || m_NotesRead || System.Array.Exists(m_Marks, m => m != null && m.Current != null))) ResetPuzzle();
             if (m_Props == null) BuildPuzzle();
             Hud.I?.SetObjective(Objective, false);
             m_ThreatStarted = false;
             SpawnObserver();
         }
 
+        /// <summary>
+        /// The shop is cached for the session, so a new story (or a loaded save) that has not verified Morocco would find
+        /// the counter already solved. Put it all back: remove the old props and sockets, close the drawer, hide the trace.
+        /// </summary>
+        void ResetPuzzle()
+        {
+            if (m_Items != null) foreach (var it in m_Items) if (it != null) Destroy(it.gameObject);
+            if (m_Insert != null) Destroy(m_Insert.gameObject);
+            if (m_Props != null) Destroy(m_Props);
+            foreach (var mark in S.CounterMarks)
+            {
+                var sock = mark.GetComponent<Socket>();
+                if (sock != null) DestroyImmediate(sock);
+                var col = mark.GetComponent<BoxCollider>();
+                if (col != null) DestroyImmediate(col);
+            }
+            if (m_DrawerHomeSet) S.DrawerRoot.localPosition = m_DrawerHome;
+            S.Trace.Hide();
+            m_Props = null; m_Case = null; m_Insert = null; m_CaseSocket = null; m_Items = null; m_Marks = null;
+            m_DrawerOpen = false; m_NotesRead = false;
+        }
+
         void BuildPuzzle()
         {
+            if (!m_DrawerHomeSet) { m_DrawerHome = S.DrawerRoot.localPosition; m_DrawerHomeSet = true; }
             m_Props = new GameObject("MoroccoProps");
             m_Props.transform.SetParent(S.transform, false);
             var ids = new[] { "postcard", "brass_tray", "camera" };
@@ -66,7 +103,7 @@ namespace TwelfthStamp
                 {
                     go = new GameObject("BrassTray");
                     go.transform.SetParent(m_Props.transform, false);
-                    MeshFactory.Cylinder("Tray", go.transform, Vector3.zero, 0.09f, 0.012f, Mats.Lit(new Color(0.76f, 0.58f, 0.3f), 0.65f, 0.9f, "metal_brushed"), 24, false);
+                    MeshFactory.Cylinder("Tray", go.transform, Vector3.zero, 0.09f, 0.012f, Mats.Lit(new Color(0.84f, 0.64f, 0.34f), 0.68f, 0.9f), 24, false);
                     go.AddComponent<BoxCollider>().size = new Vector3(0.19f, 0.03f, 0.19f);
                 }
                 else go = PropLibrary.VintageCamera(m_Props.transform);
@@ -176,7 +213,7 @@ namespace TwelfthStamp
         void Update()
         {
             if (!IsLive) return;
-            if (S.Lamp != null) S.Lamp.intensity = 1.1f + Mathf.PerlinNoise(Time.time * 3f, 0.2f) * 0.5f;
+            if (S.Lamp != null) S.Lamp.intensity = 1.9f + Mathf.PerlinNoise(Time.time * 3f, 0.2f) * 0.6f;
         }
 
         public override void ResetLocal()

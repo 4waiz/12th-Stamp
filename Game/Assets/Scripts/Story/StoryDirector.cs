@@ -45,7 +45,7 @@ namespace TwelfthStamp
         public void StartNewGame()
         {
             Game.IsDemo = false;
-            SaveSystem.WritesSuspended = Game.IsAutoTest;
+            SaveSystem.WritesSuspended = Game.TestWritesBlocked;
             Game.Campaign = CampaignState.NewGame();
             Game.SaveNow();
             StartCoroutine(RunCampaign());
@@ -133,10 +133,11 @@ namespace TwelfthStamp
             Game.Tears?.ForceReset();
             Narration.I?.StopAll();
             Game.Passport?.Close();
+            ClearStamp();
             Game.SaveNow();
             Game.IsDemo = false;
             ResetChapterGates();
-            SaveSystem.WritesSuspended = Game.IsAutoTest;
+            SaveSystem.WritesSuspended = Game.TestWritesBlocked;
             StartCoroutine(MenuSystem.I.ShowMainMenuRoutine());
         }
 
@@ -152,6 +153,7 @@ namespace TwelfthStamp
         {
             Busy = true;
             Game.InputLocks++;
+            ClearStamp();
             if (viaTear) AudioDirector.I?.Play("tear_open_door", null, 0.6f);
             yield return Fader.I.FadeOut(viaTear ? 0.25f : 0.45f);
             Game.Passenger?.Despawn();
@@ -219,7 +221,126 @@ namespace TwelfthStamp
                 yield return CounterfeitReveal();
             UpdateObjective();
             if (Game.IsDemo && id == CountryId.France) yield return DemoEnd();
+            else if (newly && InCampaign) OfferStamp(id);
         }
+
+        // ------------------------------------------------------------------ stamps: verify, run, shift
+        StampPortal m_Stamp;
+
+        /// <summary>
+        /// After a seal is verified the country's stamp appears away from the player, and a few seconds later the
+        /// Passenger comes running: reach the stamp and the dimension shift carries you on to the next country. (Playtest:
+        /// "while I am running I have to collect the stamps, and when I collect one I enter another country".) The
+        /// passport and tears still work as before; the stamp is the fast way on. Not in the demo, the UAE tutorial (its
+        /// stamp is the Between run) or Berlin (the finale).
+        /// </summary>
+        void OfferStamp(CountryId id)
+        {
+            var c = Game.Campaign;
+            var cell = Game.Cells.Active;
+            if (cell == null || id == CountryId.UAE || id == CountryId.Germany) return;
+            var next = c.NextRecommended();
+            if (next == null || next.Id == CountryId.UAE) return;
+            ClearStamp();
+            var target = next.Cell;
+            m_Stamp = StampPortal.Spawn(cell.transform, StampSpot(cell), id, s => { if (!Busy) StartCoroutine(StampShift(target)); });
+            var here = CountryDatabase.Get(id);
+            Hud.I?.ShowToast("Your " + here.DisplayName + " stamp is waiting. Reach it before it reaches you.", 4f);
+            Hud.I?.SetObjective("Run to your " + here.DisplayName + " stamp to go on to " + next.DisplayName + " (or open your passport and tear a way).", false);
+            if (ThreatAllowed) StartCoroutine(HuntAfter(cell, 3.5f));
+        }
+
+        /// <summary>
+        /// Where the stamp waits: of the arrival point and the seams, the spot that is far enough from the player to make them
+        /// run and as far as possible from the Passenger, so it chases them towards the stamp instead of standing on it.
+        /// </summary>
+        static Vector3 StampSpot(Cell cell)
+        {
+            // Out at the landmark when the cell has opened its way there (open world: run to the country's key symbol).
+            if (Landmarks.TryStampSpot(cell, out var landmark)) return landmark;
+            var feet = Game.Rig.Feet;
+            var pc = Game.Passenger;
+            bool hunter = pc != null && pc.Visible && pc.transform.parent == cell.transform;
+            float Flat(Vector3 a, Vector3 b) { var d = a - b; d.y = 0f; return d.magnitude; }
+            float Score(Vector3 p) => Mathf.Min(Flat(p, feet), 14f) + (hunter ? Mathf.Min(Flat(p, pc.transform.position), 20f) * 0.7f : 0f) - (Flat(p, feet) < 4f ? 30f : 0f);
+            var best = cell.Arrival.position;
+            float bestScore = Score(best);
+            foreach (var s in cell.Seams)
+            {
+                if (s == null) continue;
+                var p = s.FloorPoint + s.Forward * 1.2f;
+                float sc = Score(p);
+                if (sc > bestScore) { best = p; bestScore = sc; }
+            }
+            return best + Vector3.up * 1.5f;
+        }
+
+        /// <summary>The Passenger comes for the player once the stamp is out: the one already here breaks into a run, or
+        /// it returns from behind them.</summary>
+        IEnumerator HuntAfter(Cell cell, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            if (Game.Cells.Active != cell || m_Stamp == null || m_Stamp.IsCollected || !ThreatAllowed || Busy || m_Failing) yield break;
+            var pc = Game.Passenger;
+            if (pc == null) yield break;
+            if (!pc.Visible)
+            {
+                // It comes from the side away from the stamp, so the run is towards the stamp.
+                var rig = Game.Rig;
+                var away = rig.Feet - m_Stamp.transform.position; away.y = 0f;
+                away = away.sqrMagnitude > 0.01f ? away.normalized : -rig.Forward;
+                var from = cell.transform.InverseTransformPoint(rig.Feet + away * 13f);
+                from.y = cell.transform.InverseTransformPoint(rig.Feet).y;
+                pc.RetreatPoint = cell.transform.TransformPoint(from);
+                pc.RetreatSeconds = 6f;
+                pc.Spawn(cell, from, rig.Head.eulerAngles.y, PassengerState.Stalk);
+                pc.Threatening = true;
+                Hud.I?.ShowCaption("running footsteps, behind you", 3f);
+            }
+            pc.Threatening = true;
+            pc.StartChase();
+        }
+
+        IEnumerator StampShift(CellId next)
+        {
+            Busy = true;
+            Game.Passenger?.Despawn();
+            Game.Tears?.ForceReset();
+            Game.Passport?.Close();
+            Narration.I?.ClearTutorial();
+            Cell cell = null;
+            yield return DimensionShift.Run(() =>
+            {
+                foreach (var h in Game.Rig.Hands) if (h.Held != null && !h.Held.Essential) h.ForceRelease(true);
+                ClearStamp();
+                cell = Game.Cells.Activate(next);
+                if (cell != null) Game.Rig.PlaceAt(cell.Arrival.position, cell.Arrival.eulerAngles.y);
+            }, 3f);
+            if (cell == null) { Busy = false; yield break; }
+            var country = CountryDatabase.ByCell(next);
+            bool first = country != null && !Game.Campaign.IsVisited(country.Id);
+            if (country != null) Game.Campaign.MarkVisited(country.Id);
+            Game.SaveCheckpoint(next);
+            Game.Passport?.Refresh();
+            UpdateObjective();
+            cell.RefreshProbe();
+            if (country != null && first) Hud.I?.ShowTitleCard(country.DisplayName.ToUpperInvariant(), country.EncounterTitle, 4f);
+            Busy = false;
+            if (cell.Encounter != null)
+            {
+                cell.Encounter.Entered = true;
+                cell.Encounter.OnEnter(first);
+            }
+        }
+
+        void ClearStamp()
+        {
+            if (m_Stamp != null) Destroy(m_Stamp.gameObject);
+            m_Stamp = null;
+        }
+
+        /// <summary>The stamp waiting in the current country, if any (tests).</summary>
+        public StampPortal WaitingStamp => m_Stamp;
 
         IEnumerator CounterfeitReveal()
         {
@@ -237,8 +358,24 @@ namespace TwelfthStamp
             var c = Game.Campaign;
             if (c == null || m_Failing || amount <= 0f) return;
             c.vitality = Mathf.Max(0f, c.vitality - amount);
-            if (c.vitality <= 0f) StartCoroutine(FailRoutine());
+            if (c.vitality <= 0f) StartCoroutine(FailRoutine(false));
         }
+
+        /// <summary>
+        /// Sudden death: the Passenger reached the player (or its hand closed through a tear). No slow drain: the screen
+        /// cuts to red and the Retry card comes up. Warnings come before this (its approach, the breath, the lunge).
+        /// </summary>
+        public void Kill(string cause)
+        {
+            if (!InCampaign && !Game.IsDemo) return;
+            var c = Game.Campaign;
+            if (c == null || m_Failing) return;
+            c.vitality = 0f;
+            Debug.Log("[TS-Story] Caught by the Passenger (" + cause + ")");
+            StartCoroutine(FailRoutine(true));
+        }
+
+        public bool Failing => m_Failing;
 
         public void RestoreVitality(float amount)
         {
@@ -248,20 +385,24 @@ namespace TwelfthStamp
 
         public void SetDrainFeedback(float f) => m_DrainFeedback = Mathf.Clamp01(f);
 
-        IEnumerator FailRoutine()
+        IEnumerator FailRoutine(bool sudden)
         {
             m_Failing = true;
             var c = Game.Campaign;
             c.failures++;
             Game.InputLocks++;
             if (Game.Passenger != null) Game.Passenger.Threatening = false;
+            if (sudden && Game.Rig != null) AudioDirector.I?.Play("pass_sting", Game.Rig.Head.position + Game.Rig.Head.forward * 0.6f, 1f, 0.9f, Bus.SFX, true);
             Narration.I?.Say("fail_01", null, false, null, true);
             Fader.I.SetColor(new Color(0.08f, 0.02f, 0.02f));
-            yield return Fader.I.FadeOut(1.2f);
+            yield return Fader.I.FadeOut(sudden ? 0.35f : 0.9f);
             Game.Tears?.ForceReset();
             Game.Passenger?.Despawn();
             Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
             m_Failing = false;
+            // Lift the fade so the Retry card (a 3D panel behind the fade overlay) is visible; the drained grade keeps
+            // the scene dead-looking behind it.
+            Fader.I.FadeTo(0.25f, 0.4f);
             MenuSystem.I?.ShowFailure();
         }
 
@@ -306,7 +447,11 @@ namespace TwelfthStamp
         // ------------------------------------------------------------------ essentials / recall
         public void RegisterEssential(Grabbable g)
         {
-            if (g != null && !m_Essentials.Contains(g)) m_Essentials.Add(g);
+            if (g == null || m_Essentials.Contains(g)) return;
+            m_Essentials.Add(g);
+            // Recall brings back the essential item held most recently (not the one registered last, which late in the
+            // story could be an item from another country), so every grab moves it to the end of the list.
+            g.Grabbed += (item, who) => { if (m_Essentials.Remove(item)) m_Essentials.Add(item); };
         }
 
         public void RecallEssential(Interactor hand)
@@ -347,7 +492,7 @@ namespace TwelfthStamp
             MenuSystem.I?.HideAll();
             DemoTimer.Begin();
             yield return EnterCell(CellId.Paris, false, "Judges' demo");
-            Hud.I?.SetObjective("Open your passport (" + Game.Input.Label(Intent.Passport) + "), choose Egypt, and open a tear at the seam facing the desk.", false);
+            Hud.I?.SetObjective("Open your passport (" + Game.Input.Label(Intent.Passport) + "), choose Egypt, and open a tear at the seam on the festival poster board beside the desk.", false);
             Hud.I?.ShowToast("Open your passport: " + Game.Input.Label(Intent.Passport), 4f);
         }
 
@@ -355,9 +500,13 @@ namespace TwelfthStamp
         {
             yield return new WaitForSeconds(2.5f);
             float seconds = DemoTimer.Elapsed;
-            Hud.I?.ShowTitleCard("THE TWELFTH STAMP", "You travelled alone. Something came back with you.", 5f);
-            yield return new WaitForSeconds(5f);
+            // End card: fade to black, the logo and the tagline, then the results card back in the scene.
+            Game.InputLocks++;
+            yield return Fader.I.FadeOut(0.8f);
             Game.Passenger?.Despawn();
+            if (Branding.I != null) yield return Branding.I.EndCard(Branding.Tagline, 3.4f);
+            yield return Fader.I.FadeIn(0.6f);
+            Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
             MenuSystem.I?.ShowDemoResults(seconds);
         }
     }

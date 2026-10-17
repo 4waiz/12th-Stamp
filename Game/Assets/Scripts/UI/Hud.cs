@@ -519,6 +519,11 @@ namespace TwelfthStamp
             m_TitleUntil = Time.unscaledTime + seconds;
         }
 
+        public void HideTitleCard()
+        {
+            if (m_TitleRoot != null) m_TitleRoot.gameObject.SetActive(false);
+        }
+
         /// <summary>Called every frame while a tear is open (aperture 0..1, seal 0..1), or for any other timed hold.</summary>
         public void ShowTear(float aperture, float seal, string label)
         {

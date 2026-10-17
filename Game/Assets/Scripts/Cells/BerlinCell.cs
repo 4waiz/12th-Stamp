@@ -6,7 +6,7 @@ namespace TwelfthStamp
 {
     /// <summary>Germany / Berlin — The Departure That Never Happened. The finale: validate the eleven seals, expose and
     /// cancel the forged HOME stamp, and open the real way home on the wall that looked blank.</summary>
-    public class BerlinCell : Cell
+    public partial class BerlinCell : Cell
     {
         public TraceMark Plinth;
         public readonly List<Material> SealLights = new List<Material>();
@@ -22,20 +22,22 @@ namespace TwelfthStamp
             Id = CellId.Berlin;
             Lighting = new LightingPreset
             {
+                // An overcast northern day through the glass; inside, the festival's colours read (playtest: grey and
+                // sterile) and the false returns glow warm against the cool hall.
                 SunColor = new Color(0.82f, 0.85f, 0.9f), SunIntensity = 0.55f, SunEuler = new Vector3(38f, 160f, 0f), ShadowStrength = 0.7f,
-                AmbientSky = new Color(0.38f, 0.4f, 0.45f), AmbientEquator = new Color(0.3f, 0.3f, 0.32f), AmbientGround = new Color(0.14f, 0.14f, 0.15f),
+                AmbientSky = new Color(0.38f, 0.4f, 0.45f), AmbientEquator = new Color(0.33f, 0.32f, 0.32f), AmbientGround = new Color(0.15f, 0.14f, 0.14f),
                 FogColor = new Color(0.62f, 0.64f, 0.68f), FogDensity = 0.012f,
                 SkyZenith = new Color(0.42f, 0.46f, 0.54f), SkyHorizon = new Color(0.78f, 0.8f, 0.82f), SkyGround = new Color(0.4f, 0.4f, 0.42f),
                 SunDiscColor = new Color(0.9f, 0.9f, 0.9f, 0.2f), CloudColor = new Color(0.85f, 0.86f, 0.9f, 0.6f),
-                PostExposure = 0f, Saturation = -20f, Contrast = 10f, ColorFilter = new Color(0.95f, 0.97f, 1f), Bloom = 0.5f, Vignette = 0.24f
+                PostExposure = 0.12f, Saturation = -12f, Contrast = 10f, ColorFilter = new Color(0.97f, 0.98f, 1f), Bloom = 0.5f, Vignette = 0.24f
             };
             Ambience = "amb_berlin_hall";
             AddSun();
-            var granite = Mats.Lit(new Color(0.55f, 0.55f, 0.56f), 0.45f, 0f, "granite_pavers");
+            var granite = Mats.Lit(new Color(0.9f, 0.9f, 0.91f), 0.45f, 0f, "granite_pavers");
             var concrete = Mats.Lit(new Color(0.68f, 0.68f, 0.68f), 0.2f, 0f, "concrete_panels");
-            var steel = Mats.Lit(new Color(0.25f, 0.26f, 0.28f), 0.6f, 0.9f, "metal_brushed");
+            var steel = Mats.Lit(new Color(0.55f, 0.57f, 0.6f), 0.6f, 0.9f);
             var glass = Mats.Glass(new Color(0.75f, 0.82f, 0.88f, 0.12f));
-            var wood = Mats.Lit(new Color(0.42f, 0.3f, 0.2f), 0.45f, 0f, "wood_oak_floor");
+            var wood = Mats.Lit(new Color(1f, 0.92f, 0.82f), 0.45f, 0f, "wood_oak_floor");
             var g = Group("Pavilion");
             MeshFactory.Floor("Floor", g, new Vector3(0, 0, 1f), new Vector2(18f, 16f), granite, "stone", 0.3f, 1.8f);
             MeshFactory.Box("Roof", g, new Vector3(0, 6.1f, 1f), new Vector3(18.4f, 0.3f, 16.4f), concrete, false, 3f);
@@ -53,12 +55,8 @@ namespace TwelfthStamp
             var gwc = new GameObject("GlassWallCollider"); gwc.transform.SetParent(g, false); gwc.transform.localPosition = new Vector3(0, 3f, 9.1f); gwc.AddComponent<BoxCollider>().size = new Vector3(18.4f, 6f, 0.2f);
             MeshFactory.Floor("Square", g, new Vector3(0, -0.05f, 40f), new Vector2(120f, 60f), granite, "stone", 0.2f, 4f);
             Landmarks.ColumnGate(g, new Vector3(0, -0.05f, 62f), 0f, Mats.Backdrop(new Color(0.72f, 0.7f, 0.66f), Lighting), 1f);
-            Landmarks.Skyline(g, new Vector3(0, -2f, 0), 160f, 80f, 0f, 12, Mats.Backdrop(new Color(0.5f, 0.52f, 0.56f), Lighting), null, 61);
-            // Festival banners (colour only, no lettering).
-            var bannerColors = new[] { new Color(0.55f, 0.12f, 0.12f), new Color(0.12f, 0.2f, 0.38f), new Color(0.75f, 0.62f, 0.3f) };
-            for (int i = 0; i < 6; i++)
-                MeshFactory.Box("Banner", g, new Vector3(-6f + i * 2.4f, 4.2f, -6.85f), new Vector3(1f, 2.6f, 0.04f), Mats.Lit(bannerColors[i % 3], 0.3f, 0f, "fabric_linen"), false);
-            for (int i = 0; i < 4; i++) AddPointLight(g, new Vector3(-6f + i * 4f, 5.6f, 1f), new Color(0.95f, 0.95f, 1f), 1.4f, 9f);
+            // Festival banners, signs and the rest of the dressing: BuildPavilionDetail (Detail_Berlin.cs).
+            for (int i = 0; i < 4; i++) AddPointLight(g, new Vector3(-6f + i * 4f, 5.6f, 1f), new Color(1f, 0.96f, 0.9f), 1.5f, 9f);
 
             // Three decoy "home" doors along the east wall, warm and inviting.
             for (int i = 0; i < 3; i++)
@@ -67,7 +65,7 @@ namespace TwelfthStamp
                 d.SetParent(g, false);
                 d.localPosition = new Vector3(8.9f, 0, -2.4f + i * 2.4f);
                 d.localRotation = Quaternion.Euler(0, 90, 0); // local -Z faces into the room
-                MeshFactory.Box("Frame", d, new Vector3(0, 1.1f, -0.05f), new Vector3(1.2f, 2.3f, 0.12f), wood, false);
+                BuildDecoyDoor(d); // a front door from home: architrave, panelled leaf, brass, a mat
                 var glowMat = Mats.UnlitInstance(new Color(1f, 0.72f, 0.42f, 0.9f), Tex.SoftDot, true, 1.6f);
                 MeshFactory.Quad("Glow", d, 0.95f, 2.05f, glowMat, new Vector3(0, 1.05f, -0.12f));
                 var label = TextFactory.World(d, CountryDatabase.CounterfeitLabel, 0.07f, new Color(0.55f, 0.08f, 0.07f), TMPro.TextAlignmentOptions.Center, true, 1.2f);
@@ -98,7 +96,7 @@ namespace TwelfthStamp
             vs.transform.SetParent(g, false);
             vs.transform.localPosition = new Vector3(-3.2f, 0.92f, -4.5f);
             var ink = Mats.Lit(new Color(0.55f, 0.06f, 0.06f), 0.4f);
-            var stampWood = Mats.Lit(new Color(0.3f, 0.2f, 0.12f), 0.5f, 0f, "wood_dark");
+            var stampWood = Mats.Lit(new Color(0.95f, 0.85f, 0.75f), 0.5f, 0f, "wood_dark");
             // The modelled stamp; its rubber die carries the red ink of the procedural pad.
             if (Models.Spawn("VoidStamp", vs.transform, Models.Slots(("TS_Rubber", ink), ("TS_WoodDark", stampWood))) == null)
             {
@@ -113,6 +111,7 @@ namespace TwelfthStamp
             NoisemakerSpot.SetParent(g, false);
             NoisemakerSpot.localPosition = new Vector3(-2.4f, 0.92f, -4.5f);
 
+            BuildPavilionDetail(g, steel, concrete);
             AddSeam("arrival", new Vector3(0f, 0f, -6.6f), 0f);
             LightSeam = AddSeam("light", new Vector3(2.0f, 0f, 0f), 90f, 1.4f); // faces the middle decoy door, 6.9 m away
             HomeSeam = AddSeam("home", new Vector3(-8.7f, 0f, 1f), 90f);
@@ -185,7 +184,7 @@ namespace TwelfthStamp
             go.transform.position = B.NoisemakerSpot.position;
             if (!PropLibrary.NoisemakerModel(go.transform))
             {
-                MeshFactory.Box("Body", go.transform, new Vector3(0, 0.07f, 0), new Vector3(0.22f, 0.14f, 0.09f), Mats.Lit(new Color(0.5f, 0.35f, 0.2f), 0.4f, 0f, "leather_navy"), false);
+                MeshFactory.Box("Body", go.transform, new Vector3(0, 0.07f, 0), new Vector3(0.22f, 0.14f, 0.09f), Mats.Lit(new Color(1f, 0.95f, 0.9f), 0.4f, 0f, "leather_navy"), false);
                 MeshFactory.Box("Grille", go.transform, new Vector3(-0.04f, 0.07f, -0.047f), new Vector3(0.11f, 0.1f, 0.005f), Mats.Lit(new Color(0.75f, 0.7f, 0.6f), 0.6f, 0.9f, "metal_brushed"), false);
             }
             go.AddComponent<BoxCollider>().size = new Vector3(0.24f, 0.16f, 0.11f);

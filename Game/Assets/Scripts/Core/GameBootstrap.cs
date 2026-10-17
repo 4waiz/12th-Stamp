@@ -25,7 +25,8 @@ namespace TwelfthStamp
         {
             AppArgs.Parse();
             Game.IsAutoTest = AppArgs.AutoTest != null;
-            SaveSystem.WritesSuspended = Game.IsAutoTest;
+            if (!string.IsNullOrEmpty(AppArgs.SaveDir)) SaveSystem.OverrideDirectory(AppArgs.SaveDir);
+            SaveSystem.WritesSuspended = Game.TestWritesBlocked;
             Game.Root = transform;
             Game.Settings = SaveSystem.LoadSettings();
             if (!Game.Settings.comfortSetupDone && SystemInfo.graphicsMemorySize >= 8000)
@@ -44,6 +45,7 @@ namespace TwelfthStamp
             Game.Story = StoryDirector.Create(transform);
             Tutorial.Create(transform);
             MenuSystem.Create(transform);
+            Branding.Create(transform);
             UiPointer.Create(transform);
             Game.Passenger = PassengerController.Create(transform);
             Physics.IgnoreLayerCollision(Layers.PlayerBody, Layers.Pocket, true);
@@ -83,9 +85,11 @@ namespace TwelfthStamp
 
             if (Game.IsAutoTest)
             {
-                gameObject.AddComponent<AutoTest>().Begin(AppArgs.AutoTest, AppArgs.ReportDir);
+                gameObject.AddComponent<AutoTest>().Begin(AppArgs.AutoTest, AppArgs.ReportDir); // plays and checks the intro itself
                 yield break;
             }
+            // The branded intro after the initial load (skippable; Art/Branding/BRANDING.md).
+            if (!AppArgs.NoIntro) yield return Branding.I.Intro();
             if (AppArgs.Demo) { Fader.I.FadeTo(1f, 0f); Game.Story.StartDemo(); yield break; }
             if (!string.IsNullOrEmpty(AppArgs.StartCell) && Enum.TryParse(AppArgs.StartCell, true, out CellId start))
             {
@@ -121,7 +125,9 @@ namespace TwelfthStamp
 
         void OnApplicationQuit()
         {
-            Game.SaveNow();
+            // Only a story in progress is saved here (returning to the menu saves it already). At the menu Game.Campaign can
+            // hold the demo's throwaway run or a blank one, which must never overwrite the player's story.
+            if (Game.Story != null && Game.Story.InCampaign) Game.SaveNow();
             SaveSystem.SaveSettings(Game.Settings);
             XRBoot.Shutdown();
         }

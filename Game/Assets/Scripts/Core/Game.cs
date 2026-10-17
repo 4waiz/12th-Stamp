@@ -10,6 +10,8 @@ namespace TwelfthStamp
         public static CampaignState Campaign = CampaignState.NewGame();
         public static bool IsDemo;
         public static bool IsAutoTest;
+        /// <summary>Automated runs never write the player's save; with --save-dir they write only into that sandbox.</summary>
+        public static bool TestWritesBlocked => IsAutoTest && string.IsNullOrEmpty(AppArgs.SaveDir);
 
         public static Transform Root;
         public static PlayerRig Rig;

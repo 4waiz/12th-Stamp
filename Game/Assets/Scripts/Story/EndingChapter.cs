@@ -192,6 +192,7 @@ namespace TwelfthStamp
             yield return new WaitForSeconds(2.5f);
             yield return Fader.I.FadeOut(1.2f);
             Object.Destroy(props.gameObject);
+            if (Branding.I != null) yield return Branding.I.EndCard(Branding.Tagline, 3.6f);
 
             // 5) Results, credits, menu.
             c.SetFlag(StoryFlags.CampaignComplete);

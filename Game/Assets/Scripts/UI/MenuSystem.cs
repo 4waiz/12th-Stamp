@@ -31,11 +31,20 @@ namespace TwelfthStamp
         }
 
         // ------------------------------------------------------------------ placement
+        bool m_AtDesk;
+
         void Show(bool atMenuDesk)
         {
             m_Panel.gameObject.SetActive(true);
             Game.InMenu = true;
             Game.Rig?.SetPointerMode(true);
+            m_AtDesk = atMenuDesk;
+            Place(atMenuDesk);
+        }
+
+        void Place(bool atMenuDesk)
+        {
+            m_Panel.transform.localScale = Vector3.one;
             var rig = Game.Rig;
             if (rig == null) return;
             Vector3 pos;
@@ -61,6 +70,7 @@ namespace TwelfthStamp
 
         public void HideAll()
         {
+            Branding.I?.HideWelcome();
             m_Panel.gameObject.SetActive(false);
             UiPointer.I?.ClearHover();
             Game.InMenu = false;
@@ -69,13 +79,22 @@ namespace TwelfthStamp
             if (m_PauseOpen) { m_PauseOpen = false; Game.Paused = false; }
         }
 
-        void Page(string title, System.Action build)
+        void Page(string title, System.Action build, bool icon = true)
         {
+            // Leaving the welcome screen: put the card back where every other page sits.
+            if (Branding.I != null && Branding.I.WelcomeShowing)
+            {
+                Branding.I.HideWelcome();
+                Place(m_AtDesk);
+            }
             m_Page = title;
-            m_Panel.Clear(title);
+            m_Panel.Clear(title, icon);
             build();
             m_Panel.FinishLayout();
         }
+
+        /// <summary>The page currently shown (AutoTest reads it).</summary>
+        public string CurrentPage => m_Page;
 
         void Push(System.Action current, System.Action next)
         {
@@ -112,9 +131,10 @@ namespace TwelfthStamp
         void MainPage()
         {
             m_Back.Clear();
-            Page("THE TWELFTH STAMP", () =>
+            // The welcome screen: the logo above the card is the title (Branding.ShowWelcome), so the card has none.
+            Page("", () =>
             {
-                m_Panel.Text("<i>You travelled alone. Something came back with you.</i>", 0.0032f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.3f, 0.27f, 0.27f), true);
+                m_Panel.Text("<i>" + Branding.Tagline + "</i>", 0.0032f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.3f, 0.27f, 0.27f), true);
                 m_Panel.Space(0.01f);
                 bool hasSave = SaveSystem.HasValidCampaign();
                 m_Panel.Button(hasSave ? "New Story" : "Story Mode", () =>
@@ -129,7 +149,8 @@ namespace TwelfthStamp
                 m_Panel.Button("Credits", () => Push(MainPage, CreditsPage));
                 m_Panel.Button("Quit", Quit);
                 m_Panel.Text("<size=80%>" + (Game.Mode == GameMode.VR ? "Quest 3 (PC VR)" : "Desktop") + " mode · v" + Application.version + "</size>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.4f, 0.38f, 0.38f));
-            });
+            }, false);
+            Branding.I?.ShowWelcome(m_Panel.transform, Panel3D.CardWidth, m_Panel.CardHeight);
         }
 
         void ConfirmNewGame()
@@ -163,6 +184,7 @@ namespace TwelfthStamp
                     Row("Pause", Intent.Pause),
                     Row("Remove the glasses (returns you to the apartment)", Intent.RemoveGlasses),
                 };
+                lines.Insert(1, Row("Run", Intent.Sprint));
                 if (Game.Mode == GameMode.Desktop) lines.Add(Row("Objectives", Intent.Objectives));
                 m_Panel.Text(string.Join("\n", lines), 0.0027f, TMPro.TextAlignmentOptions.Left, 0.36f);
                 if (Game.Mode == GameMode.VR)
@@ -347,6 +369,7 @@ namespace TwelfthStamp
         // ------------------------------------------------------------------ failure / results
         public void ShowFailure()
         {
+            Hud.I?.HideTitleCard();
             Show(false);
             m_Back.Clear();
             Page("The Margin takes hold", () =>
@@ -372,7 +395,7 @@ namespace TwelfthStamp
             var c = Game.Campaign;
             Page("Demo complete", () =>
             {
-                m_Panel.Text("Time: " + m + ":" + sec.ToString("00") + "   ·   Vitality: " + Mathf.RoundToInt(c.vitality * 100) + "%   ·   Tears opened: " + c.tearsOpened, 0.0032f);
+                m_Panel.Text("Time: " + m + ":" + sec.ToString("00") + (Game.IsAutoTest ? " (automated run)" : "") + "   ·   Vitality: " + Mathf.RoundToInt(c.vitality * 100) + "%   ·   Tears opened: " + c.tearsOpened, 0.0032f);
                 m_Panel.Text("<i>The full story: a shop in Marrakech, an apartment in Abu Dhabi, eleven countries and one forged stamp.</i>", 0.0027f, TMPro.TextAlignmentOptions.Center, 0.02f);
                 m_Panel.Button("Reset demo", () => { HideAll(); StoryDirector.I.StartDemo(); });
                 m_Panel.Button("Main menu", () => { HideAll(); StoryDirector.I.ReturnToMenu(); });
@@ -442,7 +465,7 @@ namespace TwelfthStamp
 
         public static void Quit()
         {
-            Game.SaveNow();
+            if (Game.Story != null && Game.Story.InCampaign) Game.SaveNow(); // never save the demo's or a blank campaign from the menu
             SaveSystem.SaveSettings(Game.Settings);
             XRBoot.Shutdown();
 #if UNITY_EDITOR

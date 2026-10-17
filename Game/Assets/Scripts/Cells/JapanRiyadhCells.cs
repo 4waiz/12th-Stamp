@@ -5,7 +5,7 @@ namespace TwelfthStamp
 {
     /// <summary>Japan — The Empty Procession. Lanterns cast the shadows of people who aren't there. Hang the hand
     /// lantern where only the genuine route mark still holds a shadow.</summary>
-    public class JapanCell : Cell
+    public partial class JapanCell : Cell
     {
         public readonly List<Socket> Hooks = new List<Socket>();
         public readonly List<GameObject> Marks = new List<GameObject>();
@@ -19,40 +19,39 @@ namespace TwelfthStamp
             Id = CellId.Japan;
             Lighting = new LightingPreset
             {
-                SunColor = new Color(0.4f, 0.45f, 0.65f), SunIntensity = 0.12f, SunEuler = new Vector3(60f, 200f, 0f), ShadowStrength = 0.4f,
-                AmbientSky = new Color(0.1f, 0.1f, 0.16f), AmbientEquator = new Color(0.12f, 0.08f, 0.07f), AmbientGround = new Color(0.04f, 0.03f, 0.03f),
-                FogColor = new Color(0.08f, 0.07f, 0.1f), FogDensity = 0.04f,
-                SkyZenith = new Color(0.02f, 0.02f, 0.05f), SkyHorizon = new Color(0.16f, 0.1f, 0.14f), SkyGround = new Color(0.04f, 0.03f, 0.04f),
-                SunDiscColor = new Color(0, 0, 0, 0), Stars = 0.5f,
-                PostExposure = 0.25f, Saturation = 0f, Contrast = 12f, ColorFilter = new Color(1f, 0.92f, 0.86f), Bloom = 0.8f, Vignette = 0.3f
+                // Lantern-lit night that still reads on a monitor: warm chochin pools down the street, a cool moon raking in
+                // from behind the arrival (the left-hand fronts and the gate catch it, the right-hand side stays in lantern
+                // light), a lifted ambient, and a dusky horizon so roofs, poles and wires stand out against the sky.
+                SunColor = new Color(0.55f, 0.62f, 0.85f), SunIntensity = 0.6f, SunEuler = new Vector3(34f, 335f, 0f), ShadowStrength = 0.6f,
+                AmbientSky = new Color(0.3f, 0.31f, 0.43f), AmbientEquator = new Color(0.31f, 0.25f, 0.25f), AmbientGround = new Color(0.12f, 0.1f, 0.09f),
+                FogColor = new Color(0.17f, 0.14f, 0.19f), FogDensity = 0.018f,
+                SkyZenith = new Color(0.045f, 0.05f, 0.1f), SkyHorizon = new Color(0.36f, 0.24f, 0.32f), SkyGround = new Color(0.07f, 0.05f, 0.06f),
+                SunDiscColor = new Color(0, 0, 0, 0), Stars = 0.45f,
+                PostExposure = 0.45f, Saturation = 2f, Contrast = 10f, ColorFilter = new Color(1f, 0.94f, 0.88f), Bloom = 0.65f, Vignette = 0.24f
             };
             Ambience = "amb_japan_night";
             AddSun();
-            var slate = Mats.Lit(new Color(0.32f, 0.32f, 0.34f), 0.55f, 0f, "stone_dark_slate");
-            var lacquer = Mats.Lit(new Color(0.55f, 0.12f, 0.08f), 0.55f, 0f, "lacquer_red");
+            var slate = Mats.Lit(new Color(0.64f, 0.64f, 0.68f), 0.72f, 0f, "granite_pavers");
             var wood = Mats.Lit(new Color(0.24f, 0.17f, 0.12f), 0.4f, 0f, "wood_dark");
-            var shoji = Mats.Lit(new Color(0.95f, 0.88f, 0.75f), 0.1f, 0f, "paper_shoji", false, new Color(0.45f, 0.3f, 0.15f));
+            var postWood = Mats.Lit(new Color(0.8f, 0.78f, 0.76f), 0.35f, 0f, "wood_dark");
             var lanternMat = Mats.Lit(new Color(0.95f, 0.75f, 0.5f), 0.1f, 0f, "paper_shoji", false, new Color(1.6f, 0.75f, 0.3f));
             var g = Group("Street");
+            // The street's collider and footstep surface (BuildStreetDetail draws the stone in pieces and hides this mesh).
             MeshFactory.Floor("Paving", g, new Vector3(0, 0, 3f), new Vector2(7f, 20f), slate, "stone", 0.3f, 1f);
             for (int side = -1; side <= 1; side += 2)
                 for (int i = 0; i < 4; i++)
                 {
-                    float z = -5f + i * 4.6f;
+                    // Each house stays solid for the rig and the Passenger; its front, chochin and light are built in BuildStreetDetail.
                     var house = new GameObject("House").transform;
                     house.SetParent(g, false);
-                    house.localPosition = new Vector3(side * 3.8f, 0, z);
-                    MeshFactory.Box("Wall", house, new Vector3(side * 0.3f, 1.6f, 0), new Vector3(0.6f, 3.2f, 4.4f), wood, true, 1f);
-                    MeshFactory.Box("Shoji", house, new Vector3(-side * 0.02f, 1.3f, 0), new Vector3(0.04f, 1.8f, 3.2f), shoji, false, 0.6f);
-                    for (int k = -1; k <= 1; k++) MeshFactory.Box("Mullion", house, new Vector3(-side * 0.05f, 1.3f, k * 1.05f), new Vector3(0.05f, 1.85f, 0.06f), lacquer, false);
-                    MeshFactory.Box("Eave", house, new Vector3(-side * 0.35f, 3.25f, 0), new Vector3(1.4f, 0.12f, 4.5f), lacquer, false, 1f, Quaternion.Euler(0, 0, side * -12f));
-                    // Hanging lanterns along the street.
-                    var l = MeshFactory.Frustum("Lantern", g, new Vector3(side * 2.9f, 2.3f, z), 0.2f, 0.2f, 0.45f, lanternMat, 12);
-                    l.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    AddPointLight(g, new Vector3(side * 2.9f, 2.4f, z), new Color(1f, 0.6f, 0.3f), 0.9f, 4.5f);
+                    house.localPosition = new Vector3(side * 3.8f, 0, -5f + i * 4.6f);
+                    var wall = house.gameObject.AddComponent<BoxCollider>();
+                    wall.center = new Vector3(side * 0.3f, 1.6f, 0);
+                    wall.size = new Vector3(0.6f, 3.2f, 4.4f);
                 }
-            MeshFactory.Box("EndGate", g, new Vector3(0, 2f, 13.5f), new Vector3(7.5f, 4f, 0.4f), wood, true, 1f);
-            Landmarks.Pagoda(g, new Vector3(-30f, -1f, 120f), 0f, Mats.Backdrop(new Color(0.14f, 0.1f, 0.12f), Lighting), Mats.Backdrop(new Color(0.22f, 0.12f, 0.12f), Lighting));
+            // The timber gate at the end of the street (shut until the puzzle is solved) and the lane beyond it are built in
+            // BuildStreetDetail / BuildRoute, with their colliders.
+            Landmarks.Pagoda(g, PagodaPos, 0f, Mats.Backdrop(new Color(0.14f, 0.1f, 0.12f), Lighting), Mats.Backdrop(new Color(0.22f, 0.12f, 0.12f), Lighting));
 
             // Shadows of an absent procession drift across the paving.
             var shadowMat = Mats.UnlitInstance(new Color(0f, 0f, 0f, 0.55f), Tex.SoftDot, true, 1f);
@@ -72,7 +71,7 @@ namespace TwelfthStamp
             // Three lantern hooks on posts and the hand lantern.
             for (int i = 0; i < 3; i++)
             {
-                var post = MeshFactory.Box("HookPost", g, new Vector3(-2.2f + i * 2.2f, 1.1f, 7.6f), new Vector3(0.12f, 2.2f, 0.12f), wood, true);
+                var post = MeshFactory.Box("HookPost", g, new Vector3(-2.2f + i * 2.2f, 1.1f, 7.6f), new Vector3(0.12f, 2.2f, 0.12f), postWood, true);
                 var hook = new GameObject("Hook" + i);
                 hook.transform.SetParent(g, false);
                 hook.transform.localPosition = new Vector3(-2.2f + i * 2.2f, 2.0f, 7.45f);
@@ -101,11 +100,16 @@ namespace TwelfthStamp
             HandLantern = PropLibrary.MakeGrabbable(hl, "hand_lantern", "Take the hand lantern");
             HandLantern.HoldLocalPosition = new Vector3(0, -0.25f, 0);
 
+            BuildStreetDetail(g, postWood);
             AddSeam("arrival", new Vector3(0f, 0f, -6.6f), 0f);
             AddSeam("exit", new Vector3(0f, 0f, 12.9f), 180f);
             SetArrival(new Vector3(0f, 0f, -5.6f), 0f);
-            AddBounds(new Vector3(0, 0, 3.5f), new Vector3(5.6f, 4f, 19f));
+            // Open world: one box round the street, the lane past the end gate and the precinct up to just past the stamp
+            // spot on the lantern approach. The street keeps its old edges (walls of its own, BuildRoute), the lane is walled,
+            // and the end gate stays shut until the lanterns tell the truth.
+            AddBounds(new Vector3(-3.7f, -1.5f, 50.5f), new Vector3(16.6f, 7.5f, 113f), 7.5f);
             SetEncounter(gameObject.AddComponent<JapanEncounter>());
+            Landmarks.MarkReachable(this);
         }
     }
 
@@ -119,6 +123,10 @@ namespace TwelfthStamp
         public override void OnEnter(bool firstVisit)
         {
             m_Solved = Game.Campaign.IsVerified(CountryId.Japan);
+            // The end gate stands open once the seal is verified; the stamp is only offered out at the pagoda while the
+            // whole way there (lane, precinct gate, approach) is actually walkable.
+            J.Gate?.SetOpen(m_Solved, true);
+            Landmarks.MarkReachable(J, J.RouteOpen());
             foreach (var h in J.Hooks) { h.Filled -= OnHung; h.Filled += OnHung; }
             if (m_Solved) { J.Trace.Reveal(false); return; }
             J.Trace.Hide();
@@ -148,6 +156,13 @@ namespace TwelfthStamp
                 J.Trace.Reveal();
                 Hud.I?.ShowToast("Two marks vanish with the change of light. They were only shadows.", 3.5f);
                 Narration.I?.Say("tut_verify", null, true, null, false, true);
+                if (J.Gate != null && !J.Gate.IsOpen)
+                {
+                    // The way on opens: the end gate swings out onto the lane toward the pagoda.
+                    J.Gate.SetOpen(true, false);
+                    AudioDirector.I?.Play("door_open", J.Gate.Blocker.transform.position, 0.8f);
+                    Hud.I?.ShowCaption("the gate at the end of the street swings open", 3f);
+                }
                 if (Game.Passenger != null && Game.Passenger.Visible) Game.Passenger.SetState(PassengerState.Stalk);
             }
             else
@@ -183,7 +198,7 @@ namespace TwelfthStamp
 
     /// <summary>Saudi Arabia / Riyadh — The False Horizon. Three arches with contradictory reflections; match the
     /// optical panel to the registration mark and walk through the honest arch. A wrong arch resets only this puzzle.</summary>
-    public class RiyadhCell : Cell
+    public partial class RiyadhCell : Cell
     {
         public StepRotator Panel;
         public readonly List<Transform> Arches = new List<Transform>();
@@ -197,12 +212,15 @@ namespace TwelfthStamp
             Id = CellId.Riyadh;
             Lighting = new LightingPreset
             {
-                SunColor = new Color(1f, 0.66f, 0.45f), SunIntensity = 0.9f, SunEuler = new Vector3(8f, 280f, 0f), ShadowStrength = 0.75f,
-                AmbientSky = new Color(0.35f, 0.33f, 0.45f), AmbientEquator = new Color(0.45f, 0.32f, 0.26f), AmbientGround = new Color(0.2f, 0.14f, 0.11f),
-                FogColor = new Color(0.55f, 0.4f, 0.38f), FogDensity = 0.012f,
-                SkyZenith = new Color(0.12f, 0.15f, 0.32f), SkyHorizon = new Color(0.95f, 0.55f, 0.4f), SkyGround = new Color(0.35f, 0.24f, 0.2f),
-                SunDiscColor = new Color(1f, 0.6f, 0.35f, 1f), SunSize = 0.007f, CloudColor = new Color(0.95f, 0.6f, 0.5f, 0.2f),
-                PostExposure = 0f, Saturation = 2f, Contrast = 10f, ColorFilter = new Color(1f, 0.95f, 0.9f), Bloom = 0.6f, Vignette = 0.22f
+                // Dusk with the sun low behind the arrival's right shoulder: it lights the arches' faces and the west houses,
+                // throws long shadows forward across the plaza, and leaves the sky warm over the skyline; lamps and lit vents
+                // come on as practicals. (The east side is kept low so this sun still reaches the plaza.)
+                SunColor = new Color(1f, 0.68f, 0.46f), SunIntensity = 1.15f, SunEuler = new Vector3(13f, 302f, 0f), ShadowStrength = 0.72f,
+                AmbientSky = new Color(0.42f, 0.4f, 0.52f), AmbientEquator = new Color(0.52f, 0.4f, 0.33f), AmbientGround = new Color(0.24f, 0.17f, 0.13f),
+                FogColor = new Color(0.56f, 0.42f, 0.38f), FogDensity = 0.011f,
+                SkyZenith = new Color(0.13f, 0.16f, 0.33f), SkyHorizon = new Color(0.96f, 0.57f, 0.4f), SkyGround = new Color(0.36f, 0.25f, 0.2f),
+                SunDiscColor = new Color(1f, 0.62f, 0.36f, 1f), SunSize = 0.007f, CloudColor = new Color(0.95f, 0.62f, 0.5f, 0.22f),
+                PostExposure = 0.15f, Saturation = 4f, Contrast = 10f, ColorFilter = new Color(1f, 0.95f, 0.9f), Bloom = 0.6f, Vignette = 0.22f
             };
             Ambience = "amb_riyadh_wind";
             AddSun();
@@ -211,7 +229,7 @@ namespace TwelfthStamp
             var metal = Mats.Lit(new Color(0.65f, 0.6f, 0.55f), 0.7f, 0.9f, "metal_brushed");
             var g = Group("Plaza");
             MeshFactory.Floor("Plaza", g, new Vector3(0, 0, 3f), new Vector2(16f, 16f), plaza, "stone", 0.3f, 1.6f);
-            Landmarks.ArchTower(g, new Vector3(20f, -2f, 210f), 0f, Mats.Backdrop(new Color(0.2f, 0.2f, 0.28f), Lighting), Mats.Backdrop(new Color(0.6f, 0.7f, 1f), Lighting, new Color(0.6f, 0.8f, 1.6f)));
+            Landmarks.ArchTower(g, TowerPos, 0f, Mats.Backdrop(new Color(0.2f, 0.2f, 0.28f), Lighting), Mats.Backdrop(new Color(0.6f, 0.7f, 1f), Lighting, new Color(0.6f, 0.8f, 1.6f)));
             Landmarks.Skyline(g, new Vector3(0, -3f, 0), 230f, 60f, 0f, 12, Mats.Backdrop(new Color(0.25f, 0.22f, 0.3f), Lighting), null, 41);
             var skyTints = new[] { new Color(0.35f, 0.5f, 0.95f, 0.75f), new Color(0.95f, 0.35f, 0.25f, 0.75f), new Color(0.95f, 0.6f, 0.45f, 0.75f) };
             for (int i = 0; i < 3; i++)
@@ -219,10 +237,11 @@ namespace TwelfthStamp
                 var arch = new GameObject("Arch" + i).transform;
                 arch.SetParent(g, false);
                 arch.localPosition = new Vector3(-4f + i * 4f, 0, 6f);
-                MeshFactory.Box("PierL", arch, new Vector3(-1.15f, 1.5f, 0), new Vector3(0.5f, 3f, 0.8f), stone, true);
-                MeshFactory.Box("PierR", arch, new Vector3(1.15f, 1.5f, 0), new Vector3(0.5f, 3f, 0.8f), stone, true);
+                // Dressed sandstone at a block size that reads as masonry, not brick; BuildPlazaDetail plasters the rest.
+                MeshFactory.Box("PierL", arch, new Vector3(-1.15f, 1.5f, 0), new Vector3(0.5f, 3f, 0.8f), stone, true, 2.5f);
+                MeshFactory.Box("PierR", arch, new Vector3(1.15f, 1.5f, 0), new Vector3(0.5f, 3f, 0.8f), stone, true, 2.5f);
                 var mb = new MeshBuilder();
-                mb.AddArch(new Vector3(0, 3f, 0), 0.9f, 1.4f, 0.8f, 12, Quaternion.identity);
+                mb.AddArch(new Vector3(0, 3f, 0), 0.9f, 1.4f, 0.8f, 12, Quaternion.identity, 2.5f);
                 MeshFactory.FromBuilder("Arc", mb, stone, arch);
                 var refl = Mats.UnlitInstance(skyTints[i], Tex.Albedo("glass_smudge"), true, 1f);
                 MeshFactory.Quad("Reflection", arch, 1.8f, 3.6f, refl, new Vector3(0, 1.8f, 0.05f));
@@ -273,11 +292,16 @@ namespace TwelfthStamp
             var label = TextFactory.World(plaque.transform, "registration mark", 0.025f, new Color(0.25f, 0.2f, 0.18f), TMPro.TextAlignmentOptions.Center, false, 0.34f);
             label.transform.localPosition = new Vector3(0, -0.14f, -0.025f);
 
+            BuildPlazaDetail(g);
             AddSeam("arrival", new Vector3(0f, 0f, -4.6f), 0f);
             AddSeam("plaza", new Vector3(-7.4f, 0f, 2f), 90f);
             SetArrival(new Vector3(0f, 0f, -3.6f), 0f);
-            AddBounds(new Vector3(0, 0, 3f), new Vector3(15.4f, 5f, 15.4f));
+            // Open world: one box round the plaza and the run north up the tower's sight line to just past the stamp spot.
+            // The plaza keeps its south and west edges; the east parapet, the north wall and the gatehouse doors (shut until
+            // the honest arch is walked through) have colliders of their own (RouteColliders, NorthGate).
+            AddBounds(new Vector3(5.65f, -0.5f, 81.15f), new Vector3(26.7f, 6f, 171.7f), 6f);
             SetEncounter(gameObject.AddComponent<RiyadhEncounter>());
+            Landmarks.MarkReachable(this);
         }
     }
 
@@ -292,6 +316,10 @@ namespace TwelfthStamp
         public override void OnEnter(bool firstVisit)
         {
             m_Solved = Game.Campaign.IsVerified(CountryId.SaudiArabia);
+            // The north gate stands open once the seal is verified; the stamp is only offered out at the tower while the
+            // way there is actually walkable.
+            R.Gate?.SetOpen(m_Solved, true);
+            Landmarks.MarkReachable(R, R.RouteOpen());
             R.Panel.Changed -= OnTurn; R.Panel.Changed += OnTurn;
             if (m_Solved) { R.Trace.Reveal(false); return; }
             R.Trace.Hide();
@@ -340,6 +368,13 @@ namespace TwelfthStamp
                     m_Solved = true;
                     R.Trace.Reveal();
                     Narration.I?.Say("tut_verify", null, true, null, false, true);
+                    if (R.Gate != null && !R.Gate.IsOpen)
+                    {
+                        // The way on opens: the painted doors behind the honest arch swing out onto the city.
+                        R.Gate.SetOpen(true, false);
+                        AudioDirector.I?.Play("door_open", R.Gate.Blocker.transform.position, 0.8f);
+                        Hud.I?.ShowCaption("the gate behind the arch swings open", 3f);
+                    }
                 }
                 else WrongArch();
             }

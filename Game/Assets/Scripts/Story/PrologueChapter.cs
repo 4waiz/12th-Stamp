@@ -4,10 +4,10 @@ using UnityEngine;
 namespace TwelfthStamp
 {
     /// <summary>
-    /// Marrakech, remembered. While Saeed goes through his bag at home, the glasses case brings back the corner shop
-    /// where he bought them: a short story told in still shots with a warm memory grade. The player does not walk or
-    /// do chores here (VR players can still look around); it is skippable, and every shot is a fixed vantage (no camera
-    /// motion, for comfort).
+    /// Marrakech, remembered. While Saeed goes through his bag at home, the glasses case brings back the evening he bought
+    /// them: the player walks the souk lane at dusk (it paints itself in around them as they go, see MemoryReveal) to the
+    /// corner camera shop, looks at the old frames and pays with the festival token; then the memory unmakes itself. Warm
+    /// memory grade, no passport, tears or threat; skippable at any time; the camera is never moved for effect.
     /// </summary>
     public static class PrologueChapter
     {
@@ -17,6 +17,7 @@ namespace TwelfthStamp
         {
             var rig = Game.Rig;
             var c = Game.Campaign;
+            var story = Game.Story;
             var homeCell = Game.Cells.Active;
             var homeFeet = rig.Feet;
             float homeYaw = rig.Head.eulerAngles.y;
@@ -31,9 +32,9 @@ namespace TwelfthStamp
             // The memory: the same shop the player will later see corrupted, in its warm, ordinary evening.
             var shop = (ShopCell)Game.Cells.Activate(CellId.ShopNormal);
             var memory = shop.Lighting.Clone();
-            memory.Saturation = -42f;
-            memory.ColorFilter = new Color(1f, 0.86f, 0.68f);
-            memory.Vignette = 0.46f;
+            memory.Saturation = -30f;
+            memory.ColorFilter = new Color(1f, 0.88f, 0.7f);
+            memory.Vignette = 0.42f;
             memory.PostExposure += 0.15f;
             memory.Bloom += 0.2f;
             PostFx.I?.SetPreset(memory);
@@ -46,66 +47,140 @@ namespace TwelfthStamp
             var caseGo = PropLibrary.GlassesCase(props, true);
             caseGo.transform.position = shop.CounterTop.position + new Vector3(0f, 0f, 0.05f);
             caseGo.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-            var token = PropLibrary.Token(props).transform;
-            token.position = shop.CounterTop.position + new Vector3(0.85f, 0.004f, -0.2f);
+            // The festival token: the player pays with it (pick it up, put it in the brass tray).
+            var tokenGo = PropLibrary.Token(props);
+            tokenGo.transform.position = shop.CounterTop.position + new Vector3(-0.3f, 0.004f, -0.24f);
+            var tokenCol = tokenGo.GetComponent<SphereCollider>();
+            if (tokenCol != null) tokenCol.radius = 0.06f; // a coin is a small target: easier to pick up
+            var token = PropLibrary.MakeGrabbable(tokenGo, "festival_token", "Take your festival token");
+            token.SetHome();
+            var traySock = new GameObject("TraySocket");
+            traySock.transform.SetParent(props, false);
+            traySock.transform.position = shop.TraySpot.position + Vector3.up * 0.006f;
+            var trayCol = traySock.AddComponent<BoxCollider>();
+            trayCol.isTrigger = true; trayCol.size = new Vector3(0.24f, 0.1f, 0.24f);
+            var tray = traySock.AddComponent<Socket>();
+            tray.Accepts.Add("festival_token");
+            tray.LockWhenFilled = true;
+            tray.Prompt = "Pay with the festival token";
+            bool paid = false;
+            tray.Filled += (s, g) => paid = true;
             shop.Recache();
             shop.RefreshProbe();
 
             var keeper = shop.Keeper;
             Vector3 L(float x, float y, float z) => shop.transform.TransformPoint(new Vector3(x, y, z));
+            float LocalZ() => shop.transform.InverseTransformPoint(rig.Feet).z;
 
-            // Shot 1: the lane at dusk, the shop sign ahead.
-            Frame(L(0f, 0f, -8.6f), L(0f, 2.7f, -3.2f));
+            // The walk: the souk lane at dusk paints itself in ahead of the player.
+            bool passportWas = Game.Passport != null && Game.Passport.Available;
+            bool tearsWas = story.TearsAllowed, threatWas = story.ThreatAllowed, vitalityWas = story.ShowVitality;
+            if (Game.Passport != null) Game.Passport.Available = false;
+            story.TearsAllowed = false; story.ThreatAllowed = false; story.ShowVitality = false;
+            MemoryReveal.Begin(shop.transform);
+            rig.PlaceAt(L(0f, 0f, ShopCell.SoukStartZ), shop.transform.eulerAngles.y);
+            if (rig is DesktopRig desk0) desk0.SetPitch(-3f);
             Hud.I?.ShowTitleCard("MARRAKECH", "A few days earlier. The last stop before home.", 4.5f);
+            Hud.I?.ShowToast(Game.Mode == GameMode.VR ? "Trigger: skip the memory" : Game.Input.Label(Intent.Skip) + ": skip the memory", 4f);
+            Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
             yield return Fader.I.FadeIn(1.4f);
-            yield return Line("pro_01", null, 7f);
-
-            // Shot 2: inside, at the counter. The shopkeeper.
-            if (!s_Skip)
+            Narration.I?.Say("pro_01");
+            Hud.I?.SetObjective("Walk down the souk to the camera shop.", false);
+            float hint = 0f;
+            while (!s_Skip && LocalZ() < shop.DoorPoint.localPosition.z - 0.4f)
             {
-                yield return Cut(() => Frame(L(0.2f, 0f, -1.05f), keeper != null ? keeper.transform.position + Vector3.up * 1.5f : L(0.55f, 1.5f, 0.75f)));
-                if (keeper != null) keeper.Gesture();
-                yield return Line("shop_01", keeper != null ? keeper.transform : null, 7f);
+                if (SkipPressed()) { s_Skip = true; break; }
+                hint += Time.deltaTime;
+                if (hint > 30f) { Hud.I?.ShowToast(Game.Input.Label(Intent.Move) + ": walk towards the lit shop at the end of the lane", 4f); hint = 0f; }
+                yield return null;
             }
 
-            // Shot 3: the old optician's frames in the display.
+            // Inside: the shopkeeper, the old frames.
             if (!s_Skip)
             {
-                yield return Cut(() => Frame(L(-0.6f, 0f, -0.6f), glasses.position));
+                if (keeper != null) keeper.Gesture();
+                Hud.I?.SetObjective("Look at the old frames in the display case.", false);
+                yield return Line("shop_01", keeper != null ? keeper.transform : null, 7f);
+                float t = 0f;
+                while (!s_Skip && t < 12f && !LookingAt(glasses.position, 3.2f, 22f)) { if (SkipPressed()) s_Skip = true; t += Time.deltaTime; yield return null; }
+            }
+            if (!s_Skip)
+            {
                 AudioDirector.I?.Play("glasses_unfold", glasses.position, 0.5f);
                 yield return Line("shop_02", keeper != null ? keeper.transform : null, 7f);
+                if (keeper != null) keeper.Nod();
             }
 
-            // Shot 4: the purchase. A festival token in the brass tray; the frames go into their case; the lid closes.
+            // The purchase: the player puts the festival token in the brass tray; the frames go into their case.
             if (!s_Skip)
             {
-                yield return Cut(() => Frame(L(0.15f, 0f, -0.8f), caseGo.transform.position));
-                yield return Move(token, shop.TraySpot.position + Vector3.up * 0.006f, Quaternion.identity, 0.7f);
+                Hud.I?.SetObjective("Pay with your festival token: put it in the brass tray.", false);
+                float t = 0f;
+                while (!s_Skip && !paid)
+                {
+                    if (SkipPressed()) { s_Skip = true; break; }
+                    t += Time.deltaTime;
+                    if (t > 20f)
+                    {
+                        Hud.I?.ShowToast(Game.Mode == GameMode.VR ? "Grip the token, then let go of it over the brass tray"
+                            : Game.Input.Label(Intent.Interact) + ": take the token, then " + Game.Input.Label(Intent.Interact) + " at the brass tray", 4f);
+                        t = 0f;
+                    }
+                    yield return null;
+                }
+            }
+            if (!s_Skip)
+            {
+                Hud.I?.SetObjective("", false);
                 AudioDirector.I?.Play("coin_token", shop.TraySpot.position, 0.9f);
-                if (keeper != null) keeper.Gesture();
+                if (keeper != null) keeper.Nod();
                 yield return Move(glasses, caseGo.transform.position + Vector3.up * 0.022f, caseGo.transform.rotation * Quaternion.Euler(-90f, 0f, 0f), 1.1f);
+                // He lifts the case with the frames in it and holds it out across the counter, then sets it back down.
+                if (keeper != null && !s_Skip) keeper.Offer(caseGo.transform, glasses);
                 yield return Line("shop_03", keeper != null ? keeper.transform : null, 8f);
+                float waitOffer = 0f;
+                while (!s_Skip && keeper != null && keeper.Busy && waitOffer < 6f) { if (SkipPressed()) s_Skip = true; waitOffer += Time.deltaTime; yield return null; }
             }
             if (!s_Skip)
             {
                 PropLibrary.SetCaseOpen(caseGo, false);
                 AudioDirector.I?.Play("case_close", caseGo.transform.position, 0.9f);
                 yield return Line("shop_04", null, 5f);
-                if (!s_Skip) yield return Wait(0.8f);
+            }
+            // The memory unmakes itself around the counter: shelves, wall and souk sink back into the ground.
+            if (!s_Skip)
+            {
+                Game.InputLocks++;
+                MemoryReveal.FoldAway(shop.transform, rig.Feet, 2.4f);
+                AudioDirector.I?.Play("pp_seam_shimmer", rig.Head.position + rig.Head.forward, 0.6f, 0.7f);
+                yield return Wait(2.6f);
+                Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
             }
 
             c.SetFlag(StoryFlags.ShopPurchased);
             c.SetFlag(StoryFlags.PrologueDone);
             Narration.I?.StopAll();
+            Hud.I?.SetObjective("", false);
 
             // Back to the present.
+            Game.InputLocks++;
             yield return Fader.I.FadeOut(1f);
+            MemoryReveal.End(shop.transform);
             UnityEngine.Object.Destroy(props.gameObject);
+            if (Game.Passport != null) Game.Passport.Available = passportWas;
+            story.TearsAllowed = tearsWas; story.ThreatAllowed = threatWas; story.ShowVitality = vitalityWas;
             Game.Cells.Activate(homeCell != null ? homeCell.Id : CellId.ApartmentNormal);
             Game.Cells.Active.RefreshProbe();
             rig.PlaceAt(homeFeet, homeYaw);
             Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
             yield return Fader.I.FadeIn(1.2f);
+        }
+
+        static bool LookingAt(Vector3 point, float maxDistance, float maxAngle)
+        {
+            var head = Game.Rig.Head;
+            var to = point - head.position;
+            return to.magnitude < maxDistance && Vector3.Angle(head.forward, to) < maxAngle;
         }
 
         /// <summary>Places the player at a fixed vantage looking at a point (desktop also tilts the view).</summary>

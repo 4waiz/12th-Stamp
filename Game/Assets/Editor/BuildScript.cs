@@ -31,7 +31,11 @@ namespace TwelfthStamp.EditorTools
             }
             Directory.CreateDirectory(Path.GetDirectoryName(path));
 
-            ApplyIcon();
+            if (!ApplyIcon())
+            {
+                if (Application.isBatchMode) EditorApplication.Exit(1);
+                return;
+            }
 
             var options = new BuildPlayerOptions
             {
@@ -69,19 +73,29 @@ namespace TwelfthStamp.EditorTools
             }
         }
 
-        static void ApplyIcon()
+        /// <summary>
+        /// The Windows executable's icon (also the window, taskbar and Alt-Tab icon) from the approved key art: one
+        /// texture per size Unity asks for, made by Tools/branding/make_branding.py (small sizes use the thumbnail crop,
+        /// because the title is unreadable there). A missing icon fails the build instead of shipping a stand-in.
+        /// </summary>
+        static bool ApplyIcon()
         {
-            const string iconPath = "Assets/Resources/Art/icon_app.png";
-            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(iconPath);
-            if (tex == null)
-            {
-                Debug.Log("[TS-Build] No icon yet at " + iconPath);
-                return;
-            }
             var sizes = PlayerSettings.GetIconSizes(NamedBuildTarget.Standalone, IconKind.Application);
-            var icons = Enumerable.Repeat(tex, sizes.Length).ToArray();
+            var icons = new Texture2D[sizes.Length];
+            for (int i = 0; i < sizes.Length; i++)
+            {
+                var path = "Assets/Branding/Icons/icon_" + sizes[i] + ".png";
+                icons[i] = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                if (icons[i] == null)
+                {
+                    Debug.LogError("[TS-Build] ERROR: missing application icon " + path + " (run Tools/branding/make_branding.py)");
+                    return false;
+                }
+            }
             PlayerSettings.SetIcons(NamedBuildTarget.Standalone, icons, IconKind.Application);
-            Debug.Log("[TS-Build] Application icon set from " + iconPath);
+            PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { icons[0] }, IconKind.Any); // Player Settings > Default Icon
+            Debug.Log("[TS-Build] Application icon set from Assets/Branding/Icons (sizes " + string.Join(", ", sizes) + ")");
+            return true;
         }
 
         static string GetArg(string name)
