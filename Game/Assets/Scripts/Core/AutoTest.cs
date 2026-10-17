@@ -230,6 +230,8 @@ namespace TwelfthStamp
             yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 1.6f);
             Check(Game.Tears.Active != null && Game.Tears.Active.Size >= TearSize.Window, "tear widened to a window");
             yield return WaitUntil(() => Game.Passenger.State == PassengerState.Retreat || !Game.Passenger.Visible, 8f, "sunlight drives the Passenger off the desk");
+            var lightFx = Game.Passenger.GetComponent<PassengerLightFx>();
+            Check(lightFx != null && lightFx.Flinches > 0, "the light visibly hurts it: ash, a hiss and a step back (" + (lightFx != null ? lightFx.Flinches : 0) + " flinches)");
             yield return Shot("05_window_repel");
             yield return WaitUntil(() => FindAnyObjectByType<PassengerHand>() != null && FindAnyObjectByType<PassengerHand>().Active, 10f, "a hand comes through the widened tear");
             var reaching = FindAnyObjectByType<PassengerHand>();
@@ -283,7 +285,22 @@ namespace TwelfthStamp
                 yield return null;
             }
             var hand = Game.Rig.MainHand;
-            for (int i = 0; i < 4; i++) { egypt.Reflector.Use(hand); yield return new WaitForSeconds(0.35f); }
+            // World cues (playtest: "what am I even supposed to do"): the reflector glints until it is turned, and the
+            // false shadow smoulders as the beam swings near it.
+            var cues = (egypt.Encounter as EgyptEncounter)?.Cues;
+            var glint = egypt.transform.Find("ReflectorGlint");
+            Check(cues != null && glint != null && glint.gameObject.activeSelf && !cues.ReflectorTurned, "the bronze reflector glints until it is turned (it is the thing to use here)");
+            var smoulder = egypt.transform.Find("ShadowSmoulder")?.GetComponent<ParticleSystem>();
+            float coldError = cues != null ? cues.AimError : 0f;
+            for (int i = 0; i < 4; i++)
+            {
+                egypt.Reflector.Use(hand);
+                yield return new WaitForSeconds(0.35f);
+                if (i == 0) Check(glint != null && !glint.gameObject.activeSelf, "the glint stops once the reflector has been turned");
+                if (i == 2 && cues != null)
+                    Check(cues.AimError < coldError && cues.AimError < 32f && smoulder != null && smoulder.emission.rateOverTime.constant > 0f,
+                        "the false shadow smoulders as the beam swings near it (aim " + coldError.ToString("0") + " -> " + cues.AimError.ToString("0") + " degrees)");
+            }
             yield return WaitUntil(() => egypt.Trace.Revealed, 4f, "reflected sunlight burns the wrong shadow and reveals the trace");
             yield return Shot("11_egypt_trace");
             egypt.Trace.Use(hand);

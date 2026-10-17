@@ -268,12 +268,23 @@ namespace TwelfthStamp
         bool m_MummySpawned, m_Revealed, m_LookedAtShadow;
         Material m_ShadowMat;
 
+        /// <summary>The false shadow has burned away and the arrival trace shows (guide/state).</summary>
+        public bool Revealed => m_Revealed;
+        /// <summary>0..1: how far the reflected sun has burned the false shadow (guide/state).</summary>
+        public float BurnProgress => m_Burn;
+        /// <summary>The wrapped figure has risen out of the sand (guide/state).</summary>
+        public bool MummyRisen => m_MummySpawned;
+        /// <summary>World cues for the puzzle: reflector glint, smouldering shadow, aim error (see EgyptCues).</summary>
+        public EgyptCues Cues { get; private set; }
+
         public override void OnEnter(bool firstVisit)
         {
+            if (Cues == null) Cues = gameObject.AddComponent<EgyptCues>();
             m_ShadowMat = E.WrongShadow.GetComponent<Renderer>().sharedMaterial;
             bool verified = Game.Campaign.IsVerified(CountryId.Egypt);
             E.Reflector.Changed -= OnTurned; E.Reflector.Changed += OnTurned;
             m_MummySpawned = false; m_MummyTimer = 0f; m_Burn = 0f;
+            Cues.Setup(E, this);
             if (verified)
             {
                 m_Revealed = true;

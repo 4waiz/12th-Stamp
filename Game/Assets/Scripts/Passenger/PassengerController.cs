@@ -62,6 +62,8 @@ namespace TwelfthStamp
 
         public Vector3 ChestPosition => Body != null ? Body.Chest.position + Vector3.up * 0.2f : transform.position + Vector3.up * 1.5f;
         public bool Visible => gameObject.activeSelf && State != PassengerState.Dormant;
+        /// <summary>How much gameplay light falls on it right now (0 = none; above RepelThreshold it recoils).</summary>
+        public float Exposure => m_Exposure;
 
         public static PassengerController Create(Transform parent)
         {
@@ -70,6 +72,7 @@ namespace TwelfthStamp
             go.layer = Layers.Passenger;
             I = go.AddComponent<PassengerController>();
             I.Body = PassengerBody.Create(go.transform);
+            go.AddComponent<PassengerLightFx>();
             var col = go.AddComponent<CapsuleCollider>();
             col.center = new Vector3(0, 1.1f, 0); col.height = 2.2f; col.radius = 0.25f; col.isTrigger = true;
             MeshFactory.SetLayer(go, Layers.Passenger);
