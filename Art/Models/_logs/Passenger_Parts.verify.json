@@ -1,6 +1,6 @@
 {
   "file": "Passenger_Parts.fbx",
-  "bytes": 2431180,
+  "bytes": 2441948,
   "objects": [
     {
       "name": "Passenger_Parts",
@@ -32,15 +32,15 @@
       ],
       "world_dims": [
         0.39093,
-        0.21499,
+        0.19283,
         0.462
       ],
       "loose_verts": 0,
       "loose_edges": 0,
       "boundary_edges": 0,
-      "nonmanifold_edges": 4,
+      "nonmanifold_edges": 0,
       "degenerate_faces": 0,
-      "signed_volume": 0.022106649776688365,
+      "signed_volume": 0.019869012074292158,
       "custom_normals": true
     },
     {

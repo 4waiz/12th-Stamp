@@ -1,6 +1,6 @@
 """
 QA helper: render a close-up of a saved asset .blend.
-usage: blender -b <file.blend> --python closeup.py -- <out.png> <tx> <ty> <tz> <dx> <dy> <dz> <dist> [lens]
+usage: blender -b --factory-startup <file.blend> --python closeup.py -- <out.png> <tx> <ty> <tz> <dx> <dy> <dz> <dist> [lens]
 (target point and view direction in Blender world space, metres)
 """
 import sys

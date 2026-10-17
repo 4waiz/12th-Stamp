@@ -134,6 +134,32 @@ def main():
         for n in extra:
             lines.append("- " + n)
         lines.append("")
+    # ---- QA summary from the re-import logs
+    lines.append("## Re-import QA")
+    lines.append("")
+    lines.append("Each FBX is imported into an empty Blender scene by `Tools/blender/verify_fbx.py`. The full per-object results are in "
+                 "`Art/Models/_logs/<Name>.verify.json`, and the build-side stats in `<Name>.build.json`. "
+                 "\"Open edges\" are expected only on intentionally single-sided sheets (the passport's top pages).")
+    lines.append("")
+    lines.append("| File | Re-imported | Meshes | UVs on all meshes | Loose geometry | Non-manifold edges | Open edges | Inverted shells | Lowest point (m) | FBX axes |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|")
+    for name in ORDER:
+        v = load(name, "verify")
+        if v is None:
+            continue
+        meshes = [o for o in v["objects"] if o["type"] == "MESH"]
+        uv_ok = all(o.get("uv_layers") for o in meshes)
+        loose = sum(o.get("loose_verts", 0) + o.get("loose_edges", 0) for o in meshes)
+        nm = sum(o.get("nonmanifold_edges", 0) for o in meshes)
+        opn = sum(o.get("boundary_edges", 0) for o in meshes)
+        inv = sum(1 for o in meshes if o.get("signed_volume", 0) < 0 and not o.get("boundary_edges"))
+        g = v.get("globals", {})
+        axes = "Up=Y, Front=+Z, scale 1 m" if (g.get("UpAxis") == 1 and g.get("FrontAxis") == 2 and g.get("FrontAxisSign") == 1
+                                               and abs(g.get("UnitScaleFactor", 0) - 100.0) < 1e-6) else str(g)
+        lines.append("| `%s.fbx` | yes | %d | %s | %d | %d | %d%s | %d | %.3f | %s |" % (
+            name, len(meshes), "yes" if uv_ok else "NO", loose, nm, opn,
+            " (pages)" if opn and name == "Passport_Open" else "", inv, v["bbox_min"][2], axes))
+    lines.append("")
     lines.append("## Per-asset details")
     lines.append("")
     lines += details

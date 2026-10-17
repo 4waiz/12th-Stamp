@@ -277,7 +277,7 @@ def remove_internal_walls(ob, x_wall):
     import bmesh
     bm = bmesh.new()
     bm.from_mesh(ob.data)
-    kill = [f for f in bm.faces if all(abs(v.co.x - x_wall) < 1e-4 for v in f.verts)]
+    kill = [f for f in bm.faces if all(abs(v.co.x - x_wall) < 1e-4 and v.co.y > 0.0 for v in f.verts)]
     bmesh.ops.delete(bm, geom=kill, context="FACES_ONLY")
     bm.to_mesh(ob.data)
     bm.free()

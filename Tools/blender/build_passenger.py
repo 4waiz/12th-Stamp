@@ -476,7 +476,7 @@ def chest_body():
     zs = [0.0, 0.06, 0.15, 0.24, 0.30, 0.35, 0.385, 0.408, 0.425]
     ts = [(z - zs[0]) / (zs[-1] - zs[0]) for z in zs]
     g = GenCyl(ts, zs, [0.110, 0.114, 0.132, 0.158, 0.176, 0.184, 0.166, 0.105, 0.045],
-               [0.075, 0.078, 0.086, 0.094, 0.095, 0.088, 0.075, 0.058, 0.042],
+               [0.066, 0.069, 0.076, 0.083, 0.084, 0.078, 0.067, 0.054, 0.04],
                c2=[0.002, 0.002, -0.001, -0.005, -0.006, -0.004, 0.0, 0.004, 0.008],
                e=[2.3, 2.3, 2.5, 2.8, 3.0, 2.9, 2.5, 2.2, 2.0])
     return g, ts, zs
@@ -530,7 +530,9 @@ def build_chest(rng):
             x = xa + (xb - xa) * u
             return (t, theta_front_of_x(g, t, x, off))
         return pm
-    for (xa, xb, ta, tb_) in ((-xo, xo, tz0, ti0), (-xo, xo, ti1, tz1), (-xo, -xi, ti0, ti1), (xi, xo, ti0, ti1)):
+    # side pieces run the full height; top/bottom pieces overlap them (no shared edges)
+    for (xa, xb, ta, tb_) in ((-xi - 0.003, xi + 0.003, tz0, ti0), (-xi - 0.003, xi + 0.003, ti1, tz1),
+                              (-xo, -xi, tz0, tz1), (xi, xo, tz0, tz1)):
         plate(mb, g, fr(xa, xb, ta, tb_), off - 0.002, off + 0.0035, 10 if xb - xa > 0.05 else 2, 2,
               seam_w=0.002, all_seam=True)
     # segmented abdomen bands (shingled upward)

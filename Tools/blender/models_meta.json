@@ -2,7 +2,9 @@
   "_notes": [
     "Left/right naming follows the wearer or user (for example, LensL is the wearer's left lens). In Blender the wearer's left is +X; in Unity it is -X, which is the wearer's left when facing +Z.",
     "Preview PNGs are Eevee renders (800x600, neutral grey, three-quarter view). Extra QA views use suffixes such as _front, _side and _back.",
-    "Hierarchy rule: with bake_space_transform=True the Blender FBX exporter writes a spurious 90-degree rotation on grandchildren (checked in the raw FBX), so every file keeps all meshes as direct children of the root. The export helper refuses deeper nesting."
+    "Hierarchy rule: with bake_space_transform=True the Blender FBX exporter writes a spurious 90-degree rotation on grandchildren (checked in the raw FBX), so every file keeps all meshes as direct children of the root. The export helper refuses deeper nesting.",
+    "No third-party or downloaded assets are used. Every model is original geometry built by the scripts in Tools/blender. Nothing was taken from Poly Haven (the scripted models fit the size and slot contract exactly), so there was nothing to add to Art/AssetLedger.md.",
+    "Working .blend files for every asset are saved in Art/Models/_blend/ (about 16 MB, compressed). The QA helpers closeup.py and uvcheck.py use them. They can be regenerated from the scripts, so they can be gitignored if size matters."
   ],
   "Glasses_Open": {
     "script": "build_glasses.py",
@@ -53,7 +55,7 @@
     "notes": [
       "108.5 x 8.5 x 152 mm (10.6 mm deep including the emblem relief).",
       "`Cover` is the front board with 0..1 UVs on its front face (u from the spine edge to the fore-edge, v bottom to top). It includes the raised compass-rose-and-lens emblem as geometry in slot TS_Gold, centred at UV (0.50, 0.553). The Cover origin is on the spine hinge line, so it opens by rotating about local Y in Unity.",
-      "`Back` is the back board plus the rounded spine (TS_LeatherNavy). `Pages` is the block (TS_Paper faces, TS_PaperEdge edges)."
+      "`Back` is the back board plus the rounded spine as one closed shell (TS_LeatherNavy). `Pages` is the block (TS_Paper faces, TS_PaperEdge edges)."
     ]
   },
   "Passenger_Parts": {
@@ -64,6 +66,7 @@
       "Separate rigid parts with no armature, laid out as one assembled 2.15 m figure with the arms and legs straight down. Only the LEFT arm and leg are present (Blender +X, Unity -X). Every part is mirror-symmetric about its own centre plane, so the same mesh works on both sides without negative scale.",
       "Part origins and directions (Blender, Z up): Part_Hips at the hip centre (extends +Z 0.28, 0.30 wide); Part_Chest at the waist (extends +Z 0.45 to the neck top; the shoulder joints sit at +/-0.21, 0.385 above the waist); Part_Head at the neck top (shell 0.20 wide x 0.26 tall, top at +0.296); Part_UpperArm at the shoulder (extends -Z 0.36); Part_Forearm at the elbow (-Z 0.36); Part_Hand at the wrist (palm -Z 0.09, 0.07 wide); Part_FingerTag at the knuckle (-Z 0.15, 0.014 wide); Part_Thigh at the hip joint (-Z 0.50); Part_Shin at the knee (-Z 0.52); Part_Foot at the ankle (toe 0.17 forward along Blender -Y, which is Unity +Z; sole 0.10 below the ankle).",
       "Joint positions in the file (Blender metres): ankle (0.095, 0, 0.10), knee (0.095, 0, 0.62), hip joint (0.095, 0, 1.12), hip centre (0, 0, 1.12), waist (0, 0, 1.40), neck top (0, 0, 1.85), shoulder (0.21, 0, 1.785), elbow (0.21, 0, 1.425), wrist (0.21, 0, 1.065). The four knuckles are at x = -0.0285, -0.0095, +0.0095, +0.0285 relative to the wrist, 0.09 below it; the exported Part_FingerTag sits on the second one.",
+      "Measured part sizes (re-import): chest 0.39 wide x 0.19 deep x 0.46 tall including plate relief (the core is 0.17 deep; the shoulder joints are 0.42 apart); hips 0.30 wide; head shell 0.20 wide, top 0.296 above the neck; total figure height 2.147 m.",
       "Part_FacePlate is an empty, glossy oval visor (0.158 x 0.22 m) that follows the head curvature. It sits 2 mm proud of a 12 mm recess in the head shell. Its origin is its own centre, at offset (0, -0.0834, +0.1552) from the Part_Head origin in Blender, which is (0, +0.1552, +0.0834) in Unity local axes.",
       "Construction: a smoked-glass core body with layered plates (offset shells, rolled bronze rims) and fine bronze fracture strips that follow the surface. Joints are glass balls with bronze rings. The chest has a 130 x 20 mm horizontal document slot cut 50 mm deep, with a dark TS_FacePlate pocket and a bronze frame. The finger tags are flat luggage-tag plates with a rounded tip, a punched hole with grommets, rivet joints and a knuckle barrel.",
       "In-game cost per assembled figure (1 hips, 1 chest, 1 head, 1 face plate, 2 each of the six limb parts, 8 finger tags) is about 65k triangles."
@@ -253,3 +256,73 @@
       "To lay it flat with the obverse up, rotate it -90 degrees about X in Unity."
     ]
   },
+  "Landmark_Eiffel": {
+    "script": "build_landmarks.py",
+    "front": "+Z (the tower is four-way symmetric)",
+    "origin": "origin at ground centre",
+    "notes": [
+      "Stylised ~100 m lattice tower (99.2 m to the mast tip, 39.2 m base). The four splayed legs are box-section lattices with real X cross-bracing on every face. They curve into an upper shaft (exponential profile) that is also cross-braced with mid-face posts. Includes the great double arches with radial bracing on all four sides, a first-platform ring deck with a frieze and railing, a second platform, and a top deck with a cabin, lantern dome and mast.",
+      "Slots: TS_MetalDark (ironwork), TS_Metal (deck floors and cabin), TS_EmissiveWarm (a small beacon on the lantern)."
+    ]
+  },
+  "Landmark_Liberty": {
+    "script": "build_landmarks.py",
+    "front": "+Z (statue faces +Z)",
+    "origin": "origin at ground centre",
+    "notes": [
+      "Stylised statue and pedestal, 93.6 m to the torch flame. An 11-point star-fort base, then the pedestal: plinth, tapered shaft with pilasters, string courses and dark loggia panels (TS_MetalDark), cornice and attic. The robed figure has fold detail and a forward knee, a head with a seven-ray crown, a raised right arm with a torch, and a tablet held in the left arm.",
+      "Slots: TS_Stone (base and pedestal), TS_Metal (the statue; assign a verdigris material), TS_MetalDark (panels), TS_EmissiveWarm (torch flame)."
+    ]
+  },
+  "Landmark_Pagoda": {
+    "script": "build_landmarks.py",
+    "front": "+Z (entry steps)",
+    "origin": "origin at ground centre",
+    "notes": [
+      "Five-tier pagoda, 39.2 m tall, on a 15 m stone platform with entry steps. Each tier has white plaster walls (TS_PlasticWhite) with timber posts, beams and doors (TS_Wood). Upper tiers add balconies with railings and dark bracket bands (TS_WoodDark). Each roof is a concave hipped roof (TS_MetalDark, tile colour) with upturned corners and hip ridges. The bronze sorin finial (TS_Brass) has nine rings, a water-flame ornament and a jewel."
+    ]
+  },
+  "Landmark_ArchTower": {
+    "script": "build_landmarks.py",
+    "front": "+Z (the opening runs through the front and back faces)",
+    "origin": "origin at ground centre",
+    "notes": [
+      "Abstract ~150 m tower: two tapering legs rise around a parabolic opening (18 m half-width at the base, closing at 125 m) and merge into a rounded crown with a spire and beacon. Each 4 m floor is a TS_Metal band over an opaque curtain wall in TS_MetalDark (dark glass), with continuous vertical TS_Metal fins on the front and back faces. A glazed sky bridge (TS_Glass) spans the opening at 100 to 106 m.",
+      "The curtain wall deliberately uses opaque TS_MetalDark, not TS_Glass, so the distant silhouette reads as solid. Only the sky bridge uses TS_Glass."
+    ]
+  },
+  "Landmark_DomedPavilion": {
+    "script": "build_landmarks.py",
+    "front": "+Z (all four faces are identical)",
+    "origin": "origin at ground centre",
+    "notes": [
+      "Domed mausoleum-style pavilion, 65 m to the finial, on a 93 m square platform (TS_Stone). The chamfered marble block (TS_Marble) has a pishtaq frame on each side with a deep pointed-arch iwan (boolean-cut), plus two-storey arched niches on the chamfers. Above: a parapet, a drum, and a 22.5 m onion dome with a gold finial (TS_Gold). Four roof chhatris, and four minarets with three balconies each, topped by chhatris."
+    ]
+  },
+  "Landmark_ClockTower": {
+    "script": "build_landmarks.py",
+    "front": "+Z (four identical clock faces)",
+    "origin": "origin at ground centre",
+    "notes": [
+      "Gothic-revival clock tower, 100.1 m to the finial, 12 m square shaft. Stone shaft (TS_Stone) with corner buttresses, pilasters, string courses and dark lancet window panels (TS_MetalDark). A wider clock stage with gilded rings and corner bosses (TS_Gold) and a gable over each face, then a belfry arcade, pyramidal lower spire with corner pinnacles, lantern stage and upper spire (TS_MetalDark), and a gold finial.",
+      "`Faces` is a child holding the four clock discs (7 m diameter, centre 64.5 m up) in slot TS_EmissiveWarm. Each disc has 0..1 UVs (u to the viewer's right, v up as seen from outside), so the game can put a clock-face texture or emissive hands on them."
+    ]
+  },
+  "Landmark_ColumnGate": {
+    "script": "build_landmarks.py",
+    "front": "+Z (the quadriga faces +Z)",
+    "origin": "origin at ground centre",
+    "notes": [
+      "Neoclassical six-column gate, 41 x 15 m, 26.8 m to the top of the quadriga. Two rows of six fluted Doric-style columns on a stepped base, with passage walls between the front and back columns forming five passages. Above: an entablature with a triglyph frieze, cornices, a stepped attic with side wedges, and a quadriga block. The quadriga (TS_Metal) has four horses (the middle two rearing), a chariot with wheels, and a winged figure holding a standard with a wreath. Stone is TS_Stone."
+    ]
+  },
+  "StreetLamp_Paris": {
+    "script": "build_landmarks.py",
+    "front": "+Z (rotationally symmetric; the ladder bar runs along X)",
+    "origin": "origin at ground centre",
+    "notes": [
+      "4.0 m cast-iron Parisian lamp post (TS_MetalDark): fluted flared base, collars, a tapering fluted shaft, a ladder-rest crossbar with ball ends, scroll brackets, a lantern cup, a hexagonal tapered lantern frame, and a crown roof with a finial.",
+      "`Lantern` is a child (TS_EmissiveWarm): the hexagonal glass body inside the frame, origin at its centre (3.495 m up). Put a point light there."
+    ]
+  }
+}

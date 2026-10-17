@@ -4,12 +4,12 @@
   "dims_m": [
     56.0,
     22.5999,
-    150.0167
+    150.0
   ],
   "bbox_min": [
     -28.0,
     -11.3,
-    -0.0167
+    0.0
   ],
   "bbox_max": [
     28.0,
@@ -54,5 +54,5 @@
   ],
   "transform_issues": [],
   "file": "Landmark_ArchTower.fbx",
-  "bytes": 1215500
+  "bytes": 1216924
 }

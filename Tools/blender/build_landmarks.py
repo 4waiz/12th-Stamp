@@ -468,6 +468,9 @@ def build_arch_tower():
         x = -xi + 2 * xi * j / 8
         for sy in (-1, 1):
             bx(mb, (0.35, 0.35, 4.8), (x, sy * 4.3, zb0 + 3.2), METAL)
+    for i in range(len(mb.verts)):
+        if mb.verts[i].z < 0.0:
+            mb.verts[i].z = 0.0
     lm = L.MB()
     A.superellipsoid(lm, (0.4, 0.4, 0.4), (0, 0, 149.6), 1.0, 1.0, 12, 8, 0)
     tower = finish(mb.build("Tower", MATS), root, 30.0)

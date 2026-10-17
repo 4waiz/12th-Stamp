@@ -1,6 +1,6 @@
 """
 QA helper: put a labelled UV test image on given materials of a saved asset and render.
-usage: blender -b <asset.blend> --python uvcheck.py -- <test.png> <out.png> <vx> <vy> <vz> <mat1,mat2,...>
+usage: blender -b --factory-startup <asset.blend> --python uvcheck.py -- <test.png> <out.png> <vx> <vy> <vz> <mat1,mat2,...>
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

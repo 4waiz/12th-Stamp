@@ -1,6 +1,6 @@
 {
   "file": "Passport_Closed.fbx",
-  "bytes": 180188,
+  "bytes": 180172,
   "objects": [
     {
       "name": "Passport_Closed",
@@ -21,7 +21,7 @@
         0.0,
         0.0
       ],
-      "tris": 314,
+      "tris": 316,
       "slots": [
         "TS_LeatherNavy"
       ],
@@ -35,10 +35,10 @@
       ],
       "loose_verts": 0,
       "loose_edges": 0,
-      "boundary_edges": 4,
+      "boundary_edges": 0,
       "nonmanifold_edges": 0,
       "degenerate_faces": 0,
-      "signed_volume": 2.251993052171385e-05,
+      "signed_volume": 2.2799863919657295e-05,
       "custom_normals": true
     },
     {
@@ -113,7 +113,7 @@
     "CoordAxisSign": 1,
     "UnitScaleFactor": 100.0
   },
-  "tris": 2410,
+  "tris": 2412,
   "dims_m": [
     0.1085,
     0.0106,

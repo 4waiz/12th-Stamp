@@ -1,6 +1,6 @@
 {
   "file": "Landmark_ArchTower.fbx",
-  "bytes": 1215500,
+  "bytes": 1216924,
   "objects": [
     {
       "name": "Landmark_ArchTower",
@@ -34,14 +34,14 @@
       "world_dims": [
         56.0,
         22.5999,
-        150.01675
+        150.0
       ],
       "loose_verts": 0,
       "loose_edges": 0,
       "boundary_edges": 0,
       "nonmanifold_edges": 0,
       "degenerate_faces": 0,
-      "signed_volume": 58587.07701386041,
+      "signed_volume": 58587.051129694955,
       "custom_normals": true
     }
   ],
@@ -59,12 +59,12 @@
   "dims_m": [
     56.0,
     22.5999,
-    150.0167
+    150.0
   ],
   "bbox_min": [
     -28.0,
     -11.3,
-    -0.0167
+    -0.0
   ],
   "bbox_max": [
     28.0,
