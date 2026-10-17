@@ -47,6 +47,27 @@ FALLBACK = {
     "af_heart": ["af_nova", "af_sky"],
 }
 
+# Pronunciation fixes. Kokoro's espeak front-end picked the wrong reading of these heteronyms/names
+# (checked with kokoro_onnx.tokenizer.Tokenizer().phonemize and by ASR). Only the TTS input is
+# respelled; subtitles/transcripts keep the script text.
+#   tut_seal: "Close" -> /klˈəʊs/ (adjective) and "tear" -> /tˈiə/ (crying); want /kləʊz/, /teə/
+#   opt_02:   "lives" -> /lˈaɪvz/ (noun);  want the verb /lɪvz/. With "livs", George's "leave" was
+#             heard as "lave" by Whisper large-v3 in every comma variant; ending the sentence at
+#             "leave." gives a clear /liːv/ (both ASR models: "leave", p=1.00).
+#   end_02:   "Saeed" -> /sˈiːd/ ("seed"); want /sɑːˈiːd/
+RESPELL = {
+    "tut_seal": [("Close", "Cloze"), ("tear", "tare")],
+    "opt_02": [("lives", "livs"), ("leave, unless", "leave. Unless")],
+    "end_02": [("Saeed", "Sa-eed")],
+}
+
+
+def tts_text(lid, text):
+    for a, b in RESPELL.get(lid, []):
+        text = re.sub(r"\b%s\b" % re.escape(a), b, text)
+    return text
+
+
 TRIM = (
     "adelay=delays=100:all=1,apad=pad_dur=0.3,"
     "silenceremove=start_periods=1:start_threshold=-55dB:start_silence=0.06:detection=rms:window=0.01,"
@@ -124,15 +145,27 @@ def process(raw, out, speaker):
     gain = TARGET_I - float(m0["input_i"])
     pred_tp = float(m0["input_tp"]) + gain
     limited = pred_tp > TARGET_TP - 0.5
+    iterations = 0
     if limited:
         # Kokoro speech often has a peak-to-loudness ratio > 16 dB, so -18 LUFS would put peaks
         # above -2 dBTP. Apply the gain, then a 4x-oversampled lookahead limiter at -2.6 dBFS
         # (sample peaks at 192 kHz ~= true peaks) so the final loudnorm pass can stay linear.
+        # Limiting lowers loudness a little, so the pre-gain is re-measured and nudged until the
+        # remaining loudnorm gain fits under the true-peak ceiling.
         ceiling = 10 ** ((TARGET_TP - 0.6) / 20)
-        pre = (f"{pre},volume={gain:.2f}dB,aresample=192000:resampler=soxr,"
-               f"alimiter=limit={ceiling:.4f}:attack=1:release=60:level=disabled:latency=1")
-    # pass 1: measure (after optional limiter)
-    f1, m = measure(raw, pre)
+        base = pre
+        g = gain
+        for iterations in range(1, 6):
+            pre = (f"{base},volume={g:.2f}dB,aresample=192000:resampler=soxr,"
+                   f"alimiter=limit={ceiling:.4f}:attack=1:release=60:level=disabled:latency=1")
+            f1, m = measure(raw, pre)
+            short = TARGET_I - float(m["input_i"])
+            if float(m["input_tp"]) + short <= TARGET_TP - 0.1 and abs(short) < 0.4:
+                break
+            g += short + 0.05
+    else:
+        # pass 1: measure
+        f1, m = measure(raw, pre)
     # pass 2: apply (linear), fades, resample to 48k s16 with TPDF dither
     f2 = (
         f"{pre},loudnorm=I={TARGET_I}:TP={TARGET_TP}:LRA={TARGET_LRA}"
@@ -145,7 +178,8 @@ def process(raw, out, speaker):
     p2 = run(["ffmpeg", "-hide_banner", "-nostats", "-y", "-i", raw, "-af", f2,
               "-c:a", "pcm_s16le", "-ar", "48000", "-ac", "1", "-map_metadata", "-1", out])
     m2 = last_json(p2.stderr)
-    return {"filter_pass0": f0, "pass0": m0, "limiter_applied": limited, "predicted_tp_without_limiter": round(pred_tp, 2),
+    return {"filter_pass0": f0, "pass0": m0, "limiter_applied": limited, "limiter_iterations": iterations,
+            "predicted_tp_without_limiter": round(pred_tp, 2),
             "filter_pass1": f1, "filter_pass2": f2, "pass1": m, "pass2": m2}
 
 
@@ -189,11 +223,13 @@ def main():
         spk = line["speaker"]
         voice = subs[spk]["used"]
         txt = os.path.join(TXT, lid + ".txt")
+        say = tts_text(lid, line["text"])
         with open(txt, "w", encoding="utf-8", newline="\n") as fh:
-            fh.write(line["text"])
+            fh.write(say)
         raw = os.path.join(RAW, lid + ".wav")
         rec = log["lines"].get(lid, {})
-        if args.force_tts or not os.path.exists(raw) or rec.get("text") != line["text"] or rec.get("voice") != voice:
+        if (args.force_tts or not os.path.exists(raw) or rec.get("tts_text", line["text"]) != say
+                or rec.get("voice") != voice):
             cmd = [npx(), "--no-install", "hyperframes", "tts", txt, "-v", voice, "-s", "1.0", "-o", raw, "--json"]
             t0 = time.time()
             p = run(cmd, env=env)
@@ -203,7 +239,8 @@ def main():
             rec = {"tts_cmd": "npx --no-install hyperframes tts " + os.path.relpath(txt, ROOT).replace("\\", "/")
                    + f" -v {voice} -s 1.0 -o " + os.path.relpath(raw, ROOT).replace("\\", "/") + " --json",
                    "tts_result": res, "tts_seconds": round(time.time() - t0, 2)}
-        rec.update({"speaker": spk, "voice": voice, "text": line["text"]})
+        rec.update({"speaker": spk, "voice": voice, "text": line["text"], "tts_text": say,
+                    "respelled": say != line["text"]})
         out = os.path.join(OUT, lid + ".wav")
         rec["post"] = process(raw, out, spk)
         log["lines"][lid] = rec

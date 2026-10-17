@@ -1,0 +1,1157 @@
+{
+ "materials": {
+  "paper_ivory": {
+   "name": "paper_ivory",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Passport pages, notes, menu cards: tactile ivory paper with fine fibres.",
+   "method": "Fourier-domain fBm 'flocs' + fine grain + ~4k curved fibre strands drawn with wrap-around; height = fibres + flocs.",
+   "files": [
+    {
+     "file": "paper_ivory_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.77,
+      "inner_lr": 1.71,
+      "ratio_lr": 1.04,
+      "seam_tb": 1.62,
+      "inner_tb": 1.68,
+      "ratio_tb": 0.97,
+      "ok": true
+     },
+     "lum_mean": 0.808,
+     "lum_p1": 0.763,
+     "lum_p99": 0.84
+    },
+    {
+     "file": "paper_ivory_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 3.06,
+      "inner_lr": 2.92,
+      "ratio_lr": 1.05,
+      "seam_tb": 2.94,
+      "inner_tb": 2.86,
+      "ratio_tb": 1.03,
+      "ok": true
+     },
+     "tilt_deg": 3.53
+    }
+   ],
+   "seconds": 1.9
+  },
+  "paper_shoji": {
+   "name": "paper_shoji",
+   "size": 512,
+   "kind": "std",
+   "purpose": "Japanese shoji / washi paper (light), long kozo fibres.",
+   "method": "Cloudy formation fBm + long curved fibre strands (wrap-around strokes) of two tones.",
+   "files": [
+    {
+     "file": "paper_shoji_a.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 0.79,
+      "inner_lr": 1.01,
+      "ratio_lr": 0.78,
+      "seam_tb": 0.77,
+      "inner_tb": 0.98,
+      "ratio_tb": 0.79,
+      "ok": true
+     },
+     "lum_mean": 0.834,
+     "lum_p1": 0.788,
+     "lum_p99": 0.851
+    },
+    {
+     "file": "paper_shoji_n.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.93,
+      "inner_lr": 2.09,
+      "ratio_lr": 0.92,
+      "seam_tb": 1.81,
+      "inner_tb": 2.01,
+      "ratio_tb": 0.9,
+      "ok": true
+     },
+     "tilt_deg": 2.83
+    }
+   ],
+   "seconds": 0.5
+  },
+  "fabric_linen": {
+   "name": "fabric_linen",
+   "size": 512,
+   "kind": "std",
+   "purpose": "Linen cloth (tablecloths, curtains, upholstery).",
+   "method": "Plain weave: 64 warp x 64 weft threads with per-thread thickness, slub noise and over/under height profile; fibre fuzz from elongated spectral noise.",
+   "files": [
+    {
+     "file": "fabric_linen_a.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 10.09,
+      "inner_lr": 6.06,
+      "ratio_lr": 1.67,
+      "seam_tb": 11.83,
+      "inner_tb": 5.23,
+      "ratio_tb": 2.26,
+      "ok": true
+     },
+     "lum_mean": 0.607,
+     "lum_p1": 0.499,
+     "lum_p99": 0.723
+    },
+    {
+     "file": "fabric_linen_n.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 7.6,
+      "inner_lr": 6.03,
+      "ratio_lr": 1.26,
+      "seam_tb": 7.12,
+      "inner_tb": 6.07,
+      "ratio_tb": 1.17,
+      "ok": true
+     },
+     "tilt_deg": 11.61
+    }
+   ],
+   "seconds": 0.4
+  },
+  "leather_navy": {
+   "name": "leather_navy",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Passport cover and glasses case: deep-navy pebbled leather.",
+   "method": "Lloyd-relaxed periodic Voronoi (~2.6k cells) with warped lookup -> rounded pebble domes and creases from bisector distance; fine wrinkle noise; tops slightly lighter, creases darker.",
+   "files": [
+    {
+     "file": "leather_navy_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.78,
+      "inner_lr": 1.67,
+      "ratio_lr": 1.07,
+      "seam_tb": 1.75,
+      "inner_tb": 1.67,
+      "ratio_tb": 1.05,
+      "ok": true
+     },
+     "lum_mean": 0.177,
+     "lum_p1": 0.146,
+     "lum_p99": 0.227
+    },
+    {
+     "file": "leather_navy_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 9.01,
+      "inner_lr": 9.01,
+      "ratio_lr": 1.0,
+      "seam_tb": 9.24,
+      "inner_tb": 8.97,
+      "ratio_tb": 1.03,
+      "ok": true
+     },
+     "tilt_deg": 21.35
+    }
+   ],
+   "seconds": 2.3
+  },
+  "metal_brushed": {
+   "name": "metal_brushed",
+   "size": 512,
+   "kind": "std",
+   "purpose": "Aged gunmetal for glasses frames, hinges, fittings.",
+   "method": "Strongly anisotropic Fourier noise (streaks along X) + ~170 long wrap-around scratches + low-frequency patina and corrosion spots.",
+   "files": [
+    {
+     "file": "metal_brushed_a.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 4.25,
+      "inner_lr": 3.86,
+      "ratio_lr": 1.1,
+      "seam_tb": 6.14,
+      "inner_tb": 7.23,
+      "ratio_tb": 0.85,
+      "ok": true
+     },
+     "lum_mean": 0.43,
+     "lum_p1": 0.341,
+     "lum_p99": 0.513
+    },
+    {
+     "file": "metal_brushed_n.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.23,
+      "inner_lr": 1.23,
+      "ratio_lr": 0.99,
+      "seam_tb": 3.86,
+      "inner_tb": 3.77,
+      "ratio_tb": 1.02,
+      "ok": true
+     },
+     "tilt_deg": 3.85
+    }
+   ],
+   "seconds": 0.4
+  },
+  "lacquer_red": {
+   "name": "lacquer_red",
+   "size": 512,
+   "kind": "std",
+   "purpose": "Japanese red lacquer (urushi) for trays, rails, shrine accents.",
+   "method": "Ring-field wood grain (integer ring count + periodic warp) showing faintly under a red lacquer; elongated brush noise; orange-peel band-pass noise in the height.",
+   "files": [
+    {
+     "file": "lacquer_red_a.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 0.85,
+      "inner_lr": 0.82,
+      "ratio_lr": 1.04,
+      "seam_tb": 1.17,
+      "inner_tb": 1.13,
+      "ratio_tb": 1.04,
+      "ok": true
+     },
+     "lum_mean": 0.233,
+     "lum_p1": 0.212,
+     "lum_p99": 0.255
+    },
+    {
+     "file": "lacquer_red_n.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.21,
+      "inner_lr": 1.22,
+      "ratio_lr": 0.99,
+      "seam_tb": 1.41,
+      "inner_tb": 1.42,
+      "ratio_tb": 0.99,
+      "ok": true
+     },
+     "tilt_deg": 2.4
+    }
+   ],
+   "seconds": 0.6
+  },
+  "plaster_warm": {
+   "name": "plaster_warm",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Abu Dhabi apartment walls: warm off-white plaster, subtle.",
+   "method": "Voronoi trowel facets (random planar slope per cell, blurred) + faint trowel ridges + cloudy fBm + fine sand grain + sparse pits.",
+   "files": [
+    {
+     "file": "plaster_warm_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.52,
+      "inner_lr": 1.53,
+      "ratio_lr": 0.99,
+      "seam_tb": 1.52,
+      "inner_tb": 1.54,
+      "ratio_tb": 0.99,
+      "ok": true
+     },
+     "lum_mean": 0.777,
+     "lum_p1": 0.722,
+     "lum_p99": 0.824
+    },
+    {
+     "file": "plaster_warm_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.61,
+      "inner_lr": 1.62,
+      "ratio_lr": 0.99,
+      "seam_tb": 1.81,
+      "inner_tb": 1.61,
+      "ratio_tb": 1.12,
+      "ok": true
+     },
+     "tilt_deg": 2.35
+    }
+   ],
+   "seconds": 2.7
+  },
+  "plaster_terracotta": {
+   "name": "plaster_terracotta",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Marrakech walls: ochre-red (terracotta) lime plaster.",
+   "method": "Trowel facets + mottled lime-wash patches (thresholded fBm) + dirt + hairline cracks (branching random walks drawn with wrap-around) + sand grain.",
+   "files": [
+    {
+     "file": "plaster_terracotta_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.12,
+      "inner_lr": 1.17,
+      "ratio_lr": 0.96,
+      "seam_tb": 1.23,
+      "inner_tb": 1.17,
+      "ratio_tb": 1.05,
+      "ok": true
+     },
+     "lum_mean": 0.48,
+     "lum_p1": 0.415,
+     "lum_p99": 0.545
+    },
+    {
+     "file": "plaster_terracotta_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 2.76,
+      "inner_lr": 2.85,
+      "ratio_lr": 0.97,
+      "seam_tb": 2.93,
+      "inner_tb": 2.83,
+      "ratio_tb": 1.04,
+      "ok": true
+     },
+     "tilt_deg": 3.89
+    }
+   ],
+   "seconds": 2.7
+  },
+  "limestone_blocks": {
+   "name": "limestone_blocks",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Paris Haussmann facade: cream limestone ashlar, 4 blocks across.",
+   "method": "Periodic running-bond course layout (4 x 8 blocks, offset so joints avoid the tile edge); per-block tone, pores, chipped arrises (noise-perturbed edge distance), soot streaks (vertical anisotropic noise) and thin mortar joints.",
+   "files": [
+    {
+     "file": "limestone_blocks_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 2.62,
+      "inner_lr": 2.85,
+      "ratio_lr": 0.92,
+      "seam_tb": 2.81,
+      "inner_tb": 2.48,
+      "ratio_tb": 1.13,
+      "ok": true
+     },
+     "lum_mean": 0.759,
+     "lum_p1": 0.689,
+     "lum_p99": 0.833
+    },
+    {
+     "file": "limestone_blocks_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.98,
+      "inner_lr": 2.16,
+      "ratio_lr": 0.92,
+      "seam_tb": 2.02,
+      "inner_tb": 1.98,
+      "ratio_tb": 1.02,
+      "ok": true
+     },
+     "tilt_deg": 7.1
+    }
+   ],
+   "seconds": 1.9
+  },
+  "sandstone_blocks": {
+   "name": "sandstone_blocks",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Egypt courtyard: weathered sandstone blocks of varying length.",
+   "method": "Periodic courses with random block lengths, eroded rounded edges, bedding strata (integer-frequency warped sine bands with per-block phase), honeycomb pits from a fine periodic Voronoi, sandy joints.",
+   "files": [
+    {
+     "file": "sandstone_blocks_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.6,
+      "inner_lr": 1.73,
+      "ratio_lr": 0.92,
+      "seam_tb": 2.68,
+      "inner_tb": 2.91,
+      "ratio_tb": 0.92,
+      "ok": true
+     },
+     "lum_mean": 0.637,
+     "lum_p1": 0.516,
+     "lum_p99": 0.763
+    },
+    {
+     "file": "sandstone_blocks_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 2.89,
+      "inner_lr": 3.16,
+      "ratio_lr": 0.91,
+      "seam_tb": 3.03,
+      "inner_tb": 2.93,
+      "ratio_tb": 1.03,
+      "ok": true
+     },
+     "tilt_deg": 8.54
+    }
+   ],
+   "seconds": 2.4
+  },
+  "brick_london": {
+   "name": "brick_london",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "London brown/red brick in Flemish bond with lime mortar.",
+   "method": "Periodic Flemish bond (stretcher+header, 14 courses, 3 repeats across), per-brick colour from a weighted brown/red palette with darker burnt headers, sandy surface, chipped arrises, soot fBm, recessed sandy mortar.",
+   "files": [
+    {
+     "file": "brick_london_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 2.94,
+      "inner_lr": 2.61,
+      "ratio_lr": 1.13,
+      "seam_tb": 2.37,
+      "inner_tb": 2.16,
+      "ratio_tb": 1.09,
+      "ok": true
+     },
+     "lum_mean": 0.37,
+     "lum_p1": 0.172,
+     "lum_p99": 0.676
+    },
+    {
+     "file": "brick_london_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 4.81,
+      "inner_lr": 4.66,
+      "ratio_lr": 1.03,
+      "seam_tb": 5.81,
+      "inner_tb": 4.26,
+      "ratio_tb": 1.36,
+      "ok": true
+     },
+     "tilt_deg": 11.83
+    }
+   ],
+   "seconds": 1.7
+  },
+  "sand_ripples": {
+   "name": "sand_ripples",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Egypt ground: wind-rippled desert sand.",
+   "method": "Asymmetric ripple profile on a phase field (integer ripple count + periodic fBm warp) with amplitude modulation, cross micro-ripples, darker heavy grains in troughs, grain speckle.",
+   "files": [
+    {
+     "file": "sand_ripples_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 3.65,
+      "inner_lr": 3.57,
+      "ratio_lr": 1.02,
+      "seam_tb": 3.7,
+      "inner_tb": 3.63,
+      "ratio_tb": 1.02,
+      "ok": true
+     },
+     "lum_mean": 0.658,
+     "lum_p1": 0.548,
+     "lum_p99": 0.751
+    },
+    {
+     "file": "sand_ripples_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 3.64,
+      "inner_lr": 3.63,
+      "ratio_lr": 1.0,
+      "seam_tb": 3.72,
+      "inner_tb": 4.01,
+      "ratio_tb": 0.93,
+      "ok": true
+     },
+     "tilt_deg": 12.44
+    }
+   ],
+   "seconds": 1.3
+  },
+  "cobble_wet": {
+   "name": "cobble_wet",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Paris riverside: wet granite setts (cobblestones).",
+   "method": "Periodic courses of setts with random widths; rounded-rectangle SDF per stone with noisy outline, domed height, per-stone grey/brown tone, granite speckle; darkened and slightly saturated for wetness; muddy joints.",
+   "files": [
+    {
+     "file": "cobble_wet_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 3.16,
+      "inner_lr": 2.3,
+      "ratio_lr": 1.38,
+      "seam_tb": 2.08,
+      "inner_tb": 2.18,
+      "ratio_tb": 0.96,
+      "ok": true
+     },
+     "lum_mean": 0.306,
+     "lum_p1": 0.177,
+     "lum_p99": 0.416
+    },
+    {
+     "file": "cobble_wet_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 4.22,
+      "inner_lr": 3.79,
+      "ratio_lr": 1.11,
+      "seam_tb": 3.73,
+      "inner_tb": 3.46,
+      "ratio_tb": 1.08,
+      "ok": true
+     },
+     "tilt_deg": 10.31
+    }
+   ],
+   "seconds": 2.1
+  },
+  "asphalt_wet": {
+   "name": "asphalt_wet",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "NY harbour: wet asphalt with aggregate and sealed cracks.",
+   "method": "Two-scale periodic Voronoi aggregate on a bitumen binder, wear/oil fBm patches, sealed cracks from branching random walks; darkened for wetness.",
+   "files": [
+    {
+     "file": "asphalt_wet_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 6.23,
+      "inner_lr": 5.85,
+      "ratio_lr": 1.07,
+      "seam_tb": 5.33,
+      "inner_tb": 5.85,
+      "ratio_tb": 0.91,
+      "ok": true
+     },
+     "lum_mean": 0.271,
+     "lum_p1": 0.168,
+     "lum_p99": 0.452
+    },
+    {
+     "file": "asphalt_wet_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 13.36,
+      "inner_lr": 12.44,
+      "ratio_lr": 1.07,
+      "seam_tb": 11.2,
+      "inner_tb": 12.5,
+      "ratio_tb": 0.9,
+      "ok": true
+     },
+     "tilt_deg": 19.51
+    }
+   ],
+   "seconds": 2.3
+  },
+  "concrete_panels": {
+   "name": "concrete_panels",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Berlin / New York: large precast concrete panels with seams.",
+   "method": "2 x 2 periodic panels with chamfered recessed seams, formwork tie holes, bug-holes, drip streaks below holes and seams (vertical anisotropic noise), per-panel tone, cloudy fBm.",
+   "files": [
+    {
+     "file": "concrete_panels_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 2.12,
+      "inner_lr": 2.2,
+      "ratio_lr": 0.96,
+      "seam_tb": 2.04,
+      "inner_tb": 2.08,
+      "ratio_tb": 0.98,
+      "ok": true
+     },
+     "lum_mean": 0.571,
+     "lum_p1": 0.424,
+     "lum_p99": 0.639
+    },
+    {
+     "file": "concrete_panels_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.76,
+      "inner_lr": 1.86,
+      "ratio_lr": 0.95,
+      "seam_tb": 1.63,
+      "inner_tb": 1.85,
+      "ratio_tb": 0.88,
+      "ok": true
+     },
+     "tilt_deg": 4.47
+    }
+   ],
+   "seconds": 1.9
+  },
+  "granite_pavers": {
+   "name": "granite_pavers",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Berlin plaza: grey granite pavers (512x256 px running bond).",
+   "method": "Periodic running bond (2 x 4 pavers); granite crystals from a 60k-site periodic Voronoi with a weighted black/grey/white/pink palette; flamed-surface noise; dark sand joints.",
+   "files": [
+    {
+     "file": "granite_pavers_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 9.29,
+      "inner_lr": 10.22,
+      "ratio_lr": 0.91,
+      "seam_tb": 11.86,
+      "inner_tb": 10.29,
+      "ratio_tb": 1.15,
+      "ok": true
+     },
+     "lum_mean": 0.488,
+     "lum_p1": 0.24,
+     "lum_p99": 0.71
+    },
+    {
+     "file": "granite_pavers_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 4.47,
+      "inner_lr": 4.38,
+      "ratio_lr": 1.02,
+      "seam_tb": 4.28,
+      "inner_tb": 4.4,
+      "ratio_tb": 0.97,
+      "ok": true
+     },
+     "tilt_deg": 7.28
+    }
+   ],
+   "seconds": 1.9
+  },
+  "stone_dark_slate": {
+   "name": "stone_dark_slate",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Japan street: dark slate paving slabs.",
+   "method": "Random-height courses of random-length slabs (periodic), slate cleavage from terraced anisotropic noise per slab orientation, blue-grey per-slab tones, dark gritty joints.",
+   "files": [
+    {
+     "file": "stone_dark_slate_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.95,
+      "inner_lr": 1.58,
+      "ratio_lr": 1.24,
+      "seam_tb": 1.11,
+      "inner_tb": 1.54,
+      "ratio_tb": 0.72,
+      "ok": true
+     },
+     "lum_mean": 0.316,
+     "lum_p1": 0.188,
+     "lum_p99": 0.393
+    },
+    {
+     "file": "stone_dark_slate_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 5.88,
+      "inner_lr": 2.36,
+      "ratio_lr": 2.49,
+      "seam_tb": 10.85,
+      "inner_tb": 2.02,
+      "ratio_tb": 5.36,
+      "ok": true
+     },
+     "tilt_deg": 7.14
+    }
+   ],
+   "seconds": 1.9
+  },
+  "plaza_stone": {
+   "name": "plaza_stone",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Riyadh plaza: warm beige large limestone pavers.",
+   "method": "2 x 2 periodic large pavers with fine joints, per-paver tone/hue, fossil flecks, pores, cloudy mottling and light dust.",
+   "files": [
+    {
+     "file": "plaza_stone_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.52,
+      "inner_lr": 1.65,
+      "ratio_lr": 0.92,
+      "seam_tb": 1.67,
+      "inner_tb": 1.65,
+      "ratio_tb": 1.01,
+      "ok": true
+     },
+     "lum_mean": 0.73,
+     "lum_p1": 0.641,
+     "lum_p99": 0.808
+    },
+    {
+     "file": "plaza_stone_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.1,
+      "inner_lr": 1.07,
+      "ratio_lr": 1.03,
+      "seam_tb": 1.15,
+      "inner_tb": 1.07,
+      "ratio_tb": 1.08,
+      "ok": true
+     },
+     "tilt_deg": 2.77
+    }
+   ],
+   "seconds": 2.3
+  },
+  "grass_short": {
+   "name": "grass_short",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "India garden lawn: short grass seen from above.",
+   "method": "~30k tapered grass blades drawn in four depth layers with wrap-around (later layers occlude and are lighter), gradient-mapped greens, dry-patch and soil fBm; height from layer depth.",
+   "files": [
+    {
+     "file": "grass_short_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 6.85,
+      "inner_lr": 8.54,
+      "ratio_lr": 0.8,
+      "seam_tb": 6.29,
+      "inner_tb": 8.41,
+      "ratio_tb": 0.75,
+      "ok": true
+     },
+     "lum_mean": 0.316,
+     "lum_p1": 0.246,
+     "lum_p99": 0.565
+    },
+    {
+     "file": "grass_short_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 18.94,
+      "inner_lr": 19.71,
+      "ratio_lr": 0.96,
+      "seam_tb": 18.53,
+      "inner_tb": 19.25,
+      "ratio_tb": 0.96,
+      "ok": true
+     },
+     "tilt_deg": 26.64
+    }
+   ],
+   "seconds": 1.2
+  },
+  "wood_dark": {
+   "name": "wood_dark",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Shop counter: dark walnut-like wood, vertical grain.",
+   "method": "Vertical growth-ring field (integer ring count across + periodic warp) -> latewood bands; vertical pore streaks from strongly anisotropic noise; figure fBm.",
+   "files": [
+    {
+     "file": "wood_dark_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.96,
+      "inner_lr": 1.76,
+      "ratio_lr": 1.11,
+      "seam_tb": 0.3,
+      "inner_tb": 0.41,
+      "ratio_tb": 0.61,
+      "ok": true
+     },
+     "lum_mean": 0.267,
+     "lum_p1": 0.206,
+     "lum_p99": 0.325
+    },
+    {
+     "file": "wood_dark_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 3.0,
+      "inner_lr": 2.78,
+      "ratio_lr": 1.08,
+      "seam_tb": 0.24,
+      "inner_tb": 0.29,
+      "ratio_tb": 0.49,
+      "ok": true
+     },
+     "tilt_deg": 3.4
+    }
+   ],
+   "seconds": 2.4
+  },
+  "wood_oak_floor": {
+   "name": "wood_oak_floor",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Apartment floor: oak planks (6 across) with seams and end joints.",
+   "method": "Periodic plank layout (6 columns, two staggered end joints per column), per-plank ring field with own offset/scale, ray flecks, pores, per-plank tone, bevelled dark seams.",
+   "files": [
+    {
+     "file": "wood_oak_floor_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.43,
+      "inner_lr": 2.33,
+      "ratio_lr": 0.62,
+      "seam_tb": 0.44,
+      "inner_tb": 0.46,
+      "ratio_tb": 0.88,
+      "ok": true
+     },
+     "lum_mean": 0.48,
+     "lum_p1": 0.245,
+     "lum_p99": 0.582
+    },
+    {
+     "file": "wood_oak_floor_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 26.37,
+      "inner_lr": 1.54,
+      "ratio_lr": 17.14,
+      "seam_tb": 0.15,
+      "inner_tb": 0.18,
+      "ratio_tb": 0.31,
+      "ok": true
+     },
+     "tilt_deg": 4.0
+    }
+   ],
+   "seconds": 2.0
+  },
+  "tile_zellige": {
+   "name": "tile_zellige",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Moroccan zellige: 8-point star-and-cross tiles in muted teal/ochre/ivory.",
+   "method": "Square lattice (4 x 4 per tile) of octagram SDFs (union of two squares); crosses are the complement; checkerboard teal/ochre stars, ivory crosses; per-piece glaze tone, edge pooling, pinholes, tilted/domed piece planes and recessed grout.",
+   "files": [
+    {
+     "file": "tile_zellige_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.19,
+      "inner_lr": 1.79,
+      "ratio_lr": 0.67,
+      "seam_tb": 1.24,
+      "inner_tb": 1.8,
+      "ratio_tb": 0.69,
+      "ok": true
+     },
+     "lum_mean": 0.618,
+     "lum_p1": 0.352,
+     "lum_p99": 0.849
+    },
+    {
+     "file": "tile_zellige_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.25,
+      "inner_lr": 1.5,
+      "ratio_lr": 0.83,
+      "seam_tb": 1.34,
+      "inner_tb": 1.5,
+      "ratio_tb": 0.89,
+      "ok": true
+     },
+     "tilt_deg": 7.22
+    }
+   ],
+   "seconds": 2.2
+  },
+  "tile_terrazzo": {
+   "name": "tile_terrazzo",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Kitchen floor/counter terrazzo: marble chips in a warm cement matrix.",
+   "method": "Two scales of shrunken periodic Voronoi cells (warped) used as angular chips with a weighted marble palette, matrix grain, polished (very low) relief.",
+   "files": [
+    {
+     "file": "tile_terrazzo_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 5.77,
+      "inner_lr": 6.53,
+      "ratio_lr": 0.88,
+      "seam_tb": 5.94,
+      "inner_tb": 6.61,
+      "ratio_tb": 0.9,
+      "ok": true
+     },
+     "lum_mean": 0.681,
+     "lum_p1": 0.267,
+     "lum_p99": 0.856
+    },
+    {
+     "file": "tile_terrazzo_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 0.49,
+      "inner_lr": 0.57,
+      "ratio_lr": 0.87,
+      "seam_tb": 0.55,
+      "inner_tb": 0.56,
+      "ratio_tb": 0.97,
+      "ok": true
+     },
+     "tilt_deg": 0.77
+    }
+   ],
+   "seconds": 3.3
+  },
+  "marble_white": {
+   "name": "marble_white",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Agra: white marble with soft grey veins (polished).",
+   "method": "Zero-crossings of warped anisotropic Fourier noise give long flowing veins (soft broad + thin dark hairlines); cloudy fBm body; near-flat polished relief.",
+   "files": [
+    {
+     "file": "marble_white_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 1.13,
+      "inner_lr": 0.77,
+      "ratio_lr": 1.46,
+      "seam_tb": 0.44,
+      "inner_tb": 0.65,
+      "ratio_tb": 0.67,
+      "ok": true
+     },
+     "lum_mean": 0.814,
+     "lum_p1": 0.746,
+     "lum_p99": 0.843
+    },
+    {
+     "file": "marble_white_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 0.08,
+      "inner_lr": 0.06,
+      "ratio_lr": 0.16,
+      "seam_tb": 0.01,
+      "inner_tb": 0.05,
+      "ratio_tb": 0.03,
+      "ok": true
+     },
+     "tilt_deg": 0.07
+    }
+   ],
+   "seconds": 1.6
+  },
+  "carpet_rug": {
+   "name": "carpet_rug",
+   "size": 1024,
+   "kind": "std",
+   "purpose": "Apartment rug: muted geometric (stepped diamond) pile rug.",
+   "method": "Pattern computed on a 128 x 128 knot grid (period 32 knots) from Manhattan-distance diamond bands, per-knot jitter, abrash row bands, fibre fuzz, wear fBm; knot domes for height.",
+   "files": [
+    {
+     "file": "carpet_rug_a.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB sRGB albedo",
+     "seam": {
+      "seam_lr": 5.53,
+      "inner_lr": 3.31,
+      "ratio_lr": 1.67,
+      "seam_tb": 6.31,
+      "inner_tb": 3.3,
+      "ratio_tb": 1.91,
+      "ok": true
+     },
+     "lum_mean": 0.396,
+     "lum_p1": 0.257,
+     "lum_p99": 0.778
+    },
+    {
+     "file": "carpet_rug_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 12.86,
+      "inner_lr": 9.07,
+      "ratio_lr": 1.42,
+      "seam_tb": 12.54,
+      "inner_tb": 9.08,
+      "ratio_tb": 1.38,
+      "ok": true
+     },
+     "tilt_deg": 14.0
+    }
+   ],
+   "seconds": 1.3
+  },
+  "water_ripple": {
+   "name": "water_ripple",
+   "size": 1024,
+   "kind": "normal",
+   "purpose": "Normal map for rivers, harbour water, pools (no albedo).",
+   "method": "Sum of three band-pass Fourier noises (wind-stretched) as height -> wrap-around Sobel normal.",
+   "files": [
+    {
+     "file": "water_ripple_n.png",
+     "w": 1024,
+     "h": 1024,
+     "fmt": "RGB tangent normal (+Y up)",
+     "seam": {
+      "seam_lr": 1.98,
+      "inner_lr": 2.07,
+      "ratio_lr": 0.96,
+      "seam_tb": 2.02,
+      "inner_tb": 2.02,
+      "ratio_tb": 1.0,
+      "ok": true
+     },
+     "tilt_deg": 10.07
+    }
+   ],
+   "seconds": 1.0
+  },
+  "glass_smudge": {
+   "name": "glass_smudge",
+   "size": 512,
+   "kind": "mask",
+   "purpose": "Grayscale smudge / fingerprint mask for glass (lenses, display cases).",
+   "method": "Fingerprint ridges from iso-lines of a whorled elliptical field placed with wrap-around displacement, smear arcs from anisotropic noise, faint haze, dust specks.",
+   "files": [
+    {
+     "file": "glass_smudge_a.png",
+     "w": 512,
+     "h": 512,
+     "fmt": "L 8-bit grayscale mask",
+     "seam": {
+      "seam_lr": 1.42,
+      "inner_lr": 0.85,
+      "ratio_lr": 1.67,
+      "seam_tb": 3.73,
+      "inner_tb": 1.24,
+      "ratio_tb": 3.02,
+      "ok": true
+     },
+     "mask_mean": 0.052
+    }
+   ],
+   "seconds": 0.7
+  }
+ },
+ "graphics": {}
+}
