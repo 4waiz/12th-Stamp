@@ -54,6 +54,8 @@ namespace TwelfthStamp
             var metal = Mats.Lit(new Color(0.7f, 0.7f, 0.72f), 0.7f, 0.9f, "metal_brushed");
             var white = Mats.Lit(new Color(0.88f, 0.88f, 0.86f), 0.55f);
             var black = Mats.Lit(new Color(0.05f, 0.05f, 0.055f), 0.6f);
+            var fabricDark = Mats.Lit(Corrupted ? new Color(0.22f, 0.23f, 0.25f) : new Color(0.34f, 0.27f, 0.21f), 0.15f, 0f, "fabric_linen");
+            var mirror = Mats.Lit(new Color(0.7f, 0.75f, 0.78f), 0.98f, 1f);
 
             var g = Group("Apartment");
             // Shell: 9 x 8 m room, 2.9 m ceiling; window wall to the east (+X).
@@ -84,12 +86,19 @@ namespace TwelfthStamp
             }
             Kit.Water(g, new Vector3(140f, -32f, 0), new Vector2(200f, 400f), new Color(0.04f, 0.06f, 0.09f), 0.95f);
 
-            // Kitchen (north wall): counter, fridge, upper cabinets.
-            MeshFactory.Box("Counter", g, new Vector3(-1.5f, 0.45f, 3.65f), new Vector3(4f, 0.9f, 0.7f), wood, true);
-            MeshFactory.Box("CounterTop", g, new Vector3(-1.5f, 0.92f, 3.62f), new Vector3(4.05f, 0.05f, 0.75f), tile, false);
+            // Kitchen (north wall): counter, fridge, upper cabinets. The Blender models (Art/Models/MODELS.md) replace the
+            // procedural meshes only; every collider below stays where it was.
+            var counter = MeshFactory.Box("Counter", g, new Vector3(-1.5f, 0.45f, 3.65f), new Vector3(4f, 0.9f, 0.7f), wood, true);
+            // The run's back is 0.31 m behind its origin: turned to face the room, that back sits on the wall (z = 4.0).
+            var ovenGlass = Mats.Lit(new Color(0.03f, 0.035f, 0.04f), 0.95f, 0.2f);
+            if (Models.Spawn("KitchenRun", g, Models.Slots(("TS_Wood", wood), ("TS_Stone", tile), ("TS_Metal", metal), ("TS_Glass", ovenGlass)), new Vector3(-1.5f, 0f, 3.69f)) != null)
+                Models.StripVisual(counter);
+            else MeshFactory.Box("CounterTop", g, new Vector3(-1.5f, 0.92f, 3.62f), new Vector3(4.05f, 0.05f, 0.75f), tile, false);
             MeshFactory.Box("Upper", g, new Vector3(-1.5f, 2.2f, 3.82f), new Vector3(4f, 0.8f, 0.36f), wood, false);
             FridgeRoot = MeshFactory.Box("Fridge", g, new Vector3(1.1f, 0.95f, 3.62f), new Vector3(0.85f, 1.9f, 0.72f), white, true).transform;
-            MeshFactory.Box("FridgeHandle", FridgeRoot, new Vector3(-0.32f, 0.2f, -0.38f), new Vector3(0.03f, 0.5f, 0.04f), metal, false);
+            if (Models.Spawn("Fridge", FridgeRoot, Models.Slots(("TS_PlasticWhite", white), ("TS_Metal", metal)), new Vector3(0f, -0.95f, 0f)) != null)
+                Models.StripVisual(FridgeRoot.gameObject);
+            else MeshFactory.Box("FridgeHandle", FridgeRoot, new Vector3(-0.32f, 0.2f, -0.38f), new Vector3(0.03f, 0.5f, 0.04f), metal, false);
             // Notes on the fridge: in the copy, every note is blank except the genuine one.
             var noteRng = new System.Random(5);
             for (int i = 0; i < 4; i++)
@@ -104,19 +113,34 @@ namespace TwelfthStamp
 
             // Living area: sofa, coffee table, rug, dining table (the unpacking table), chairs, shelf with a photo.
             MeshFactory.Box("Rug", g, new Vector3(1.2f, 0.005f, -0.6f), new Vector3(2.6f, 0.01f, 1.8f), rug, false);
-            MeshFactory.Box("SofaBase", g, new Vector3(1.2f, 0.22f, -2.1f), new Vector3(2.3f, 0.44f, 0.9f), fabric, true);
-            MeshFactory.Box("SofaBack", g, new Vector3(1.2f, 0.6f, -2.5f), new Vector3(2.3f, 0.6f, 0.2f), fabric, true);
+            var sofaBase = MeshFactory.Box("SofaBase", g, new Vector3(1.2f, 0.22f, -2.1f), new Vector3(2.3f, 0.44f, 0.9f), fabric, true);
+            var sofaBack = MeshFactory.Box("SofaBack", g, new Vector3(1.2f, 0.6f, -2.5f), new Vector3(2.3f, 0.6f, 0.2f), fabric, true);
+            if (Models.Spawn("Sofa", g, Models.Slots(("TS_Fabric", fabric), ("TS_FabricDark", fabricDark), ("TS_WoodDark", wood)), new Vector3(1.2f, 0f, -2.1f), 0f) != null)
+            {
+                Models.StripVisual(sofaBase);
+                Models.StripVisual(sofaBack);
+            }
             MeshFactory.Box("CoffeeTable", g, new Vector3(1.2f, 0.2f, -0.7f), new Vector3(1.1f, 0.4f, 0.6f), wood, true);
-            MeshFactory.Box("Table", g, new Vector3(-1.6f, 0.74f, 0.4f), new Vector3(1.6f, 0.05f, 0.9f), wood, true);
-            foreach (var x in new[] { -2.3f, -0.9f }) foreach (var z in new[] { 0.05f, 0.75f })
+            var table = MeshFactory.Box("Table", g, new Vector3(-1.6f, 0.74f, 0.4f), new Vector3(1.6f, 0.05f, 0.9f), wood, true);
+            var tableModel = Models.Spawn("DiningTable", g, Models.Slots(("TS_Wood", wood)), new Vector3(-1.6f, 0f, 0.4f), 0f);
+            if (tableModel != null)
+            {
+                // Its 0.75 m top is raised 1.5 cm to the procedural top, where the phone and the table spots rest.
+                tableModel.transform.localScale = new Vector3(1f, 0.765f / 0.75f, 1f);
+                Models.StripVisual(table);
+            }
+            else foreach (var x in new[] { -2.3f, -0.9f }) foreach (var z in new[] { 0.05f, 0.75f })
                 MeshFactory.Box("TableLeg", g, new Vector3(x, 0.36f, z), new Vector3(0.05f, 0.72f, 0.05f), wood, false);
             for (int i = 0; i < 4; i++)
             {
                 float x = -2.2f + (i % 2) * 1.2f;
                 float z = i < 2 ? -0.35f : 1.15f;
                 if (Corrupted && i == 3) z += 0.4f; // one chair has moved
-                MeshFactory.Box("ChairSeat", g, new Vector3(x, 0.45f, z), new Vector3(0.45f, 0.05f, 0.45f), wood, true);
-                MeshFactory.Box("ChairBack", g, new Vector3(x, 0.75f, z + (i < 2 ? -0.2f : 0.2f)), new Vector3(0.45f, 0.55f, 0.04f), wood, false);
+                var seat = MeshFactory.Box("ChairSeat", g, new Vector3(x, 0.45f, z), new Vector3(0.45f, 0.05f, 0.45f), wood, true);
+                // Every chair faces the table (the model's seat front is +Z).
+                if (Models.Spawn("DiningChair", g, Models.Slots(("TS_Wood", wood), ("TS_Fabric", fabric)), new Vector3(x, 0f, z), i < 2 ? 0f : 180f) != null)
+                    Models.StripVisual(seat);
+                else MeshFactory.Box("ChairBack", g, new Vector3(x, 0.75f, z + (i < 2 ? -0.2f : 0.2f)), new Vector3(0.45f, 0.55f, 0.04f), wood, false);
             }
             TableTop = new GameObject("TableTop").transform;
             TableTop.SetParent(g, false);
@@ -140,8 +164,16 @@ namespace TwelfthStamp
             MeshFactory.Box("BathE", bath, new Vector3(3.9f, 1.45f, -5.4f), new Vector3(0.15f, 2.9f, 2.6f), tile, true, 0.6f);
             MeshFactory.Box("BathS", bath, new Vector3(2.75f, 1.45f, -6.65f), new Vector3(2.4f, 2.9f, 0.15f), tile, true, 0.6f);
             MeshFactory.Box("BathCeil", bath, new Vector3(2.75f, 2.95f, -5.4f), new Vector3(2.4f, 0.1f, 2.6f), white, false);
-            MeshFactory.Box("Sink", bath, new Vector3(2.75f, 0.85f, -6.4f), new Vector3(0.6f, 0.15f, 0.4f), white, true);
-            MeshFactory.Box("Mirror", bath, new Vector3(2.75f, 1.6f, -6.56f), new Vector3(0.7f, 0.9f, 0.02f), Mats.Lit(new Color(0.7f, 0.75f, 0.78f), 0.98f, 1f), false);
+            var sink = MeshFactory.Box("Sink", bath, new Vector3(2.75f, 0.85f, -6.4f), new Vector3(0.6f, 0.15f, 0.4f), white, true);
+            // The vanity's origin is on the wall plane (the bathroom's south wall face, z = -6.575); it faces into the room.
+            var vanity = Models.Spawn("BathroomSink", bath, Models.Slots(("TS_Wood", wood), ("TS_Metal", metal)), new Vector3(2.75f, 0f, -6.575f), 0f);
+            var mirrorGlass = Models.Child(vanity, "MirrorGlass")?.GetComponent<Renderer>();
+            if (vanity != null)
+            {
+                Models.StripVisual(sink);
+                if (mirrorGlass != null) mirrorGlass.sharedMaterial = mirror;
+            }
+            else MeshFactory.Box("Mirror", bath, new Vector3(2.75f, 1.6f, -6.56f), new Vector3(0.7f, 0.9f, 0.02f), mirror, false);
             AddPointLight(bath, new Vector3(2.75f, 2.5f, -5.4f), Corrupted ? new Color(0.7f, 0.8f, 0.9f) : new Color(1f, 0.9f, 0.75f), 1.6f, 3.5f);
             BathroomInside = new GameObject("BathroomInside").transform;
             BathroomInside.SetParent(bath, false);
@@ -149,17 +181,30 @@ namespace TwelfthStamp
             BathroomDoorPivot = new GameObject("BathroomDoorPivot").transform;
             BathroomDoorPivot.SetParent(g, false);
             BathroomDoorPivot.localPosition = new Vector3(3.75f, 0f, -4.1f);
+            // Procedural on purpose: this leaf and its collider are 1.9 m wide and it closes in the ending; Door.fbx is 0.9 m.
             MeshFactory.Box("BathroomDoor", BathroomDoorPivot, new Vector3(-0.95f, 1.05f, 0), new Vector3(1.9f, 2.1f, 0.05f), wood, true);
             BathroomDoorPivot.localRotation = Quaternion.Euler(0, 95f, 0); // open
 
-            // Entrance door (west) and the suitcase.
-            MeshFactory.Box("FrontDoor", g, new Vector3(-4.48f, 1.05f, -2.6f), new Vector3(0.06f, 2.1f, 1f), wood, false);
+            // Entrance door (west): the modelled leaf hangs on a hinge at its south edge, knuckle side facing the room.
+            if (Models.Spawn("Door", g, Models.Slots(("TS_Wood", wood), ("TS_Metal", metal)), new Vector3(-4.48f, 0f, -3.05f), 90f) == null)
+                MeshFactory.Box("FrontDoor", g, new Vector3(-4.48f, 1.05f, -2.6f), new Vector3(0.06f, 2.1f, 1f), wood, false);
+            // The suitcase: the story's unpacking props rest at 0.2 m on CaseBottom (a gameplay collider and the "bag"
+            // interactable's target), deeper than the model's 13 cm shell, so the open model is packed up to that height.
             Suitcase = new GameObject("Suitcase").transform;
             Suitcase.SetParent(g, false);
             Suitcase.localPosition = new Vector3(-3.4f, 0f, -1.6f);
             var luggage = Mats.Lit(new Color(0.12f, 0.18f, 0.24f), 0.45f);
-            MeshFactory.Box("CaseBottom", Suitcase, new Vector3(0, 0.1f, 0), new Vector3(0.75f, 0.2f, 0.5f), luggage, true);
-            MeshFactory.Box("CaseLid", Suitcase, new Vector3(0, 0.38f, 0.27f), new Vector3(0.75f, 0.5f, 0.06f), luggage, false, 1f, Quaternion.Euler(-15, 0, 0));
+            var caseBottom = MeshFactory.Box("CaseBottom", Suitcase, new Vector3(0, 0.1f, 0), new Vector3(0.75f, 0.2f, 0.5f), luggage, true);
+            var lining = Mats.Lit(Corrupted ? new Color(0.62f, 0.63f, 0.64f) : new Color(0.8f, 0.77f, 0.7f), 0.15f, 0f, "fabric_linen");
+            if (Models.Spawn("Suitcase", Suitcase, Models.Slots(("TS_Plastic", luggage), ("TS_Metal", metal), ("TS_Fabric", lining), ("TS_FabricDark", fabricDark))) != null)
+            {
+                Models.StripVisual(caseBottom);
+                var shirt = Mats.Lit(Corrupted ? new Color(0.7f, 0.71f, 0.72f) : new Color(0.86f, 0.84f, 0.8f), 0.15f, 0f, "fabric_linen");
+                MeshFactory.Box("Clothes", Suitcase, new Vector3(0f, 0.055f, 0f), new Vector3(0.66f, 0.09f, 0.42f), fabricDark, false);
+                MeshFactory.Box("Clothes", Suitcase, new Vector3(0.015f, 0.125f, -0.01f), new Vector3(0.62f, 0.05f, 0.4f), fabric, false, 1f, Quaternion.Euler(0f, 2f, 0f));
+                MeshFactory.Box("Clothes", Suitcase, new Vector3(-0.01f, 0.175f, 0.005f), new Vector3(0.6f, 0.05f, 0.38f), shirt, false, 1f, Quaternion.Euler(0f, -1.5f, 0f));
+            }
+            else MeshFactory.Box("CaseLid", Suitcase, new Vector3(0, 0.38f, 0.27f), new Vector3(0.75f, 0.5f, 0.06f), luggage, false, 1f, Quaternion.Euler(-15, 0, 0));
 
             // Phone on the table.
             PhoneRoot = PropLibrary.Phone(g, out PhoneScreen).transform;

@@ -5,8 +5,8 @@ using UnityEngine;
 namespace TwelfthStamp
 {
     /// <summary>
-    /// Generic Quest-style (ring-less) touch controller built procedurally, with labelled callouts attached to the
-    /// actual controls. Labels are generated from GameInput bindings, so they always match what the buttons do.
+    /// Generic Quest-style (ring-less) touch controller (the Blender model, or a procedural one if it is missing), with
+    /// labelled callouts attached to the actual controls. Labels are generated from GameInput bindings, so they always match what the buttons do.
     /// Labels appear during onboarding highlights, or whenever the player raises a controller to look at it.
     /// </summary>
     public class ControllerModel : MonoBehaviour
@@ -42,6 +42,11 @@ namespace TwelfthStamp
             m_Body = Mats.Lit(new Color(0.86f, 0.86f, 0.84f), 0.45f);
             m_Button = Mats.Lit(new Color(0.22f, 0.23f, 0.25f), 0.5f);
             m_ButtonLit = Mats.Emissive(new Color(0.3f, 0.45f, 0.42f), new Color(0.35f, 1.1f, 0.85f));
+            if (BuildModel())
+            {
+                MeshFactory.NoShadows(gameObject);
+                return;
+            }
             float s = Side == HandSide.Left ? 1f : -1f; // mirror x for the right hand
 
             // Head (flattened ellipsoid) and handle.
@@ -65,6 +70,25 @@ namespace TwelfthStamp
             var grip = MeshFactory.Box("grip", transform, new Vector3(0.017f * s, -0.035f, -0.01f), new Vector3(0.006f, 0.04f, 0.02f), m_Button, false, 1f, Quaternion.Euler(-35f, 0, 0));
             Register("grip", grip.transform);
             MeshFactory.NoShadows(gameObject);
+        }
+
+        /// <summary>
+        /// The Blender controller (Art/Models/MODELS.md): origin at the grip centre, pointing along +Z with the face plate
+        /// up, every control a named child. Registering those children puts the callouts and highlights on the real buttons.
+        /// </summary>
+        bool BuildModel()
+        {
+            var plate = Mats.Lit(new Color(0.07f, 0.07f, 0.08f), 0.6f);
+            var model = Models.Spawn(Side == HandSide.Left ? "Controller_Left" : "Controller_Right", transform,
+                Models.Slots(("TS_ControllerBody", m_Body), ("TS_ControllerButton", m_Button), ("TS_ControllerDark", plate)), Vector3.zero, 0f);
+            if (model == null) return false;
+            foreach (var id in new[] { "thumbstick", "primaryButton", "secondaryButton", Side == HandSide.Left ? "menu" : "system", "trigger", "grip" })
+            {
+                var t = Models.Child(model, id);
+                if (t != null) Register(id, t);
+                else Debug.LogWarning("[TS-Controller] Model has no '" + id + "' control");
+            }
+            return true;
         }
 
         void AddButton(string id, Vector3 pos, float radius, float height, bool stick)

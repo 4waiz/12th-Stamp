@@ -23,11 +23,11 @@ Last updated 17 Oct 2026. Evidence for every "verified" line is in `Docs/QA/QA_R
 All commands run from any folder. Close the Unity editor first if it has the project open.
 
 ```bash
-"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" -batchmode -nographics -quit -projectPath "C:\Users\awaiz\OneDrive\Desktop\12th-Stamp\Game" -executeMethod TwelfthStamp.EditorTools.BuildScript.SetupAndBuild -logFile build.log
+"C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" -batchmode -nographics -quit -projectPath "C:\Dev\12th-Stamp\Game" -executeMethod TwelfthStamp.EditorTools.BuildScript.SetupAndBuild -logFile build.log
 ```
 
 ```bash
-"%LOCALAPPDATA%\TheTwelfthStamp\Builds\Windows\TheTwelfthStamp.exe" --mode=desktop --autotest=all --report-dir="C:\Users\awaiz\OneDrive\Desktop\12th-Stamp\Docs\QA\latest" -screen-fullscreen 0 -screen-width 1600 -screen-height 900
+"%LOCALAPPDATA%\TheTwelfthStamp\Builds\Windows\TheTwelfthStamp.exe" --mode=desktop --autotest=all --report-dir="C:\Dev\12th-Stamp\Docs\QA\latest" -screen-fullscreen 0 -screen-width 1600 -screen-height 900
 ```
 
 `--autotest` accepts `demo`, `egypt`, `story`, `countries`, `finale` or `all`. The test drives the real game systems, writes `autotest_<name>.md` plus screenshots, and exits with code 0 only if every check passed. It never writes to your save.

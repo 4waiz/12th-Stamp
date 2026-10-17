@@ -167,6 +167,21 @@ namespace TwelfthStamp
             return m;
         }
 
+        static Material s_PocketHidden;
+
+        /// <summary>Draws nothing (stencil Never): stands in for one submesh with no pocket variant, such as a model's glass.</summary>
+        public static Material PocketHidden
+        {
+            get
+            {
+                if (s_PocketHidden != null) return s_PocketHidden;
+                s_PocketHidden = new Material(Template("TS_PocketLit")) { name = "PocketHidden" };
+                s_PocketHidden.SetFloat("_StencilComp", (float)CompareFunction.Never);
+                s_PocketHidden.renderQueue = PocketQueue;
+                return s_PocketHidden;
+            }
+        }
+
         public static Material TearMark()
         {
             var m = new Material(Template("TS_TearMark")) { name = "TearMark" };

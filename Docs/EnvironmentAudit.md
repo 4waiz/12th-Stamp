@@ -14,9 +14,9 @@ Audited 17 Oct 2026, 12:20–12:40 local time (Arabian Standard Time, UTC+04:00)
 ## Project and repository
 | Item | Verified value |
 |---|---|
-| Repository | `C:\Users\awaiz\OneDrive\Desktop\12th-Stamp`, remote `https://github.com/4waiz/12th-Stamp.git`, branch `main`, no commits at audit time |
+| Repository | `C:\Dev\12th-Stamp` (moved out of OneDrive from `C:\Users\awaiz\OneDrive\Desktop\12th-Stamp` on 2026-10-17), remote `https://github.com/4waiz/12th-Stamp.git`, branch `main`, no commits at audit time |
 | Unity project | `Game\` inside the repo (created this session) |
-| OneDrive | Desktop is redirected into OneDrive (Known Folder Move), and OneDrive.exe is running. To keep sync away from Unity's churn, `Game\Library` and `Game\Logs` are directory junctions to `%LOCALAPPDATA%\TheTwelfthStamp\`. Builds are written to `%LOCALAPPDATA%\TheTwelfthStamp\Builds`, outside source control and outside OneDrive. |
+| OneDrive | Desktop is redirected into OneDrive (Known Folder Move), and OneDrive.exe is running. The repo started on the Desktop, so `Game\Library` and `Game\Logs` were made directory junctions to `%LOCALAPPDATA%\TheTwelfthStamp\` to keep sync away from Unity's churn. The repo itself moved out of OneDrive on 2026-10-17, and the junctions were kept. Builds are written to `%LOCALAPPDATA%\TheTwelfthStamp\Builds`, outside source control and outside OneDrive. |
 | Previous folder | `C:\Users\awaiz\OneDrive\Desktop\The-12th-Stamp` now contains only an empty `.git` (remote `bilal-feroz/The-12th-Stamp`). Left untouched. |
 
 ## Unity

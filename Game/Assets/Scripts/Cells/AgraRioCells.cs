@@ -69,9 +69,15 @@ namespace TwelfthStamp
             var lamp = new GameObject("GardenLamp");
             lamp.transform.SetParent(g, false);
             lamp.transform.localPosition = new Vector3(-1.9f, 0.02f, -1.2f);
-            MeshFactory.Cylinder("Base", lamp.transform, Vector3.zero, 0.09f, 0.04f, brass, 14, false);
-            MeshFactory.Frustum("Bowl", lamp.transform, new Vector3(0, 0.04f, 0), 0.05f, 0.11f, 0.08f, brass, 14);
-            MeshFactory.Sphere("Flame", lamp.transform, new Vector3(0, 0.15f, 0), 0.03f, Mats.Emissive(new Color(1f, 0.8f, 0.5f), new Color(3f, 1.6f, 0.6f)));
+            var flame = Mats.Emissive(new Color(1f, 0.8f, 0.5f), new Color(3f, 1.6f, 0.6f));
+            // The modelled brass oil lamp: its flame burns inside a clear glass chimney, under the existing lamp light.
+            var chimney = Mats.Glass(new Color(0.85f, 0.9f, 0.88f, 0.16f));
+            if (Models.Spawn("GardenLamp", lamp.transform, Models.Slots(("TS_Brass", brass), ("TS_EmissiveWarm", flame), ("TS_Glass", chimney))) == null)
+            {
+                MeshFactory.Cylinder("Base", lamp.transform, Vector3.zero, 0.09f, 0.04f, brass, 14, false);
+                MeshFactory.Frustum("Bowl", lamp.transform, new Vector3(0, 0.04f, 0), 0.05f, 0.11f, 0.08f, brass, 14);
+                MeshFactory.Sphere("Flame", lamp.transform, new Vector3(0, 0.15f, 0), 0.03f, flame);
+            }
             var ll = new GameObject("LampLight").AddComponent<Light>();
             ll.transform.SetParent(lamp.transform, false); ll.transform.localPosition = new Vector3(0, 0.2f, 0);
             ll.type = LightType.Point; ll.color = new Color(1f, 0.7f, 0.4f); ll.intensity = 1.4f; ll.range = 4f; ll.shadows = LightShadows.None;

@@ -75,9 +75,9 @@ namespace TwelfthStamp
             Trace = TraceMark.Create(transform, CountryId.France, transform.InverseTransformPoint(ledgerTop.position) + Vector3.up * 0.003f, Quaternion.identity, 0.2f, true);
             Trace.Reveal(false);
 
-            Kit.LampPost(g, new Vector3(-2.9f, 0.06f, -2f), new Color(1f, 0.75f, 0.45f), 2.2f, metal, out _);
-            Kit.LampPost(g, new Vector3(3.2f, 0f, 2.8f), new Color(1f, 0.75f, 0.45f), 2.2f, metal, out _);
-            Kit.LampPost(g, new Vector3(-2.9f, 0.06f, 9f), new Color(1f, 0.72f, 0.42f), 1.6f, metal, out _);
+            Kit.LampPost(g, new Vector3(-2.9f, 0.06f, -2f), new Color(1f, 0.75f, 0.45f), 2.2f, metal, out _, "StreetLamp_Paris");
+            Kit.LampPost(g, new Vector3(3.2f, 0f, 2.8f), new Color(1f, 0.75f, 0.45f), 2.2f, metal, out _, "StreetLamp_Paris");
+            Kit.LampPost(g, new Vector3(-2.9f, 0.06f, 9f), new Color(1f, 0.72f, 0.42f), 1.6f, metal, out _, "StreetLamp_Paris");
 
             Kit.Weather(g, new Vector3(0, 7f, 2f), new Vector3(14f, 0.5f, 26f), true, new Color(0.75f, 0.8f, 0.9f, 0.45f), 1400f, 9f);
 

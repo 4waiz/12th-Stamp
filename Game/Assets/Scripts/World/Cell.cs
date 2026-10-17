@@ -179,13 +179,16 @@ namespace TwelfthStamp
                 {
                     var src = m_LitMats[i];
                     var dst = new Material[src.Length];
-                    bool ok = true;
+                    int shown = 0;
                     for (int k = 0; k < src.Length; k++)
                     {
                         dst[k] = Mats.PocketVariant(src[k], Lighting);
-                        if (dst[k] == null) ok = false;
+                        if (dst[k] != null) shown++;
                     }
-                    m_PocketMats[i] = ok ? dst : new Material[0];
+                    // Nothing drawable: hide the renderer. A model mixing glass with opaque parts hides only the glass.
+                    if (shown == 0 && src.Length > 0) dst = new Material[0];
+                    else for (int k = 0; k < dst.Length; k++) if (dst[k] == null) dst[k] = Mats.PocketHidden;
+                    m_PocketMats[i] = dst;
                 }
                 if (m_PocketMats[i].Length == 0) { r.enabled = false; continue; }
                 r.sharedMaterials = m_PocketMats[i];

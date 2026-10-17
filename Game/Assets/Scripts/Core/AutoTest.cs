@@ -13,7 +13,7 @@ namespace TwelfthStamp
     /// input layer makes) and records pass/fail, timings and screenshots. It proves code paths in a running build;
     /// it does not replace a human playtest and does not test feel, comfort or VR rendering.
     /// </summary>
-    public class AutoTest : MonoBehaviour
+    public partial class AutoTest : MonoBehaviour
     {
         string m_Name, m_Dir;
         readonly List<string> m_Lines = new List<string>();
@@ -89,6 +89,7 @@ namespace TwelfthStamp
             if (m_Name == "all" || m_Name == "story") yield return StoryFlow();
             if (m_Name == "all" || m_Name == "countries") yield return CountriesFlow();
             if (m_Name == "all" || m_Name == "finale") yield return FinaleFlow();
+            if (m_Name == "models") yield return ModelsFlow(); // art review of the Blender models (AutoTestModels.cs); not part of "all"
 
             // Report.
             var frames = m_FrameTimes.Skip(30).OrderBy(x => x).ToList();

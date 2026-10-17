@@ -62,17 +62,27 @@ namespace TwelfthStamp
             MeshFactory.FromBuilder("Railing", mb, mat, parent);
         }
 
-        public static GameObject LampPost(Transform parent, Vector3 pos, Color light, float intensity, Material metal, out Light l)
+        /// <summary>Street lamp. <paramref name="model"/> names a Blender lamp post (e.g. StreetLamp_Paris) to use for the visuals.</summary>
+        public static GameObject LampPost(Transform parent, Vector3 pos, Color light, float intensity, Material metal, out Light l, string model = null)
         {
             var root = new GameObject("LampPost").transform;
             root.SetParent(parent, false);
             root.localPosition = pos;
-            MeshFactory.Cylinder("Base", root, Vector3.zero, 0.12f, 0.5f, metal, 12);
-            MeshFactory.Cylinder("Pole", root, new Vector3(0, 0.5f, 0), 0.05f, 3.2f, metal, 10);
-            MeshFactory.Box("Arm", root, new Vector3(0, 3.65f, 0), new Vector3(0.08f, 0.08f, 0.08f), metal, false);
-            var lamp = MeshFactory.Frustum("Lantern", root, new Vector3(0, 3.5f, 0), 0.16f, 0.1f, 0.42f, Mats.Emissive(new Color(0.4f, 0.32f, 0.2f), light * 2.2f), 6);
-            lamp.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            MeshFactory.Frustum("Cap", root, new Vector3(0, 3.92f, 0), 0.2f, 0.02f, 0.18f, metal, 6);
+            var foot = MeshFactory.Cylinder("Base", root, Vector3.zero, 0.12f, 0.5f, metal, 12);
+            var pole = MeshFactory.Cylinder("Pole", root, new Vector3(0, 0.5f, 0), 0.05f, 3.2f, metal, 10);
+            var glow = Mats.Emissive(new Color(0.4f, 0.32f, 0.2f), light * 2.2f);
+            if (model != null && Models.Spawn(model, root, Models.Slots(("TS_MetalDark", metal), ("TS_EmissiveWarm", glow))) != null)
+            {
+                Models.StripVisual(foot);
+                Models.StripVisual(pole);
+            }
+            else
+            {
+                MeshFactory.Box("Arm", root, new Vector3(0, 3.65f, 0), new Vector3(0.08f, 0.08f, 0.08f), metal, false);
+                var lamp = MeshFactory.Frustum("Lantern", root, new Vector3(0, 3.5f, 0), 0.16f, 0.1f, 0.42f, glow, 6);
+                lamp.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                MeshFactory.Frustum("Cap", root, new Vector3(0, 3.92f, 0), 0.2f, 0.02f, 0.18f, metal, 6);
+            }
             var lg = new GameObject("Light");
             lg.transform.SetParent(root, false);
             lg.transform.localPosition = new Vector3(0, 3.6f, 0);
@@ -103,29 +113,67 @@ namespace TwelfthStamp
             root.SetParent(parent, false);
             root.localPosition = pos;
             root.localRotation = Quaternion.Euler(0, yaw, 0);
-            MeshFactory.Box("Top", root, new Vector3(0, 0.98f, 0), new Vector3(1.6f, 0.06f, 0.75f), wood, true);
-            MeshFactory.Box("Front", root, new Vector3(0, 0.5f, -0.33f), new Vector3(1.55f, 0.9f, 0.05f), wood, true);
-            MeshFactory.Box("SideL", root, new Vector3(-0.77f, 0.5f, 0), new Vector3(0.05f, 0.95f, 0.7f), wood, true);
-            MeshFactory.Box("SideR", root, new Vector3(0.77f, 0.5f, 0), new Vector3(0.05f, 0.95f, 0.7f), wood, true);
-            var ledger = MeshFactory.Box("Ledger", root, new Vector3(-0.15f, 1.025f, 0.02f), new Vector3(0.5f, 0.03f, 0.36f), paper, false);
+            var top = MeshFactory.Box("Top", root, new Vector3(0, 0.98f, 0), new Vector3(1.6f, 0.06f, 0.75f), wood, true);
+            var front = MeshFactory.Box("Front", root, new Vector3(0, 0.5f, -0.33f), new Vector3(1.55f, 0.9f, 0.05f), wood, true);
+            var sideL = MeshFactory.Box("SideL", root, new Vector3(-0.77f, 0.5f, 0), new Vector3(0.05f, 0.95f, 0.7f), wood, true);
+            var sideR = MeshFactory.Box("SideR", root, new Vector3(0.77f, 0.5f, 0), new Vector3(0.05f, 0.95f, 0.7f), wood, true);
             ledgerTop = new GameObject("LedgerTop").transform;
             ledgerTop.SetParent(root, false);
             ledgerTop.localPosition = new Vector3(-0.15f, 1.045f, 0.02f);
-            MeshFactory.Box("InkPad", root, new Vector3(0.35f, 1.02f, 0.05f), new Vector3(0.14f, 0.02f, 0.09f), Mats.Lit(new Color(0.35f, 0.05f, 0.05f), 0.6f), false);
-            MeshFactory.Cylinder("StampBase", root, new Vector3(0.52f, 1.01f, 0.05f), 0.035f, 0.03f, brass, 14, false);
-            MeshFactory.Cylinder("StampHandle", root, new Vector3(0.52f, 1.04f, 0.05f), 0.015f, 0.09f, Mats.Lit(new Color(0.15f, 0.08f, 0.05f), 0.5f), 10, false);
-            MeshFactory.Sphere("StampKnob", root, new Vector3(0.52f, 1.14f, 0.05f), 0.025f, Mats.Lit(new Color(0.15f, 0.08f, 0.05f), 0.5f));
-            // Desk lamp.
-            MeshFactory.Cylinder("LampBase", root, new Vector3(0.6f, 1.01f, 0.25f), 0.07f, 0.02f, brass, 14, false);
-            MeshFactory.Cylinder("LampStem", root, new Vector3(0.6f, 1.03f, 0.25f), 0.012f, 0.36f, brass, 8, false);
-            var shade = MeshFactory.Frustum("Shade", root, new Vector3(0.6f, 1.35f, 0.22f), 0.12f, 0.05f, 0.12f, Mats.Emissive(new Color(0.2f, 0.25f, 0.18f), new Color(0.6f, 0.45f, 0.2f)), 16);
-            shade.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            if (DeskModel(root, wood, paper, brass))
+            {
+                foreach (var go in new[] { top, front, sideL, sideR }) Models.StripVisual(go);
+            }
+            else
+            {
+                MeshFactory.Box("Ledger", root, new Vector3(-0.15f, 1.025f, 0.02f), new Vector3(0.5f, 0.03f, 0.36f), paper, false);
+                MeshFactory.Box("InkPad", root, new Vector3(0.35f, 1.02f, 0.05f), new Vector3(0.14f, 0.02f, 0.09f), Mats.Lit(new Color(0.35f, 0.05f, 0.05f), 0.6f), false);
+                MeshFactory.Cylinder("StampBase", root, new Vector3(0.52f, 1.01f, 0.05f), 0.035f, 0.03f, brass, 14, false);
+                MeshFactory.Cylinder("StampHandle", root, new Vector3(0.52f, 1.04f, 0.05f), 0.015f, 0.09f, Mats.Lit(new Color(0.15f, 0.08f, 0.05f), 0.5f), 10, false);
+                MeshFactory.Sphere("StampKnob", root, new Vector3(0.52f, 1.14f, 0.05f), 0.025f, Mats.Lit(new Color(0.15f, 0.08f, 0.05f), 0.5f));
+                // Desk lamp.
+                MeshFactory.Cylinder("LampBase", root, new Vector3(0.6f, 1.01f, 0.25f), 0.07f, 0.02f, brass, 14, false);
+                MeshFactory.Cylinder("LampStem", root, new Vector3(0.6f, 1.03f, 0.25f), 0.012f, 0.36f, brass, 8, false);
+                var shade = MeshFactory.Frustum("Shade", root, new Vector3(0.6f, 1.35f, 0.22f), 0.12f, 0.05f, 0.12f, Mats.Emissive(new Color(0.2f, 0.25f, 0.18f), new Color(0.6f, 0.45f, 0.2f)), 16);
+                shade.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
             var lg = new GameObject("DeskLamp");
             lg.transform.SetParent(root, false);
             lg.transform.localPosition = new Vector3(0.55f, 1.3f, 0.15f);
             lamp = lg.AddComponent<Light>();
             lamp.type = LightType.Point; lamp.color = new Color(1f, 0.78f, 0.5f); lamp.intensity = 2.5f; lamp.range = 4f; lamp.shadows = LightShadows.None;
             return root.gameObject;
+        }
+
+        /// <summary>
+        /// The modelled festival desk on a <see cref="Desk"/> root, visitor side (panelled front and cloth) toward the root's
+        /// +Z. The model is a 0.76 m desk, but the checkpoint's colliders and the ledger trace sit at the procedural 1.01 m,
+        /// so the desk body is stretched to that height and the desk-top pieces go where the procedural ones were: the
+        /// ledger (thickened) under the trace, the lamp under the existing lamp light.
+        /// </summary>
+        static bool DeskModel(Transform root, Material wood, Material paper, Material brass)
+        {
+            const float top = 1.01f;
+            var cloth = Mats.Lit(new Color(0.45f, 0.1f, 0.1f), 0.3f, 0f, "fabric_linen");
+            var ink = Mats.Lit(new Color(0.35f, 0.05f, 0.05f), 0.6f);
+            var bulb = Mats.Emissive(new Color(1f, 0.85f, 0.6f), new Color(1.4f, 1f, 0.55f));
+            var model = Models.Spawn("VerificationDesk", root, Models.Slots(("TS_WoodDark", wood), ("TS_Paper", paper), ("TS_Brass", brass),
+                ("TS_Fabric", cloth), ("TS_FabricDark", ink), ("TS_EmissiveWarm", bulb)), Vector3.zero, 0f);
+            if (model == null) return false;
+            void Place(string child, Vector3 pos, float yaw, Vector3 scale)
+            {
+                var t = Models.Child(model, child);
+                if (t == null) return;
+                t.localPosition = pos;
+                t.localRotation = Quaternion.Euler(0f, yaw, 0f);
+                t.localScale = scale;
+            }
+            Place("Desk", Vector3.zero, 0f, new Vector3(1f, top / 0.76f, 1f));
+            Place("Ledger", new Vector3(-0.15f, top, 0.02f), 0f, new Vector3(1f, 1.8f, 1f));
+            Place("InkPad", new Vector3(0.35f, top, 0.05f), 0f, Vector3.one);
+            Place("HandStamp", new Vector3(0.52f, top, 0.05f), 0f, Vector3.one);
+            Place("Lamp", new Vector3(0.6f, top, 0.25f), 180f, Vector3.one); // its arm reaches back over the desk
+            return true;
         }
 
         public static GameObject Awning(Transform parent, Vector3 pos, float yaw, float width, float depth, float height, Material canvas, Material pole)

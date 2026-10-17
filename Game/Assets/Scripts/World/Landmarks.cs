@@ -5,7 +5,8 @@ namespace TwelfthStamp
 {
     /// <summary>
     /// Distant landmark silhouettes (self-lit backdrop material so they read through fog). One recognisable
-    /// silhouette per country; never mixed. Positions are cell-local, typically 120–260 m away.
+    /// silhouette per country; never mixed. Positions are cell-local, typically 120–260 m away. Each uses its Blender
+    /// model when the file is present, otherwise the procedural shapes below.
     /// </summary>
     public static class Landmarks
     {
@@ -21,10 +22,26 @@ namespace TwelfthStamp
 
         static void NoShadows(GameObject go) => MeshFactory.NoShadows(go);
 
+        /// <summary>
+        /// The Blender landmark (Art/Models/MODELS.md) on a silhouette root. Its slots all take the cell's backdrop materials,
+        /// so it keeps the cell's fog and lighting. False when the model is missing: build the procedural silhouette.
+        /// </summary>
+        static bool Model(GameObject root, string name, System.Func<string, Material> slot)
+        {
+            if (Models.Spawn(name, root.transform, slot) == null) return false;
+            NoShadows(root);
+            return true;
+        }
+
+        /// <summary>Every slot on <paramref name="mat"/>, except the listed ones on <paramref name="light"/> when there is one.</summary>
+        static System.Func<string, Material> Backdrop(Material mat, Material light = null, params string[] lightSlots) =>
+            s => light != null && System.Array.IndexOf(lightSlots, Models.SlotOf(s)) >= 0 ? light : mat;
+
         /// <summary>Lattice tower (Paris). Height ~1 unit * scale * 100.</summary>
         public static GameObject LatticeTower(Transform parent, Vector3 pos, float scale, Material mat, Material lightMat = null)
         {
             var go = Root(parent, "EiffelSilhouette", pos, 0, scale);
+            if (Model(go, "Landmark_Eiffel", Backdrop(mat, lightMat, "TS_EmissiveWarm"))) return go;
             var mb = new MeshBuilder();
             float H = 100f;
             // Four curved legs as stacked segments leaning inward.
@@ -89,6 +106,7 @@ namespace TwelfthStamp
         public static GameObject Liberty(Transform parent, Vector3 pos, float yaw, Material mat, Material torch)
         {
             var go = Root(parent, "LibertySilhouette", pos, yaw, 1f);
+            if (Model(go, "Landmark_Liberty", Backdrop(mat, torch, "TS_EmissiveWarm"))) return go;
             var mb = new MeshBuilder();
             mb.AddBox(new Vector3(0, 10, 0), new Vector3(16, 20, 16));                  // pedestal base
             mb.AddBox(new Vector3(0, 26, 0), new Vector3(11, 12, 11));                  // pedestal top
@@ -111,6 +129,7 @@ namespace TwelfthStamp
         public static GameObject Pagoda(Transform parent, Vector3 pos, float yaw, Material mat, Material roof)
         {
             var go = Root(parent, "PagodaSilhouette", pos, yaw, 1f);
+            if (Model(go, "Landmark_Pagoda", Backdrop(mat, roof, "TS_MetalDark", "TS_Brass"))) return go; // roofs and finial
             float y = 0;
             for (int i = 0; i < 5; i++)
             {
@@ -132,6 +151,7 @@ namespace TwelfthStamp
         public static GameObject ArchTower(Transform parent, Vector3 pos, float yaw, Material mat, Material lights)
         {
             var go = Root(parent, "ArchTowerSilhouette", pos, yaw, 1f);
+            if (Model(go, "Landmark_ArchTower", Backdrop(mat, lights, "TS_Glass", "TS_EmissiveWarm"))) return go; // the lit sky bridge
             var outline = new List<Vector2>();
             // Outer profile (half), then the inner parabolic cut-out as a separate prism pair.
             float H = 150f, W = 30f;
@@ -170,6 +190,7 @@ namespace TwelfthStamp
         public static GameObject DomedPavilion(Transform parent, Vector3 pos, float yaw, Material mat)
         {
             var go = Root(parent, "DomedPavilion", pos, yaw, 1f);
+            if (Model(go, "Landmark_DomedPavilion", Backdrop(mat))) return go;
             var mb = new MeshBuilder();
             mb.AddBox(new Vector3(0, 3, 0), new Vector3(70, 6, 70));                  // plinth
             mb.AddBox(new Vector3(0, 19, 0), new Vector3(40, 26, 40));                // main hall
@@ -199,6 +220,7 @@ namespace TwelfthStamp
         public static GameObject ClockTower(Transform parent, Vector3 pos, float yaw, Material mat, Material face)
         {
             var go = Root(parent, "ClockTowerSilhouette", pos, yaw, 1f);
+            if (Model(go, "Landmark_ClockTower", Backdrop(mat, face, "TS_EmissiveWarm"))) return go; // the four clock faces
             var mb = new MeshBuilder();
             mb.AddBox(new Vector3(0, 30, 0), new Vector3(12, 60, 12));
             mb.AddBox(new Vector3(0, 66, 0), new Vector3(14, 12, 14));
@@ -219,6 +241,7 @@ namespace TwelfthStamp
         public static GameObject ColumnGate(Transform parent, Vector3 pos, float yaw, Material mat, float scale = 1f)
         {
             var go = Root(parent, "ColumnGate", pos, yaw, scale);
+            if (Model(go, "Landmark_ColumnGate", Backdrop(mat))) return go;
             var mb = new MeshBuilder();
             for (int i = 0; i < 6; i++)
             {

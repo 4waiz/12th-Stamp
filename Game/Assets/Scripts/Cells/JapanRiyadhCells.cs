@@ -85,8 +85,14 @@ namespace TwelfthStamp
             var hl = new GameObject("HandLantern");
             hl.transform.SetParent(g, false);
             hl.transform.localPosition = new Vector3(1.6f, 0.02f, 1.5f);
-            MeshFactory.Frustum("Body", hl.transform, Vector3.zero, 0.14f, 0.14f, 0.32f, lanternMat, 12);
-            MeshFactory.Box("Handle", hl.transform, new Vector3(0, 0.38f, 0), new Vector3(0.02f, 0.12f, 0.02f), wood, false);
+            // The modelled chochin hangs 0.51 m below its grip (its origin): lifted so it stands on the root like the
+            // procedural lantern. Its paper glows like the street lanterns; the glow inside sits around the light.
+            var glow = Mats.Emissive(new Color(1f, 0.78f, 0.5f), new Color(2.2f, 1.2f, 0.5f));
+            if (Models.Spawn("HandLantern", hl.transform, Models.Slots(("TS_Paper", lanternMat), ("TS_WoodDark", wood), ("TS_EmissiveWarm", glow)), new Vector3(0f, 0.51f, 0f)) == null)
+            {
+                MeshFactory.Frustum("Body", hl.transform, Vector3.zero, 0.14f, 0.14f, 0.32f, lanternMat, 12);
+                MeshFactory.Box("Handle", hl.transform, new Vector3(0, 0.38f, 0), new Vector3(0.02f, 0.12f, 0.02f), wood, false);
+            }
             hl.AddComponent<BoxCollider>().size = new Vector3(0.3f, 0.45f, 0.3f);
             var lightGo = new GameObject("LanternLight");
             lightGo.transform.SetParent(hl.transform, false);
@@ -229,7 +235,7 @@ namespace TwelfthStamp
             var stand = new GameObject("PanelStand").transform;
             stand.SetParent(g, false);
             stand.localPosition = new Vector3(0, 0, 1.5f);
-            MeshFactory.Cylinder("Post", stand, Vector3.zero, 0.05f, 1.1f, metal, 10);
+            var post = MeshFactory.Cylinder("Post", stand, Vector3.zero, 0.05f, 1.1f, metal, 10);
             var pivot = new GameObject("Pivot").transform;
             pivot.SetParent(stand, false);
             pivot.localPosition = new Vector3(0, 1.35f, 0);
@@ -238,10 +244,22 @@ namespace TwelfthStamp
             disc.AddDisc(Vector3.zero, Vector3.up, 0.32f, 40);
             disc.AddDisc(Vector3.zero, Vector3.down, 0.32f, 40);
             var calib = Tex.Art("calibration_insert");
-            MeshFactory.FromBuilder("Optic", disc, Mats.Unlit(new Color(0.75f, 0.95f, 0.9f, 0.9f), calib, true, 1.1f), pivot);
-            var ring = new MeshBuilder();
-            ring.AddTorus(Vector3.zero, 0.33f, 0.02f, 32, 6, Quaternion.identity);
-            MeshFactory.FromBuilder("Ring", ring, metal, pivot);
+            var optic = MeshFactory.FromBuilder("Optic", disc, Mats.Unlit(new Color(0.75f, 0.95f, 0.9f, 0.9f), calib, true, 1.1f), pivot);
+            // The modelled stand and lens, scaled so the disc centre (1.255 m) meets the pivot. The model turns about its
+            // vertical axis but this puzzle spins the pattern about the disc's axis, so the model stays still and only the
+            // calibration pattern turns, now just in front of the lens glass.
+            var lensGlass = Mats.Glass(new Color(0.75f, 0.92f, 0.9f, 0.12f));
+            if (Models.Spawn("OpticalPanel", stand, Models.Slots(("TS_Metal", metal), ("TS_Glass", lensGlass)), Vector3.zero, 180f, 1.35f / 1.255f) != null)
+            {
+                Models.StripVisual(post);
+                optic.transform.localPosition = new Vector3(0f, 0.022f, 0f);
+            }
+            else
+            {
+                var ring = new MeshBuilder();
+                ring.AddTorus(Vector3.zero, 0.33f, 0.02f, 32, 6, Quaternion.identity);
+                MeshFactory.FromBuilder("Ring", ring, metal, pivot);
+            }
             pivot.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.7f, 0.08f, 0.7f);
             Panel = pivot.gameObject.AddComponent<StepRotator>();
             Panel.Target = pivot;

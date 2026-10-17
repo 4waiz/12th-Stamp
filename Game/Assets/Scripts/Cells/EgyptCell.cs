@@ -71,19 +71,34 @@ namespace TwelfthStamp
             var stand = new GameObject("ReflectorStand").transform;
             stand.SetParent(g, false);
             stand.localPosition = MirrorLocal;
-            MeshFactory.Cylinder("Base", stand, Vector3.zero, 0.38f, 0.12f, bronze, 18);
-            MeshFactory.Cylinder("Post", stand, new Vector3(0, 0.12f, 0), 0.05f, 1.0f, bronze, 10);
+            var standBase = MeshFactory.Cylinder("Base", stand, Vector3.zero, 0.38f, 0.12f, bronze, 18);
+            var post = MeshFactory.Cylinder("Post", stand, new Vector3(0, 0.12f, 0), 0.05f, 1.0f, bronze, 10);
             var pivot = new GameObject("Pivot").transform;
             pivot.SetParent(stand, false);
             pivot.localPosition = new Vector3(0, 1.3f, 0);
-            var frame = new MeshBuilder();
-            frame.AddTorus(Vector3.zero, 0.46f, 0.035f, 36, 8, Quaternion.Euler(90, 0, 0));
-            MeshFactory.FromBuilder("Frame", frame, bronze, pivot);
-            var mirror = new MeshBuilder();
-            mirror.AddDisc(Vector3.zero, Vector3.forward, 0.44f, 36);
-            mirror.AddDisc(Vector3.zero, Vector3.back, 0.44f, 36);
-            MeshFactory.FromBuilder("Mirror", mirror, mirrorMat, pivot);
-            MeshFactory.Box("Yoke", pivot, new Vector3(0, -0.5f, 0), new Vector3(0.95f, 0.06f, 0.06f), bronze, false);
+            // The modelled reflector, scaled so its mirror centre (1.25 m) meets this pivot (1.3 m). Its static Base stays on
+            // the stand; its Pivot (turntable, yoke, mirror) moves under the puzzle's pivot. Both turn about the same
+            // vertical axis, and the mirror faces the pivot's +Z, where the reflected beam goes.
+            var model = Models.Spawn("Reflector", stand, Models.Slots(("TS_Brass", bronze), ("TS_Chrome", mirrorMat)), Vector3.zero, 0f, 1.3f / 1.25f);
+            var turning = Models.Child(model, "Pivot");
+            if (turning != null)
+            {
+                turning.SetParent(pivot, true);
+                Models.StripVisual(standBase);
+                Models.StripVisual(post);
+            }
+            else
+            {
+                if (model != null) Object.DestroyImmediate(model);
+                var frame = new MeshBuilder();
+                frame.AddTorus(Vector3.zero, 0.46f, 0.035f, 36, 8, Quaternion.Euler(90, 0, 0));
+                MeshFactory.FromBuilder("Frame", frame, bronze, pivot);
+                var mirror = new MeshBuilder();
+                mirror.AddDisc(Vector3.zero, Vector3.forward, 0.44f, 36);
+                mirror.AddDisc(Vector3.zero, Vector3.back, 0.44f, 36);
+                MeshFactory.FromBuilder("Mirror", mirror, mirrorMat, pivot);
+                MeshFactory.Box("Yoke", pivot, new Vector3(0, -0.5f, 0), new Vector3(0.95f, 0.06f, 0.06f), bronze, false);
+            }
             var col = pivot.gameObject.AddComponent<BoxCollider>();
             col.size = new Vector3(1.0f, 1.0f, 0.2f);
             Reflector = pivot.gameObject.AddComponent<StepRotator>();
