@@ -118,7 +118,7 @@ def shaped_noise(n, mag_fn, rng, nfft=2048, hop=None):
     Random-phase overlap-add synthesis (Hann window, 75 % overlap)."""
     hop = hop or nfft // 4
     nf = n // hop + 4
-    tf = (np.arange(nf) * hop - nfft / 2) / SR
+    tf = (np.arange(nf) * hop) / SR  # frame k is centred at output sample k*hop
     f = np.fft.rfftfreq(nfft, 1 / SR)
     M = mag_fn(np.maximum(tf, 0), f)
     Z = (rng.standard_normal(M.shape) + 1j * rng.standard_normal(M.shape)) * M
@@ -132,14 +132,15 @@ def shaped_noise(n, mag_fn, rng, nfft=2048, hop=None):
 
 def smooth_random(n, rate_hz, rng, lo=0.0, hi=1.0, order=3):
     """Slowly varying random control signal in [lo, hi] with ~rate_hz bandwidth."""
+    from scipy.ndimage import uniform_filter1d
     k = max(int(n * rate_hz / SR) + 4, 4)
     pts = rng.uniform(0, 1, k)
     x = np.interp(np.linspace(0, k - 1, n), np.arange(k), pts)
-    # smooth with a few passes of a moving average for curvature
+    # smooth with a few passes of a moving average for curvature (O(n) running mean)
     w = max(int(SR / max(rate_hz, 1e-3) / 2), 1)
     for _ in range(order - 1):
-        if w < n:
-            x = np.convolve(np.pad(x, (w, w), mode="edge"), np.ones(w) / w, mode="same")[w:-w]
+        if 1 < w < n:
+            x = uniform_filter1d(x, size=w, mode="nearest")
     x = (x - x.min()) / (x.max() - x.min() + 1e-12)
     return lo + (hi - lo) * x
 
@@ -282,16 +283,18 @@ def stick_slip(n, rate, rng, modes, jitter=0.25, amp_sigma=0.35, noise=0.15):
 
     modes: list of (freq, t60, gain)."""
     exc = impulse_train(n, rate, rng, jitter=jitter, amp_sigma=amp_sigma)
-    exc = exc + noise * rng.standard_normal(n) * (np.convolve(np.abs(exc), np.ones(64) / 64, mode="same") > 0)
+    # each slip also releases a little broadband rubbing noise proportional to its strength
+    local = signal.fftconvolve(np.abs(exc), np.hanning(48), mode="same")
+    exc = exc + noise * rng.standard_normal(n) * local
     f, t, g = zip(*modes)
     return resonator_bank(exc, f, t, g)
 
 
 def click(rng, dur=0.004, lo=1000, hi=12000):
-    """Very short broadband click grain."""
+    """Very short broadband click grain (zero-padded so the band-pass can ring out)."""
     n = max(N(dur), 8)
     x = rng.standard_normal(n) * np.exp(-np.linspace(0, 7, n))
-    return bp(x, lo, hi, 2)
+    return bp(np.concatenate([x, np.zeros(n)]), lo, hi, 2)
 
 
 # ----------------------------------------------------------------------------- modal / tonal
@@ -623,13 +626,11 @@ def limiter(x, ceiling_db=-3.0, lookahead=0.002, release=0.06):
     for i in range(nb):
         cur = gb[i] if gb[i] < cur else gb[i] + (cur - gb[i]) * coef
         out[i] = cur
+    from scipy.ndimage import uniform_filter1d
     gs = np.repeat(out, blk)[:len(g)]
-    gs = np.minimum(gs, maximum_filter1d(g, size=1))
     # short smoothing of the gain curve (never above the instantaneous requirement)
-    k = la
-    sm = np.convolve(gs, np.ones(k) / k, mode="same")
-    gs = np.minimum(gs, np.maximum(sm, 0))
-    gs = np.minimum(gs, g)
+    sm = uniform_filter1d(gs, size=max(la, 2), mode="nearest")
+    gs = np.minimum(np.minimum(gs, sm), g)
     y = xs * gs[None, :]
     return y if x.ndim == 2 else y[0]
 
@@ -639,18 +640,36 @@ def norm_peak(x, target_db=-3.0):
     return x * undb(target_db - true_peak_db(x))
 
 
-def norm_lufs(x, target, tp_max=-3.0):
-    """Normalise integrated loudness to target; if the true peak would exceed tp_max, limit first."""
-    L = lufs(x)
-    g = undb(target - L)
-    y = x * g
-    for _ in range(4):
-        tp = true_peak_db(y)
-        if tp <= tp_max + 0.05:
-            break
-        y = limiter(y, tp_max - 0.3)
-        y = y * undb(target - lufs(y))
-    return y
+def norm_lufs(x, target, tp_max=-3.0, circular=False):
+    """Normalise integrated loudness to target with the TRUE peak held <= tp_max.
+
+    If plain gain would break the ceiling, a lookahead limiter is applied and its (sample-peak)
+    ceiling is lowered until the 4x-oversampled true peak complies (HF-rich material such as
+    crackle has inter-sample overs). circular=True limits a loop with wrap-around padding so the
+    gain curve is continuous across the loop point."""
+    y = x * undb(target - lufs(x))
+    tp = true_peak_db(y)
+    if tp <= tp_max:
+        return y
+    pad = N(0.3)
+
+    def lim(sig, c):
+        if not circular:
+            return limiter(sig, c)
+        s2 = np.atleast_2d(sig)
+        ext = np.concatenate([s2[:, -pad:], s2, s2[:, :pad]], axis=1)
+        out = limiter(ext, c)[:, pad:-pad]
+        return out if sig.ndim == 2 else out[0]
+    ceiling = tp_max - 0.3
+    z = y
+    for _ in range(10):
+        z = lim(y, ceiling)
+        z = z * undb(target - lufs(z))
+        tp = true_peak_db(z)
+        if tp <= tp_max + 0.02:
+            return z
+        ceiling -= (tp - tp_max) + 0.1
+    return z * undb(min(0.0, tp_max - tp))
 
 
 # ----------------------------------------------------------------------------- output

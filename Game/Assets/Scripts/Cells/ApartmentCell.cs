@@ -1,0 +1,225 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace TwelfthStamp
+{
+    /// <summary>
+    /// Saeed's Abu Dhabi apartment. One builder, two cells with identical layout and coordinates:
+    /// ApartmentNormal (homecoming, real home ending) and ApartmentCorrupt (the Margin copy: UAE encounter).
+    /// The corrupted copy keeps every furniture position; its changes are the horror.
+    /// </summary>
+    public class ApartmentCell : Cell
+    {
+        public bool Corrupted;
+        public Transform TableTop, Suitcase, BathroomDoorPivot, PhoneRoot, FridgeRoot, WindowSeamPoint;
+        public Socket CameraSpot, PassportSpot, CaseSpot, GlassesSpot;
+        public Grabbable Camera, PassportProp, CaseProp, Glasses;
+        public Material PhoneScreen;
+        public GameObject ReflectionCorridor, ReflectionFigure;
+        public Material ReflectionMat, ReflectionFigureMat;
+        public readonly List<Transform> SkylineLayers = new List<Transform>();
+        public TraceMark Trace;
+        public GameObject GenuineNote;
+        public Transform BathroomInside;
+        public AudioSource FridgeHum;
+
+        protected override void Build()
+        {
+            Lighting = Corrupted ? new LightingPreset
+            {
+                SunColor = new Color(0.45f, 0.55f, 0.7f), SunIntensity = 0.15f, SunEuler = new Vector3(35f, 230f, 0f), ShadowStrength = 0.5f,
+                AmbientSky = new Color(0.13f, 0.16f, 0.2f), AmbientEquator = new Color(0.1f, 0.11f, 0.12f), AmbientGround = new Color(0.05f, 0.05f, 0.055f),
+                FogColor = new Color(0.07f, 0.09f, 0.12f), FogDensity = 0.012f,
+                SkyZenith = new Color(0.02f, 0.03f, 0.06f), SkyHorizon = new Color(0.16f, 0.2f, 0.24f), SkyGround = new Color(0.04f, 0.05f, 0.07f),
+                SunDiscColor = new Color(0, 0, 0, 0), Stars = 0.15f,
+                PostExposure = 0.25f, Saturation = -25f, Contrast = 14f, ColorFilter = new Color(0.86f, 0.95f, 0.98f), Bloom = 0.6f, Vignette = 0.32f
+            } : new LightingPreset
+            {
+                SunColor = new Color(1f, 0.62f, 0.38f), SunIntensity = 0.6f, SunEuler = new Vector3(12f, 250f, 0f), ShadowStrength = 0.7f,
+                AmbientSky = new Color(0.32f, 0.3f, 0.36f), AmbientEquator = new Color(0.3f, 0.24f, 0.2f), AmbientGround = new Color(0.12f, 0.09f, 0.07f),
+                FogColor = new Color(0.32f, 0.25f, 0.24f), FogDensity = 0.006f,
+                SkyZenith = new Color(0.12f, 0.16f, 0.32f), SkyHorizon = new Color(0.95f, 0.55f, 0.38f), SkyGround = new Color(0.18f, 0.14f, 0.13f),
+                SunDiscColor = new Color(1f, 0.6f, 0.35f, 1f), SunSize = 0.006f, CloudColor = new Color(0.9f, 0.55f, 0.45f, 0.25f),
+                PostExposure = 0.1f, Saturation = 5f, Contrast = 8f, ColorFilter = new Color(1f, 0.96f, 0.9f), Bloom = 0.55f, Vignette = 0.22f
+            };
+            Ambience = Corrupted ? "amb_apartment_corrupt" : "amb_apartment";
+            AddSun();
+
+            var floor = Mats.Lit(new Color(0.55f, 0.42f, 0.3f), 0.5f, 0f, "wood_oak_floor");
+            var wall = Mats.Lit(Corrupted ? new Color(0.66f, 0.66f, 0.64f) : new Color(0.84f, 0.78f, 0.7f), 0.18f, 0f, "plaster_warm");
+            var tile = Mats.Lit(new Color(0.78f, 0.76f, 0.72f), 0.55f, 0f, "tile_terrazzo");
+            var wood = Mats.Lit(new Color(0.32f, 0.21f, 0.14f), 0.5f, 0f, "wood_dark");
+            var fabric = Mats.Lit(Corrupted ? new Color(0.36f, 0.38f, 0.4f) : new Color(0.62f, 0.55f, 0.46f), 0.15f, 0f, "fabric_linen");
+            var rug = Mats.Lit(new Color(0.75f, 0.68f, 0.62f), 0.1f, 0f, "carpet_rug");
+            var metal = Mats.Lit(new Color(0.7f, 0.7f, 0.72f), 0.7f, 0.9f, "metal_brushed");
+            var white = Mats.Lit(new Color(0.88f, 0.88f, 0.86f), 0.55f);
+            var black = Mats.Lit(new Color(0.05f, 0.05f, 0.055f), 0.6f);
+
+            var g = Group("Apartment");
+            // Shell: 9 x 8 m room, 2.9 m ceiling; window wall to the east (+X).
+            MeshFactory.Floor("Floor", g, new Vector3(0, 0, 0), new Vector2(9f, 8f), floor, "wood", 0.2f, 1f);
+            MeshFactory.Box("Ceiling", g, new Vector3(0, 2.95f, 0), new Vector3(9f, 0.1f, 8f), Mats.Lit(new Color(0.85f, 0.84f, 0.82f), 0.1f), false, 2f);
+            MeshFactory.Box("WallW", g, new Vector3(-4.6f, 1.45f, 0), new Vector3(0.2f, 2.9f, 8f), wall, true, 1.5f);
+            MeshFactory.Box("WallN", g, new Vector3(0, 1.45f, 4.1f), new Vector3(9.2f, 2.9f, 0.2f), wall, true, 1.5f);
+            MeshFactory.Box("WallS_A", g, new Vector3(-1.4f, 1.45f, -4.1f), new Vector3(6.4f, 2.9f, 0.2f), wall, true, 1.5f);
+            MeshFactory.Box("WallS_B", g, new Vector3(4.2f, 1.45f, -4.1f), new Vector3(0.8f, 2.9f, 0.2f), wall, true, 1.5f);
+            MeshFactory.Box("WallS_Top", g, new Vector3(2.75f, 2.5f, -4.1f), new Vector3(2.1f, 0.8f, 0.2f), wall, true, 1.5f);
+            // Window wall (east): low sill, mullions, glass.
+            MeshFactory.Box("Sill", g, new Vector3(4.55f, 0.2f, 0), new Vector3(0.3f, 0.4f, 8f), wall, true, 1.5f);
+            for (int i = 0; i < 5; i++) MeshFactory.Box("Mullion", g, new Vector3(4.55f, 1.6f, -3.9f + i * 1.95f), new Vector3(0.08f, 2.8f, 0.08f), black, true);
+            var glass = MeshFactory.Box("Window", g, new Vector3(4.6f, 1.65f, 0), new Vector3(0.02f, 2.5f, 8f), Mats.Glass(new Color(0.3f, 0.35f, 0.4f, 0.14f)), false);
+            glass.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var glassBlock = new GameObject("WindowCollider");
+            glassBlock.transform.SetParent(g, false);
+            glassBlock.transform.localPosition = new Vector3(4.6f, 1.65f, 0);
+            glassBlock.AddComponent<BoxCollider>().size = new Vector3(0.1f, 2.6f, 8f);
+
+            // Skyline (layers drift apart in the corrupted copy).
+            var towerMat = Mats.Backdrop(new Color(0.12f, 0.13f, 0.17f), Lighting);
+            var lightsMat = Mats.Backdrop(new Color(1f, 0.82f, 0.55f), Lighting, new Color(1.3f, 0.95f, 0.55f));
+            for (int layer = 0; layer < 3; layer++)
+            {
+                var sky = Landmarks.Skyline(g, new Vector3(90f + layer * 70f, -30f, 0), 30f + layer * 20f, 80f, 90f, 9 + layer * 3, towerMat, lightsMat, 11 + layer);
+                SkylineLayers.Add(sky.transform);
+            }
+            Kit.Water(g, new Vector3(140f, -32f, 0), new Vector2(200f, 400f), new Color(0.04f, 0.06f, 0.09f), 0.95f);
+
+            // Kitchen (north wall): counter, fridge, upper cabinets.
+            MeshFactory.Box("Counter", g, new Vector3(-1.5f, 0.45f, 3.65f), new Vector3(4f, 0.9f, 0.7f), wood, true);
+            MeshFactory.Box("CounterTop", g, new Vector3(-1.5f, 0.92f, 3.62f), new Vector3(4.05f, 0.05f, 0.75f), tile, false);
+            MeshFactory.Box("Upper", g, new Vector3(-1.5f, 2.2f, 3.82f), new Vector3(4f, 0.8f, 0.36f), wood, false);
+            FridgeRoot = MeshFactory.Box("Fridge", g, new Vector3(1.1f, 0.95f, 3.62f), new Vector3(0.85f, 1.9f, 0.72f), white, true).transform;
+            MeshFactory.Box("FridgeHandle", FridgeRoot, new Vector3(-0.32f, 0.2f, -0.38f), new Vector3(0.03f, 0.5f, 0.04f), metal, false);
+            // Notes on the fridge: in the copy, every note is blank except the genuine one.
+            var noteRng = new System.Random(5);
+            for (int i = 0; i < 4; i++)
+            {
+                var notePos = new Vector3(1.0f + (i % 2) * 0.22f - 0.1f, 1.25f + (i / 2) * 0.2f, 3.255f);
+                var n = MeshFactory.Quad("Note", g, 0.14f, 0.12f, Mats.Lit(new Color(0.95f, 0.92f, 0.78f), 0.1f), notePos, Quaternion.Euler(0, 0, (float)(noteRng.NextDouble() - 0.5) * 10f));
+                if (i == 1) GenuineNote = n;
+            }
+            var notesTex = Tex.Art("optician_notes");
+            if (GenuineNote != null && notesTex != null)
+                GenuineNote.GetComponent<Renderer>().sharedMaterial = Mats.Printed(notesTex, new Color(1f, 0.97f, 0.9f), 0.1f);
+
+            // Living area: sofa, coffee table, rug, dining table (the unpacking table), chairs, shelf with a photo.
+            MeshFactory.Box("Rug", g, new Vector3(1.2f, 0.005f, -0.6f), new Vector3(2.6f, 0.01f, 1.8f), rug, false);
+            MeshFactory.Box("SofaBase", g, new Vector3(1.2f, 0.22f, -2.1f), new Vector3(2.3f, 0.44f, 0.9f), fabric, true);
+            MeshFactory.Box("SofaBack", g, new Vector3(1.2f, 0.6f, -2.5f), new Vector3(2.3f, 0.6f, 0.2f), fabric, true);
+            MeshFactory.Box("CoffeeTable", g, new Vector3(1.2f, 0.2f, -0.7f), new Vector3(1.1f, 0.4f, 0.6f), wood, true);
+            MeshFactory.Box("Table", g, new Vector3(-1.6f, 0.74f, 0.4f), new Vector3(1.6f, 0.05f, 0.9f), wood, true);
+            foreach (var x in new[] { -2.3f, -0.9f }) foreach (var z in new[] { 0.05f, 0.75f })
+                MeshFactory.Box("TableLeg", g, new Vector3(x, 0.36f, z), new Vector3(0.05f, 0.72f, 0.05f), wood, false);
+            for (int i = 0; i < 4; i++)
+            {
+                float x = -2.2f + (i % 2) * 1.2f;
+                float z = i < 2 ? -0.35f : 1.15f;
+                if (Corrupted && i == 3) z += 0.4f; // one chair has moved
+                MeshFactory.Box("ChairSeat", g, new Vector3(x, 0.45f, z), new Vector3(0.45f, 0.05f, 0.45f), wood, true);
+                MeshFactory.Box("ChairBack", g, new Vector3(x, 0.75f, z + (i < 2 ? -0.2f : 0.2f)), new Vector3(0.45f, 0.55f, 0.04f), wood, false);
+            }
+            TableTop = new GameObject("TableTop").transform;
+            TableTop.SetParent(g, false);
+            TableTop.localPosition = new Vector3(-1.6f, 0.77f, 0.4f);
+            MeshFactory.Box("Shelf", g, new Vector3(-4.35f, 1.4f, 1.8f), new Vector3(0.3f, 0.04f, 1.6f), wood, false);
+            var photo = MeshFactory.Box("PhotoFrame", g, new Vector3(-4.33f, 1.6f, 1.6f), new Vector3(0.03f, 0.3f, 0.24f), black, false);
+            var postcard = Tex.Art("postcard_1");
+            MeshFactory.Quad("Photo", photo.transform, 0.2f, 0.26f, Mats.Printed(Corrupted ? null : postcard, Corrupted ? new Color(0.85f, 0.85f, 0.83f) : Color.white, 0.2f), new Vector3(0.02f, 0, 0), Quaternion.Euler(0, -90, 0));
+
+            // Lighting: pendant over the table, floor lamp, kitchen strip.
+            var warm = Corrupted ? new Color(0.75f, 0.85f, 0.95f) : new Color(1f, 0.78f, 0.52f);
+            AddPointLight(g, new Vector3(-1.6f, 2.2f, 0.4f), warm, Corrupted ? 1.2f : 2.6f, 5f, true);
+            MeshFactory.Frustum("Pendant", g, new Vector3(-1.6f, 2.25f, 0.4f), 0.25f, 0.08f, 0.22f, Mats.Emissive(new Color(0.2f, 0.2f, 0.2f), warm * (Corrupted ? 0.6f : 1.4f)), 18);
+            AddPointLight(g, new Vector3(2.8f, 1.6f, -2.4f), warm, Corrupted ? 0.5f : 1.4f, 4f);
+            AddPointLight(g, new Vector3(-1.5f, 1.9f, 3.4f), warm, Corrupted ? 0.5f : 1.1f, 3.5f);
+
+            // Bathroom (south-east): door in the south wall leads to a small tiled room.
+            var bath = Group("Bathroom");
+            MeshFactory.Floor("BathFloor", bath, new Vector3(2.75f, 0.01f, -5.4f), new Vector2(2.2f, 2.4f), tile, "tile", 0.2f, 0.6f);
+            MeshFactory.Box("BathW", bath, new Vector3(1.6f, 1.45f, -5.4f), new Vector3(0.15f, 2.9f, 2.6f), tile, true, 0.6f);
+            MeshFactory.Box("BathE", bath, new Vector3(3.9f, 1.45f, -5.4f), new Vector3(0.15f, 2.9f, 2.6f), tile, true, 0.6f);
+            MeshFactory.Box("BathS", bath, new Vector3(2.75f, 1.45f, -6.65f), new Vector3(2.4f, 2.9f, 0.15f), tile, true, 0.6f);
+            MeshFactory.Box("BathCeil", bath, new Vector3(2.75f, 2.95f, -5.4f), new Vector3(2.4f, 0.1f, 2.6f), white, false);
+            MeshFactory.Box("Sink", bath, new Vector3(2.75f, 0.85f, -6.4f), new Vector3(0.6f, 0.15f, 0.4f), white, true);
+            MeshFactory.Box("Mirror", bath, new Vector3(2.75f, 1.6f, -6.56f), new Vector3(0.7f, 0.9f, 0.02f), Mats.Lit(new Color(0.7f, 0.75f, 0.78f), 0.98f, 1f), false);
+            AddPointLight(bath, new Vector3(2.75f, 2.5f, -5.4f), Corrupted ? new Color(0.7f, 0.8f, 0.9f) : new Color(1f, 0.9f, 0.75f), 1.6f, 3.5f);
+            BathroomInside = new GameObject("BathroomInside").transform;
+            BathroomInside.SetParent(bath, false);
+            BathroomInside.localPosition = new Vector3(2.75f, 0f, -5.6f);
+            BathroomDoorPivot = new GameObject("BathroomDoorPivot").transform;
+            BathroomDoorPivot.SetParent(g, false);
+            BathroomDoorPivot.localPosition = new Vector3(3.75f, 0f, -4.1f);
+            MeshFactory.Box("BathroomDoor", BathroomDoorPivot, new Vector3(-0.95f, 1.05f, 0), new Vector3(1.9f, 2.1f, 0.05f), wood, true);
+            BathroomDoorPivot.localRotation = Quaternion.Euler(0, 95f, 0); // open
+
+            // Entrance door (west) and the suitcase.
+            MeshFactory.Box("FrontDoor", g, new Vector3(-4.48f, 1.05f, -2.6f), new Vector3(0.06f, 2.1f, 1f), wood, false);
+            Suitcase = new GameObject("Suitcase").transform;
+            Suitcase.SetParent(g, false);
+            Suitcase.localPosition = new Vector3(-3.4f, 0f, -1.6f);
+            var luggage = Mats.Lit(new Color(0.12f, 0.18f, 0.24f), 0.45f);
+            MeshFactory.Box("CaseBottom", Suitcase, new Vector3(0, 0.1f, 0), new Vector3(0.75f, 0.2f, 0.5f), luggage, true);
+            MeshFactory.Box("CaseLid", Suitcase, new Vector3(0, 0.38f, 0.27f), new Vector3(0.75f, 0.5f, 0.06f), luggage, false, 1f, Quaternion.Euler(-15, 0, 0));
+
+            // Phone on the table.
+            PhoneRoot = PropLibrary.Phone(g, out PhoneScreen).transform;
+            PhoneRoot.localPosition = new Vector3(-1.05f, 0.77f, 0.75f);
+            PhoneRoot.localRotation = Quaternion.Euler(0, 20, 0);
+
+            // Reflection: a corridor that exists only in the window glass (ghost geometry beyond the glass).
+            ReflectionMat = Mats.UnlitInstance(new Color(0.75f, 0.75f, 0.7f, 0f), Tex.Albedo("plaster_warm"), true, 1f);
+            ReflectionCorridor = new GameObject("ReflectionCorridor");
+            ReflectionCorridor.transform.SetParent(g, false);
+            for (int i = 0; i < 6; i++)
+            {
+                float d = 4.8f + i * 1.2f;
+                MeshFactory.Quad("CorridorL", ReflectionCorridor.transform, 1.2f, 2.6f, ReflectionMat, new Vector3(d, 1.3f, -1.1f), Quaternion.Euler(0, 90, 0));
+                MeshFactory.Quad("CorridorR", ReflectionCorridor.transform, 1.2f, 2.6f, ReflectionMat, new Vector3(d, 1.3f, 0.1f), Quaternion.Euler(0, -90, 0));
+            }
+            ReflectionFigureMat = Mats.UnlitInstance(new Color(0.03f, 0.035f, 0.04f, 0f), Tex.SoftDot, true, 1f);
+            ReflectionFigure = MeshFactory.Quad("ReflectionFigure", ReflectionCorridor.transform, 0.5f, 1.9f, ReflectionFigureMat, new Vector3(10.5f, 1.25f, -0.5f), Quaternion.Euler(0, 90, 0));
+            MeshFactory.NoShadows(ReflectionCorridor);
+
+            // Seams (only meaningful in the Margin copy; harmless in the real one since tears are disabled there).
+            AddSeam("window", new Vector3(4.2f, 0f, -0.5f), -90f);
+            AddSeam("kitchen", new Vector3(-0.2f, 0f, 1.9f), 30f, 1.35f);
+            AddSeam("hall", new Vector3(-3.9f, 0f, 1.2f), 90f);
+            if (!Corrupted) foreach (var s in Seams) s.Revealed = false;
+
+            // UAE trace: the genuine handwritten note (the copy could not forge handwriting).
+            Trace = TraceMark.Create(transform, CountryId.UAE, new Vector3(1.0f, 1.25f, 3.24f), Quaternion.identity, 0.24f, false);
+            Trace.transform.localRotation = Quaternion.Euler(0, 180, 0);
+
+            SetArrival(new Vector3(-2.8f, 0f, -2.4f), 60f);
+            AddBounds(new Vector3(0, 0, -0.5f), new Vector3(8.8f, 3f, 9f));
+
+            if (Corrupted) SetEncounter(gameObject.AddComponent<UaeEncounter>());
+            else SetEncounter(gameObject.AddComponent<HomeEncounter>());
+        }
+
+        public static ApartmentCell Make(GameObject go, bool corrupted)
+        {
+            var c = go.AddComponent<ApartmentCell>();
+            c.Corrupted = corrupted;
+            c.Id = corrupted ? CellId.ApartmentCorrupt : CellId.ApartmentNormal;
+            return c;
+        }
+
+        void Update()
+        {
+            if (Mode != CellMode.Active || !Corrupted) return;
+            // The skyline separates into layers (scenery only; the horizon under the player never moves).
+            for (int i = 0; i < SkylineLayers.Count; i++)
+            {
+                float t = Mathf.Sin(Time.time * 0.05f + i) * 0.5f + 0.5f;
+                SkylineLayers[i].localPosition = new Vector3(90f + i * 70f, -30f + t * (i + 1) * 6f, Mathf.Sin(Time.time * 0.03f * (i + 1)) * 12f * i);
+            }
+        }
+    }
+
+    /// <summary>The real apartment: used for the ending (the homecoming chapter drives it directly).</summary>
+    public class HomeEncounter : Encounter
+    {
+        public override string Objective => "";
+    }
+}

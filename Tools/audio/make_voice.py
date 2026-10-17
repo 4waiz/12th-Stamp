@@ -55,7 +55,10 @@ FALLBACK = {
 #             heard as "lave" by Whisper large-v3 in every comma variant; ending the sentence at
 #             "leave." gives a clear /liːv/ (both ASR models: "leave", p=1.00).
 #   end_02:   "Saeed" -> /sˈiːd/ ("seed"); want /sɑːˈiːd/
+#   shop_02:  "Ah, those." is phonemised correctly (/ˈɑː/) but ran into "those" and both ASR models heard
+#             "Are those"; a hesitation ("Ah... those.") makes the interjection read (large-v3: "Ah, those").
 RESPELL = {
+    "shop_02": [("Ah, those", "Ah... those")],
     "tut_seal": [("Close", "Cloze"), ("tear", "tare")],
     "opt_02": [("lives", "livs"), ("leave, unless", "leave. Unless")],
     "end_02": [("Saeed", "Sa-eed")],

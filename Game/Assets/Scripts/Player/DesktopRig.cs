@@ -65,8 +65,8 @@ namespace TwelfthStamp
 
             m_PassportMount = new GameObject("PassportMount").transform;
             m_PassportMount.SetParent(head.transform, false);
-            m_PassportMount.localPosition = new Vector3(-0.15f, -0.13f, 0.36f);
-            m_PassportMount.localRotation = Quaternion.Euler(-28f, 14f, 0f);
+            m_PassportMount.localPosition = new Vector3(-0.19f, -0.155f, 0.37f); // lower left: keeps the reticle and the right-hand card clear
+            m_PassportMount.localRotation = Quaternion.Euler(21f, -26f, 0f); // page faces the eyes
             m_LastFeet = transform.position;
             SetPointerMode(false);
         }

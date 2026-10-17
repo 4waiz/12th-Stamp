@@ -59,3 +59,17 @@ cookies*
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# ---- QA screenshots: reports are committed; only a few key frames of the final run ----
+/Docs/QA/**/*.png
+!/Docs/QA/run8/01_menu.png
+!/Docs/QA/run8/03_passport_open.png
+!/Docs/QA/run8/05_window_repel.png
+!/Docs/QA/run8/08_counterfeit_stamp.png
+!/Docs/QA/run8/10c_egypt_mummy_close.png
+!/Docs/QA/run8/51b_berlin_mimic_close.png
+!/Docs/QA/run8/53_home_tear.png
+!/Docs/QA/run8/55_results.png
+
+# ---- Blender auto-backups ----
+*.blend1

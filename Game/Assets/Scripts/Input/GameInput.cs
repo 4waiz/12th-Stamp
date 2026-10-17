@@ -154,7 +154,7 @@ namespace TwelfthStamp
             else if (path.Contains("{GripButton}")) { control = "grip"; label = "Grip"; }
             else if (path.Contains("{TriggerButton}")) { control = "trigger"; label = "Trigger"; }
             else if (path.Contains("{Primary2DAxis}")) { control = "thumbstick"; label = "Thumbstick"; }
-            else if (path.Contains("{MenuButton}")) { control = "menu"; label = "Menu ≡"; }
+            else if (path.Contains("{MenuButton}")) { control = "menu"; label = "Menu"; }
             return new ControlRef { Hand = hand, Control = control, Label = label };
         }
 

@@ -26,7 +26,7 @@ namespace TwelfthStamp
 
         // Display
         public float brightness = 0f;         // -1..1 exposure offset (EV * 0.75)
-        public int graphicsPreset = 2;        // 0 low, 1 medium, 2 high
+        public int graphicsPreset = 2;        // 0 low, 1 medium, 2 high, 3 ultra
         public bool fullscreen = true;
         public int resolutionIndex = -1;      // -1 = native
         public bool reducedEffects = false;   // no chromatic aberration / grain / lens contamination overlay
@@ -56,7 +56,7 @@ namespace TwelfthStamp
             sfx = Mathf.Clamp01(sfx); voice = Mathf.Clamp01(voice); ui = Mathf.Clamp01(ui);
             subtitleSize = Mathf.Clamp(subtitleSize, 0, 2);
             brightness = Mathf.Clamp(brightness, -1f, 1f);
-            graphicsPreset = Mathf.Clamp(graphicsPreset, 0, 2);
+            graphicsPreset = Mathf.Clamp(graphicsPreset, 0, 3);
             mouseSensitivity = Mathf.Clamp(mouseSensitivity, 0.2f, 3f);
             snapAngle = Mathf.Clamp(snapAngle, 15f, 90f);
             seatedHeight = Mathf.Clamp(seatedHeight, 0f, 0.8f);

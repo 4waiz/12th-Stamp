@@ -27,7 +27,12 @@ namespace TwelfthStamp
         public static string PathOf(string file) => Path.Combine(Directory, file);
 
         // ------------------------------------------------------------ campaign
-        public static bool HasValidCampaign() => LoadCampaign() != null;
+        /// <summary>A finished story is not offered as "Continue"; the menu starts a fresh one instead.</summary>
+        public static bool HasValidCampaign()
+        {
+            var c = LoadCampaign();
+            return c != null && !c.HasFlag(StoryFlags.CampaignComplete);
+        }
 
         public static CampaignState LoadCampaign()
         {

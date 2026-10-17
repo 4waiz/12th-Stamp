@@ -86,6 +86,17 @@ def main():
                              "words": words}
         flag = "OK " if not mism else "MISMATCH"
         print(f"{flag} {lid:12s} | {hyp}" + ("" if not mism else f"   <- {mism}"), flush=True)
+    glitch = os.path.join(VOICE, "mom_01_glitch.wav")
+    if os.path.exists(glitch) and (not only or "mom_01_glitch" in only):
+        segs, _ = model.transcribe(glitch, language="en", beam_size=5, word_timestamps=True,
+                                   condition_on_previous_text=False, vad_filter=False, temperature=0.0)
+        segs = list(segs)
+        words = [{"w": w.word.strip(), "start": round(w.start, 3), "end": round(w.end, 3), "p": round(w.probability, 3)}
+                 for s in segs for w in (s.words or [])]
+        hyp = " ".join(s.text.strip() for s in segs)
+        res["clips"]["mom_01_glitch"] = {"script": None, "heard": hyp, "match": None, "mismatches": [], "words": words,
+                                         "note": "derived clip (expected: 'unpacked' x3 + a cut-off 'unpa-')"}
+        print(f"--  mom_01_glitch | {hyp}", flush=True)
     out = os.path.join(WORK, f"voice_transcripts_{args.model}.json")
     prev = {}
     if only and os.path.exists(out):
@@ -95,7 +106,7 @@ def main():
     res["clips"] = prev
     with open(out, "w", encoding="utf-8") as fh:
         json.dump(res, fh, indent=1)
-    n_bad = sum(1 for c in res["clips"].values() if not c["match"])
+    n_bad = sum(1 for c in res["clips"].values() if c["match"] is False)
     print(f"{len(res['clips'])} clips, {n_bad} with word mismatches -> {out}")
 
 

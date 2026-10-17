@@ -129,7 +129,8 @@ namespace TwelfthStamp.EditorTools
             SetInt(so, "m_MainLightShadowmapResolution", 2048);
             SetInt(so, "m_AdditionalLightsRenderingMode", 1); // per pixel
             SetInt(so, "m_AdditionalLightsPerObjectLimit", 8);
-            SetBool(so, "m_AdditionalLightShadowsSupported", false);
+            SetBool(so, "m_AdditionalLightShadowsSupported", true);
+            SetInt(so, "m_AdditionalLightsShadowmapResolution", 2048);
             SetFloat(so, "m_ShadowDistance", 32f);
             SetInt(so, "m_ShadowCascadeCount", 2);
             SetBool(so, "m_SoftShadowsSupported", true);
@@ -138,8 +139,40 @@ namespace TwelfthStamp.EditorTools
             SetInt(so, "m_ColorGradingMode", 1); // HDR grading
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(urp);
+            EnsureSsao(renderer);
             Log("URP asset ready: " + assetPath);
             return urp;
+        }
+
+        /// <summary>Screen-space ambient occlusion (toggled per graphics preset at runtime).</summary>
+        static void EnsureSsao(UniversalRendererData renderer)
+        {
+            if (renderer.rendererFeatures.Exists(f => f is ScreenSpaceAmbientOcclusion)) return;
+            var ssao = ScriptableObject.CreateInstance<ScreenSpaceAmbientOcclusion>();
+            ssao.name = "SSAO";
+            AssetDatabase.AddObjectToAsset(ssao, renderer);
+            AssetDatabase.SaveAssets();
+            var fso = new SerializedObject(ssao);
+            SetFloat(fso, "m_Settings.Intensity", 1.1f);
+            SetFloat(fso, "m_Settings.Radius", 0.3f);
+            SetFloat(fso, "m_Settings.DirectLightingStrength", 0.2f);
+            SetBool(fso, "m_Settings.Downsample", false);
+            SetBool(fso, "m_Settings.AfterOpaque", false);
+            fso.ApplyModifiedPropertiesWithoutUndo();
+            var rso = new SerializedObject(renderer);
+            var list = rso.FindProperty("m_RendererFeatures");
+            var map = rso.FindProperty("m_RendererFeatureMap");
+            list.arraySize++;
+            list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = ssao;
+            if (map != null && AssetDatabase.TryGetGUIDAndLocalFileIdentifier(ssao, out string _, out long localId))
+            {
+                map.arraySize++;
+                map.GetArrayElementAtIndex(map.arraySize - 1).longValue = localId;
+            }
+            rso.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(renderer);
+            AssetDatabase.SaveAssets();
+            Log("SSAO renderer feature added");
         }
 
         static void TryReloadResources(ScriptableObject target)
@@ -518,6 +551,7 @@ namespace TwelfthStamp.EditorTools
             if (!assetPath.StartsWith("Assets/Resources/")) return;
             var ti = (TextureImporter)assetImporter;
             var file = Path.GetFileNameWithoutExtension(assetPath);
+            if (file.Contains("smudge")) ti.sRGBTexture = false;
             if (file.EndsWith("_n"))
             {
                 ti.textureType = TextureImporterType.NormalMap;
@@ -552,7 +586,7 @@ namespace TwelfthStamp.EditorTools
                 s.loadType = AudioClipLoadType.CompressedInMemory;
                 s.compressionFormat = AudioCompressionFormat.Vorbis;
                 s.quality = 0.8f;
-                ai.forceToMono = true;
+                ai.forceToMono = false; // files are mono and -18 LUFS matched; Unity's normalize would undo that
             }
             else
             {

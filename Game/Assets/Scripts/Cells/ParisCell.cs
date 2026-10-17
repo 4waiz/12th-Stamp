@@ -1,0 +1,257 @@
+using UnityEngine;
+
+namespace TwelfthStamp
+{
+    /// <summary>France / Paris — The Street That Folds. Rainy riverside checkpoint; the signature encounter.</summary>
+    public class ParisCell : Cell
+    {
+        public Transform DeskRoot;
+        public TraceMark Trace;
+        public SeamAnchor DeskSeam, RiverSeam, ArrivalSeam;
+        public Vector3 GuardLocal = new Vector3(0f, 0f, 6.75f);
+        public Vector3 RetreatLocal = new Vector3(-2.6f, 0f, 10.2f);
+
+        protected override void Build()
+        {
+            Id = CellId.Paris;
+            Lighting = new LightingPreset
+            {
+                SunColor = new Color(0.55f, 0.62f, 0.78f), SunIntensity = 0.28f, SunEuler = new Vector3(62f, -30f, 0f), ShadowStrength = 0.6f,
+                AmbientSky = new Color(0.2f, 0.25f, 0.33f), AmbientEquator = new Color(0.16f, 0.18f, 0.22f), AmbientGround = new Color(0.07f, 0.075f, 0.085f),
+                FogColor = new Color(0.22f, 0.26f, 0.32f), FogDensity = 0.035f,
+                SkyZenith = new Color(0.07f, 0.09f, 0.13f), SkyHorizon = new Color(0.3f, 0.34f, 0.4f), SkyGround = new Color(0.1f, 0.11f, 0.13f),
+                SunDiscColor = new Color(0, 0, 0, 0), CloudColor = new Color(0.22f, 0.25f, 0.3f, 0.7f),
+                PostExposure = 0.15f, Saturation = -12f, Contrast = 12f, ColorFilter = new Color(0.9f, 0.95f, 1f), Bloom = 0.65f, Vignette = 0.28f
+            };
+            Ambience = "amb_paris_rain";
+            AddSun();
+
+            var cobble = Mats.Lit(new Color(0.42f, 0.42f, 0.44f), 0.78f, 0f, "cobble_wet");
+            var stone = Mats.Lit(new Color(0.78f, 0.74f, 0.66f), 0.35f, 0f, "limestone_blocks");
+            var trim = Mats.Lit(new Color(0.68f, 0.64f, 0.57f), 0.3f, 0f, "limestone_blocks");
+            var window = Mats.Lit(new Color(0.06f, 0.07f, 0.09f), 0.92f, 0.2f);
+            var metal = Mats.Lit(new Color(0.06f, 0.07f, 0.07f), 0.55f, 0.8f);
+            var wood = Mats.Lit(new Color(0.35f, 0.22f, 0.14f), 0.45f, 0f, "wood_dark");
+            var paper = Mats.Lit(new Color(0.92f, 0.89f, 0.8f), 0.2f, 0f, "paper_ivory");
+            var brass = Mats.Lit(new Color(0.75f, 0.58f, 0.3f), 0.6f, 0.9f);
+            var canvas = Mats.Lit(new Color(0.28f, 0.1f, 0.1f), 0.3f, 0f, "fabric_linen");
+
+            var g = Group("Geometry");
+            MeshFactory.Floor("Street", g, new Vector3(-0.2f, 0, 1.5f), new Vector2(8.6f, 23f), cobble, "stone", 0.3f, 1f);
+            MeshFactory.Floor("Pavement", g, new Vector3(-3.4f, 0.06f, 1.5f), new Vector2(1.6f, 23f), Mats.Lit(new Color(0.5f, 0.49f, 0.47f), 0.6f, 0f, "granite_pavers"), "stone", 0.3f, 1f);
+
+            // West side: three Haussmann-style facades; the upper storeys fold inward over the street.
+            for (int i = 0; i < 3; i++)
+            {
+                float z = -6f + i * 7.4f;
+                var f = Kit.Facade(g, "Facade" + i, new Vector3(-4.3f, 0.06f, z), 90f, 7.2f, 2, 3.4f, stone, window, trim, false, true, 0.45f);
+                MeshFactory.Box("ShopFront", f.transform, new Vector3(0, 1.4f, -0.04f), new Vector3(5.5f, 2.6f, 0.06f), window, false);
+                MeshFactory.Box("ShopSign", f.transform, new Vector3(0, 2.95f, -0.1f), new Vector3(5.8f, 0.4f, 0.12f), Mats.Lit(new Color(0.1f, 0.13f, 0.12f), 0.5f), false);
+                var upper = Kit.Facade(g, "UpperFacade" + i, new Vector3(-4.3f, 6.86f, z), 90f, 7.2f, 3, 3.2f, stone, window, trim, i == 1, true, 0.3f);
+                var fold = upper.AddComponent<FoldingFacade>();
+                fold.MaxAngle = 7f + i * 2f;
+                fold.Phase = i * 1.3f;
+            }
+            // East side: river parapet, benches, the river, the far bank.
+            MeshFactory.Box("Parapet", g, new Vector3(3.85f, 0.45f, 1.5f), new Vector3(0.45f, 0.9f, 23f), stone, true, 1f);
+            Kit.Bench(g, new Vector3(3.0f, 0, -3.5f), -90f, wood, metal);
+            Kit.Water(g, new Vector3(30f, -1.4f, 10f), new Vector2(52f, 90f), new Color(0.05f, 0.07f, 0.08f));
+            var farBank = Mats.Backdrop(new Color(0.22f, 0.24f, 0.28f), Lighting);
+            for (int i = 0; i < 9; i++)
+                MeshFactory.Box("FarBank", g, new Vector3(62f + (i % 3) * 6f, 6f + (i * 7) % 9, -30f + i * 11f), new Vector3(14f, 12f + (i * 5) % 10, 10f), farBank, false);
+            var lamps = Mats.Backdrop(new Color(0.9f, 0.7f, 0.45f), Lighting, new Color(1.4f, 0.9f, 0.5f));
+            Landmarks.LatticeTower(g, new Vector3(120f, -2f, 150f), 0.9f, Mats.Backdrop(new Color(0.2f, 0.21f, 0.25f), Lighting), lamps);
+            // North end: the street continues into an alley mouth (shadow, the retreat point).
+            MeshFactory.Box("NorthWall", g, new Vector3(0.6f, 3f, 12.6f), new Vector3(6.8f, 6f, 0.6f), stone, true, 1.5f);
+            MeshFactory.Box("AlleyDark", g, new Vector3(-2.6f, 2f, 12.2f), new Vector3(2.2f, 4f, 0.2f), Mats.Lit(new Color(0.01f, 0.01f, 0.012f), 0.1f), false);
+
+            // The festival verification checkpoint.
+            DeskRoot = Kit.Desk(g, new Vector3(0f, 0f, 6f), 180f, wood, paper, brass, out var ledgerTop, out _).transform;
+            Kit.Awning(g, new Vector3(0, 0, 6.2f), 0f, 3.6f, 2.6f, 2.7f, canvas, metal);
+            var rope = Mats.Lit(new Color(0.5f, 0.1f, 0.1f), 0.3f);
+            foreach (var x in new[] { -1.4f, 1.4f }) MeshFactory.Cylinder("Stanchion", g, new Vector3(x, 0, 4.6f), 0.04f, 0.95f, brass, 10);
+            MeshFactory.Box("Rope", g, new Vector3(0, 0.85f, 4.6f), new Vector3(2.8f, 0.03f, 0.03f), rope, false);
+
+            Trace = TraceMark.Create(transform, CountryId.France, transform.InverseTransformPoint(ledgerTop.position) + Vector3.up * 0.003f, Quaternion.identity, 0.2f, true);
+            Trace.Reveal(false);
+
+            Kit.LampPost(g, new Vector3(-2.9f, 0.06f, -2f), new Color(1f, 0.75f, 0.45f), 2.2f, metal, out _);
+            Kit.LampPost(g, new Vector3(3.2f, 0f, 2.8f), new Color(1f, 0.75f, 0.45f), 2.2f, metal, out _);
+            Kit.LampPost(g, new Vector3(-2.9f, 0.06f, 9f), new Color(1f, 0.72f, 0.42f), 1.6f, metal, out _);
+
+            Kit.Weather(g, new Vector3(0, 7f, 2f), new Vector3(14f, 0.5f, 26f), true, new Color(0.75f, 0.8f, 0.9f, 0.45f), 1400f, 9f);
+
+            // Seams: one faces the desk (the right choice for borrowed light), one faces the street, one at arrival.
+            // Aimed so borrowed light crosses the desk at chest height (verified by geometry: ~5.3 m to the guard point).
+            DeskSeam = AddSeam("desk", new Vector3(-3.35f, 0.06f, 2.6f), 40f, 1.45f);
+            RiverSeam = AddSeam("river", new Vector3(3.35f, 0f, -0.5f), -90f);
+            ArrivalSeam = AddSeam("arrival", new Vector3(0.5f, 0f, -7.6f), 0f);
+            SetArrival(new Vector3(0.5f, 0f, -6.6f), 0f);
+            AddBounds(new Vector3(-0.2f, 0, 2f), new Vector3(7.6f, 6f, 20.5f));
+
+            SetEncounter(gameObject.AddComponent<ParisEncounter>());
+        }
+    }
+
+    /// <summary>Upper storeys fold slowly inward over the street (scenery moves; the player's horizon never does).</summary>
+    public class FoldingFacade : MonoBehaviour
+    {
+        public float MaxAngle = 8f;
+        public float Phase;
+        Quaternion m_Base;
+        void Start() => m_Base = transform.localRotation;
+        void Update()
+        {
+            float t = 0.5f - 0.5f * Mathf.Cos(Time.time * 0.12f + Phase);
+            transform.localRotation = m_Base * Quaternion.Euler(-MaxAngle * t, 0, 0);
+        }
+    }
+
+    public class ParisEncounter : Encounter
+    {
+        ParisCell P => (ParisCell)Cell;
+        PassengerHand m_Hand;
+        float m_WindowTime;
+        bool m_HandShown, m_NearMiss, m_LightTaught, m_Cleared;
+        float m_RespawnTimer = -1f;
+
+        public override void OnEnter(bool firstVisit)
+        {
+            m_HandShown = false; m_WindowTime = 0f; m_NearMiss = false; m_Cleared = false; m_RespawnTimer = -1f;
+            if (m_Hand == null) m_Hand = PassengerHand.Create(transform);
+            m_Hand.Detach();
+            var tears = Game.Tears;
+            tears.SizeChanged -= OnSize; tears.SizeChanged += OnSize;
+            tears.Sealed -= OnSealed; tears.Sealed += OnSealed;
+            tears.Breached -= OnBreach; tears.Breached += OnBreach;
+            tears.Opened -= OnOpened; tears.Opened += OnOpened;
+
+            P.Trace.BlockedReason = () => !m_Cleared && PassengerAtDesk() ? "It is standing at the desk. Drive it away first." : null;
+            if (!Game.Campaign.IsVerified(CountryId.France))
+            {
+                SpawnGuard();
+                Narration.I?.Say("par_01", null, false, null, false, true);
+                if (Game.Campaign.HasResource(ResourceId.Sunlight))
+                    Narration.I?.Say("tut_danger", null, true, null, false, true);
+                else
+                    Hud.I?.ShowToast("Its back is to the light. Egypt's reflector could help, if it were turned.", 4f);
+            }
+            else Game.Passenger?.Despawn();
+        }
+
+        public override void OnExit()
+        {
+            var tears = Game.Tears;
+            if (tears != null) { tears.SizeChanged -= OnSize; tears.Sealed -= OnSealed; tears.Breached -= OnBreach; tears.Opened -= OnOpened; }
+            m_Hand?.Detach();
+        }
+
+        void SpawnGuard()
+        {
+            var pc = Game.Passenger;
+            pc.GuardPoint = transform.TransformPoint(P.GuardLocal);
+            pc.RetreatPoint = transform.TransformPoint(P.RetreatLocal);
+            pc.RetreatSeconds = 26f;
+            pc.Spawn(Cell, P.GuardLocal, 180f, PassengerState.Guard, Disguise.RainCoat);
+            pc.Threatening = true;
+        }
+
+        bool PassengerAtDesk()
+        {
+            var pc = Game.Passenger;
+            if (pc == null || !pc.Visible) return false;
+            return Vector3.Distance(pc.transform.position, P.DeskRoot.position) < 2.3f && pc.State != PassengerState.Retreat;
+        }
+
+        void OnOpened(Tear t)
+        {
+            if (!IsLive) return;
+            if (t.Destination.Id == CountryId.Egypt && t.Beam != null && !m_LightTaught)
+            {
+                m_LightTaught = true;
+                Narration.I?.Say("tut_light", null, true, null, false, true);
+            }
+        }
+
+        void OnSize(Tear t, TearSize size)
+        {
+            if (!IsLive) return;
+            if (size == TearSize.Window) Narration.I?.Say("tut_widen", null, true, null, false, true);
+        }
+
+        void Update()
+        {
+            if (!IsLive || Game.Paused) return;
+            var tear = Game.Tears.Active;
+            var pc = Game.Passenger;
+
+            if (m_RespawnTimer > 0f)
+            {
+                m_RespawnTimer -= Time.deltaTime;
+                if (m_RespawnTimer <= 0f && !Game.Campaign.IsVerified(CountryId.France))
+                {
+                    pc.Spawn(Cell, P.RetreatLocal, 180f, PassengerState.Retreat, Disguise.RainCoat);
+                    pc.RetreatSeconds = 22f;
+                    pc.Threatening = true;
+                }
+            }
+
+            if (tear == null || tear.Closing) { m_WindowTime = 0f; return; }
+            if (pc != null && pc.State == PassengerState.Retreat) m_Cleared = true;
+
+            // A wide opening invites it back through the Margin: its hand comes through the tear.
+            if (tear.Size >= TearSize.Window) m_WindowTime += Time.deltaTime;
+            if (!m_HandShown && !Game.Campaign.IsVerified(CountryId.France) && tear.Size >= TearSize.Window && (m_WindowTime > 3.2f || tear.Contamination > 0.45f))
+            {
+                m_HandShown = true;
+                if (pc != null && pc.Visible)
+                {
+                    AudioDirector.I?.Play("pass_creak_2", pc.ChestPosition, 0.8f);
+                    pc.Despawn();
+                }
+                m_Hand.Attach(tear);
+                tear.SetPassengerPressure(0.6f);
+                Narration.I?.Say("par_02", null, false, null, true);
+                Narration.I?.Say("tut_seal", null, true, null, false, true);
+                AudioDirector.I?.Play("pass_sting", tear.OpeningCenter, 0.75f, 1f, Bus.SFX, true);
+            }
+            if (m_HandShown && m_Hand.Active)
+                m_Hand.SetProgress(Mathf.InverseLerp(0.25f, 1f, tear.Contamination));
+        }
+
+        void OnSealed(Tear t)
+        {
+            if (!IsLive) return;
+            if (m_HandShown && m_Hand != null && m_Hand.Active)
+            {
+                m_NearMiss = true;
+                m_Hand.Recoil();
+                Hud.I?.ShowToast("Sealed. It's caught on the other side.", 3f);
+                Game.Story?.RestoreVitality(0.15f);
+                m_Cleared = true;
+                m_RespawnTimer = 14f; // it comes back, but gives you time to verify
+            }
+            m_HandShown = false;
+        }
+
+        void OnBreach(Tear t)
+        {
+            if (!IsLive) return;
+            // Not an instant kill: a heavy drain, the tear snaps shut, and the threat resets to the desk.
+            Hud.I?.ShowCaption("the hand closes around your wrist", 2.5f);
+            Game.Story?.DrainVitality(0.42f);
+            m_Hand?.Detach();
+            Game.Tears.Close(false);
+            m_HandShown = false;
+            m_Cleared = false;
+            if (Game.Campaign.vitality > 0f) SpawnGuard();
+        }
+
+        public override void ResetLocal()
+        {
+            m_Hand?.Detach();
+            m_HandShown = false; m_Cleared = false; m_WindowTime = 0f; m_RespawnTimer = -1f;
+            if (!Game.Campaign.IsVerified(CountryId.France)) SpawnGuard();
+        }
+    }
+}

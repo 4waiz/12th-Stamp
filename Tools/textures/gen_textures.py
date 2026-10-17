@@ -93,8 +93,8 @@ def build_material(name: str, spec: dict, log: list) -> dict:
         T.save_png(p, nu8)
         rec["files"].append(dict(file=p.name, w=n, h=n, fmt="RGB tangent normal (+Y up)", seam=seam_check(nu8),
                                  tilt_deg=round(T.normal_tilt_deg(nr), 2)))
-    rec["seconds"] = round(time.time() - t0, 1)
-    msg = f"[mat] {name:20s} {rec['seconds']:5.1f}s " + "  ".join(
+    secs = time.time() - t0
+    msg = f"[mat] {name:20s} {secs:5.1f}s " + "  ".join(
         f"{f['file']}: seam lr {f['seam']['ratio_lr']} tb {f['seam']['ratio_tb']} {'OK' if f['seam']['ok'] else 'FAIL'}"
         + (f" lum {f['lum_mean']} [{f['lum_p1']},{f['lum_p99']}]" if 'lum_mean' in f else "")
         + (f" tilt {f['tilt_deg']}" if 'tilt_deg' in f else "")
@@ -156,6 +156,8 @@ def main(argv=None):
     ap.add_argument("--only", nargs="*", default=None, help="asset names to (re)build")
     ap.add_argument("--preview", default=None, help="directory for QA preview sheets")
     ap.add_argument("--no-report", action="store_true", help="skip manifest + contact sheet")
+    ap.add_argument("--skip-mat", action="store_true", help="do not rebuild materials")
+    ap.add_argument("--skip-gfx", action="store_true", help="do not rebuild graphics")
     args = ap.parse_args(argv)
     for d in (TEX_DIR, ART_DIR, DOC_DIR):
         d.mkdir(parents=True, exist_ok=True)
@@ -171,12 +173,12 @@ def main(argv=None):
     only = set(args.only) if args.only else None
     mat_log, gfx_log = [], []
     for name, spec in MATERIALS.items():
-        if only and name not in only:
+        if (only and name not in only) or args.skip_mat:
             continue
         rec = build_material(name, spec, mat_log)
         state["materials"][name] = rec
     for name, spec in GRAPHICS.items():
-        if only and name not in only:
+        if (only and name not in only) or args.skip_gfx:
             continue
         t0 = time.time()
         recs = tx_graphics.build(name, spec, ART_DIR)
@@ -187,6 +189,7 @@ def main(argv=None):
 
     # drop stale entries for assets that no longer exist in the registries
     state["materials"] = {k: v for k, v in state["materials"].items() if k in MATERIALS}
+    state["graphics"] = {k: v for k, v in state["graphics"].items() if v.get("group") in GRAPHICS}
     STATE_FILE.write_text(json.dumps(state, indent=1))
 
     if args.preview:

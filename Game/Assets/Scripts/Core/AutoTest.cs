@@ -1,0 +1,605 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using UnityEngine;
+
+namespace TwelfthStamp
+{
+    /// <summary>
+    /// In-build automated check (--autotest=demo|egypt|story|countries|finale|all). Drives the REAL systems (the same calls the
+    /// input layer makes) and records pass/fail, timings and screenshots. It proves code paths in a running build;
+    /// it does not replace a human playtest and does not test feel, comfort or VR rendering.
+    /// </summary>
+    public class AutoTest : MonoBehaviour
+    {
+        string m_Name, m_Dir;
+        readonly List<string> m_Lines = new List<string>();
+        int m_Pass, m_Fail;
+        float m_T0;
+        readonly List<float> m_FrameTimes = new List<float>();
+
+        public void Begin(string name, string dir)
+        {
+            m_Name = string.IsNullOrEmpty(name) ? "all" : name;
+            m_Dir = string.IsNullOrEmpty(dir) ? Path.Combine(Application.persistentDataPath, "autotest") : dir;
+            Directory.CreateDirectory(m_Dir);
+            m_T0 = Time.realtimeSinceStartup;
+            Application.logMessageReceived += OnLog;
+            Game.Input?.DesktopMap.Disable(); // stray real clicks/keys must not change an automated run
+            StartCoroutine(Run());
+        }
+
+        readonly List<string> m_Errors = new List<string>();
+        void OnLog(string msg, string stack, LogType type)
+        {
+            if (type == LogType.Error || type == LogType.Exception) m_Errors.Add(type + ": " + msg);
+        }
+
+        void Update()
+        {
+            if (Time.unscaledDeltaTime > 0f) m_FrameTimes.Add(Time.unscaledDeltaTime * 1000f);
+        }
+
+        void Note(string s) { m_Lines.Add($"[{Time.realtimeSinceStartup - m_T0,7:0.0}s] {s}"); Debug.Log("[TS-AutoTest] " + s); }
+
+        void Check(bool ok, string what)
+        {
+            if (ok) m_Pass++; else m_Fail++;
+            Note((ok ? "PASS " : "FAIL ") + what);
+        }
+
+        IEnumerator Shot(string name)
+        {
+            yield return null;
+            yield return new WaitForEndOfFrame();
+            var path = Path.Combine(m_Dir, name + ".png");
+            ScreenCapture.CaptureScreenshot(path);
+            yield return null;
+            yield return null;
+            Note("screenshot " + name + ".png");
+        }
+
+        IEnumerator WaitUntil(Func<bool> cond, float timeout, string what)
+        {
+            float t = 0f;
+            while (!cond() && t < timeout) { t += Time.unscaledDeltaTime; yield return null; }
+            Check(cond(), what + $" (waited {t:0.0}s)");
+        }
+
+        IEnumerator Hold(Action<float> step, float seconds)
+        {
+            float t = 0f;
+            while (t < seconds) { step(Time.deltaTime); t += Time.deltaTime; yield return null; }
+        }
+
+        IEnumerator Run()
+        {
+            Note("AutoTest '" + m_Name + "' mode=" + Game.Mode + " screen=" + Screen.width + "x" + Screen.height);
+            yield return MenuSystem.I.ShowMainMenuRoutine();
+            yield return new WaitForSeconds(1.5f);
+            Check(Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu, "main menu cell active");
+            Check(MenuSystem.I.IsOpen, "main menu panel open");
+            yield return Shot("01_menu");
+
+            if (m_Name == "all" || m_Name == "demo") yield return DemoFlow();
+            if (m_Name == "all" || m_Name == "egypt") yield return EgyptFlow();
+            if (m_Name == "all" || m_Name == "story") yield return StoryFlow();
+            if (m_Name == "all" || m_Name == "countries") yield return CountriesFlow();
+            if (m_Name == "all" || m_Name == "finale") yield return FinaleFlow();
+
+            // Report.
+            var frames = m_FrameTimes.Skip(30).OrderBy(x => x).ToList();
+            string perf = frames.Count > 0
+                ? $"frames={frames.Count} median={frames[frames.Count / 2]:0.0}ms p95={frames[(int)(frames.Count * 0.95f)]:0.0}ms worst={frames[frames.Count - 1]:0.0}ms (desktop window, includes loading spikes; NOT a VR measurement)"
+                : "no frames";
+            var sb = new StringBuilder();
+            sb.AppendLine("# AutoTest report: " + m_Name);
+            sb.AppendLine();
+            sb.AppendLine("- Date: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            sb.AppendLine("- Build: " + Application.version + " | mode: " + Game.Mode + " | resolution: " + Screen.width + "x" + Screen.height);
+            sb.AppendLine("- GPU: " + SystemInfo.graphicsDeviceName + " | API: " + SystemInfo.graphicsDeviceType);
+            sb.AppendLine("- Result: **" + m_Pass + " passed, " + m_Fail + " failed**");
+            sb.AppendLine("- Frame timing: " + perf);
+            sb.AppendLine("- Errors/exceptions logged: " + m_Errors.Count);
+            sb.AppendLine();
+            sb.AppendLine("## Steps");
+            foreach (var l in m_Lines) sb.AppendLine("    " + l);
+            if (m_Errors.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("## Logged errors");
+                foreach (var e in m_Errors.Distinct().Take(40)) sb.AppendLine("- " + e.Replace("\n", " "));
+            }
+            File.WriteAllText(Path.Combine(m_Dir, "autotest_" + m_Name + ".md"), sb.ToString());
+            Note("report written");
+            yield return new WaitForSeconds(0.5f);
+            Application.Quit(m_Fail == 0 ? 0 : 1);
+        }
+
+        IEnumerator DemoFlow()
+        {
+            Note("--- Judges' demo flow (Paris + Egyptian sunlight) ---");
+            MenuSystem.I.HideAll();
+            Game.Story.StartDemo();
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Paris && !Game.Story.Busy, 20f, "demo enters Paris");
+            yield return new WaitForSeconds(1.5f);
+            var paris = (ParisCell)Game.Cells.Active;
+            Check(Game.Passenger.Visible && Game.Passenger.State == PassengerState.Guard, "Passenger guards the desk");
+            Check(paris.Trace.GetPrompt(null) != paris.Trace.Prompt, "trace is blocked while the Passenger is at the desk");
+            yield return Shot("02_paris_arrival");
+
+            Game.Passport.Open(HandSide.Desktop);
+            Game.Passport.Select(CountryId.Egypt, true);
+            yield return new WaitForSeconds(0.6f);
+            Check(Game.Passport.IsOpen && Game.Passport.Selected == CountryId.Egypt, "passport open with Egypt selected");
+            yield return Shot("03_passport_open");
+
+            // Stand where a player would and look at the desk seam.
+            var seam = paris.DeskSeam;
+            var stand = seam.Center + seam.Forward * 3.2f;
+            var look = seam.Center - stand; look.y = 0;
+            Game.Rig.PlaceAt(new Vector3(stand.x, 0f, stand.z), Quaternion.LookRotation(look).eulerAngles.y);
+            yield return null; yield return null;
+            Check(Game.Tears.HasTarget && Game.Tears.Target == seam, "desk seam targeted from the passport");
+
+            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.2f);
+            Check(Game.Tears.Active != null && Game.Tears.Active.Destination.Id == CountryId.Egypt, "tear opened to Egypt");
+            Check(Game.Tears.Active != null && Game.Tears.Active.Beam != null, "Egyptian sunlight flows through the tear");
+            yield return new WaitForSeconds(1.2f);
+            yield return Shot("04_slit_sunlight");
+
+            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 1.6f);
+            Check(Game.Tears.Active != null && Game.Tears.Active.Size >= TearSize.Window, "tear widened to a window");
+            yield return WaitUntil(() => Game.Passenger.State == PassengerState.Retreat || !Game.Passenger.Visible, 8f, "sunlight drives the Passenger off the desk");
+            yield return Shot("05_window_repel");
+            yield return WaitUntil(() => FindAnyObjectByType<PassengerHand>() != null && FindAnyObjectByType<PassengerHand>().Active, 10f, "a hand comes through the widened tear");
+            yield return new WaitForSeconds(1.0f);
+            yield return Shot("06_hand_through_tear");
+
+            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
+            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "tear sealed (one active tear, cleanly closed)");
+            yield return Shot("07_sealed");
+
+            Game.Passport.Close();
+            var desk = paris.DeskRoot.position;
+            Game.Rig.PlaceAt(new Vector3(desk.x, 0f, desk.z - 1.3f), 0f);
+            yield return null;
+            Check(paris.Trace.CanUse(Game.Rig.MainHand) && paris.Trace.GetPrompt(null) == paris.Trace.Prompt, "trace usable after the desk is cleared");
+            paris.Trace.Use(Game.Rig.MainHand);
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.France), 4f, "France seal verified");
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.CounterfeitRevealed), 8f, "counterfeit HOME stamp revealed");
+            yield return new WaitForSeconds(1.5f);
+            yield return Shot("08_counterfeit_stamp");
+            yield return WaitUntil(() => MenuSystem.I.IsOpen, 16f, "demo results shown");
+            yield return Shot("09_demo_results");
+            Check(!File.Exists(SaveSystem.PathOf(SaveSystem.CampaignFile)) || SaveSystem.WritesSuspended, "demo did not write the campaign save");
+            MenuSystem.I.HideAll();
+        }
+
+        IEnumerator EgyptFlow()
+        {
+            Note("--- Egypt reflector puzzle ---");
+            Game.Story.StopAllCoroutines();
+            Game.Story.StartAt(CellId.Egypt);
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Egypt && !Game.Story.Busy, 20f, "enters Egypt");
+            yield return new WaitForSeconds(1.5f);
+            var egypt = (EgyptCell)Game.Cells.Active;
+            yield return Shot("10_egypt_arrival");
+            Check(!egypt.Trace.Revealed, "trace hidden before the puzzle");
+            // Linger: the mummy rises behind you. Turn round and look at it (drain off for the photos).
+            yield return WaitUntil(() => Game.Passenger.Visible, 25f, "the mummy rises behind the player");
+            if (Game.Passenger.Visible)
+            {
+                Game.Passenger.Threatening = false;
+                Note("(Egypt: Passenger drain disabled for the close-up photos)");
+                var toP = Game.Passenger.transform.position - Game.Rig.Feet; toP.y = 0f;
+                if (toP.sqrMagnitude > 0.01f) Game.Rig.PlaceAt(Game.Rig.Feet, Quaternion.LookRotation(toP).eulerAngles.y);
+                yield return new WaitForSeconds(2.5f);
+                yield return Shot("10b_egypt_mummy_rises");
+                yield return PassengerCloseup("10c_egypt_mummy_close");
+                Game.Rig.PlaceAt(egypt.Arrival.position, egypt.Arrival.eulerAngles.y);
+                yield return null;
+            }
+            var hand = Game.Rig.MainHand;
+            for (int i = 0; i < 4; i++) { egypt.Reflector.Use(hand); yield return new WaitForSeconds(0.35f); }
+            yield return WaitUntil(() => egypt.Trace.Revealed, 4f, "reflected sunlight burns the wrong shadow and reveals the trace");
+            yield return Shot("11_egypt_trace");
+            egypt.Trace.Use(hand);
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.Egypt) && Game.Campaign.HasResource(ResourceId.Sunlight), 4f, "Egypt verified, sunlight resource unlocked");
+            yield return new WaitForSeconds(2f);
+            yield return Shot("12_egypt_verified");
+        }
+
+        /// <summary>Screenshot of the Passenger from a couple of metres in front of it (art review, not a check).</summary>
+        IEnumerator PassengerCloseup(string shot, float distance = 2.4f)
+        {
+            var pc = Game.Passenger;
+            if (pc == null || !pc.Visible) { Note("close-up skipped: the Passenger is not visible"); yield break; }
+            var fwd = pc.transform.forward; fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
+            fwd.Normalize();
+            var pos = pc.transform.position + fwd * distance;
+            var look = pc.transform.position - pos; look.y = 0f;
+            Game.Rig.PlaceAt(new Vector3(pos.x, pc.transform.position.y, pos.z), Quaternion.LookRotation(look).eulerAngles.y);
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot(shot);
+        }
+
+        static T Find<T>(string name) where T : Component
+        {
+            var go = GameObject.Find(name);
+            return go != null ? go.GetComponent<T>() : null;
+        }
+
+        static T FindIn<T>(Transform root, string name) where T : Component
+        {
+            if (root == null) return null;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                if (t.name == name) { var c = t.GetComponent<T>(); if (c != null) return c; }
+            return null;
+        }
+
+        IEnumerator StoryFlow()
+        {
+            Note("--- Story: shop prologue -> homecoming -> corruption -> UAE tutorial -> Egypt ---");
+            Game.Story.StopAllCoroutines();
+            MenuSystem.I.HideAll();
+            Game.Story.StartNewGame();
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ShopNormal && !Game.Story.Busy, 20f, "new story starts outside the Marrakech shop");
+            yield return new WaitForSeconds(2f);
+            yield return Shot("20_shop_exterior");
+            var shop = (ShopCell)Game.Cells.Active;
+            var hand = Game.Rig.MainHand;
+            Game.Rig.PlaceAt(shop.CounterTop.position + new Vector3(0, -1.04f, -1.1f), 0f);
+            yield return new WaitForSeconds(1.5f);
+            Check(shop.Keeper != null, "shopkeeper present behind the counter");
+            yield return Shot("21_shop_interior");
+            var props = shop.transform.Find("PrologueProps");
+            var postcard = props.GetComponentsInChildren<Grabbable>().FirstOrDefault(g => g.ItemId == "postcard");
+            hand.Grab(postcard);
+            Game.Passport.Open(HandSide.Desktop);
+            yield return new WaitForSeconds(0.8f);
+            Game.Passport.Close();
+            hand.Drop();
+            var glasses = props.GetComponentsInChildren<Grabbable>().FirstOrDefault(g => g.ItemId == "glasses");
+            hand.Grab(glasses);
+            yield return new WaitForSeconds(3f);
+            hand.Drop();
+            var token = props.GetComponentsInChildren<Grabbable>().FirstOrDefault(g => g.ItemId == "festival_token");
+            var tray = FindIn<Socket>(props, "TraySocket");
+            yield return WaitUntil(() => tray.Usable, 6f, "payment step reached");
+            hand.Grab(token);
+            hand.PlaceInto(tray);
+            Check(tray.Current == token, "festival token placed in the brass tray");
+            var caseSocket = props.GetComponentsInChildren<Socket>(true).FirstOrDefault(s => s.name == "CaseSocket");
+            yield return WaitUntil(() => caseSocket.Usable, 8f, "case step reached");
+            hand.Grab(glasses);
+            hand.PlaceInto(caseSocket);
+            Check(caseSocket.Current == glasses, "glasses put in their case (not worn)");
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.PrologueDone), 5f, "prologue complete");
+
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal && !Game.Story.Busy, 20f, "travel home to the Abu Dhabi apartment");
+            yield return new WaitForSeconds(1.5f);
+            yield return Shot("22_home_arrival");
+            var apt = (ApartmentCell)Game.Cells.Active;
+            var hp = apt.transform.Find("HomecomingProps");
+            foreach (var id in new[] { "camera", "passport", "glasses_case" })
+            {
+                var item = hp.GetComponentsInChildren<Grabbable>().FirstOrDefault(g => g.ItemId == id);
+                var spot = FindIn<Socket>(hp, "Spot_" + id);
+                hand.Grab(item);
+                hand.PlaceInto(spot);
+                yield return null;
+            }
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.Unpacked), 3f, "unpacked camera, passport and case onto the table");
+            yield return new WaitForSeconds(2.5f);
+            var phone = apt.PhoneRoot.GetComponent<Interactable>();
+            Check(phone != null, "phone becomes interactive (voicemail)");
+            if (phone != null) phone.Use(hand);
+            yield return new WaitForSeconds(5f);
+            yield return Shot("23_home_voicemail");
+            var caseOpen = hp.GetComponentsInChildren<Interactable>().FirstOrDefault(i => i.name == "CaseOpenHandle");
+            Check(caseOpen != null, "glasses case can be opened");
+            if (caseOpen != null) caseOpen.Use(hand);
+            yield return new WaitForSeconds(0.6f);
+            var homeGlasses = hp.GetComponentsInChildren<Grabbable>(true).FirstOrDefault(g => g.ItemId == "glasses");
+            Check(homeGlasses != null, "glasses taken out of the case");
+            if (homeGlasses != null) { hand.Grab(homeGlasses); yield return new WaitForSeconds(0.5f); homeGlasses.OnActivate?.Invoke(homeGlasses, hand); }
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.GlassesWorn), 4f, "glasses worn (safe virtual interaction)");
+            yield return new WaitForSeconds(9f);
+            yield return Shot("24_reflection_wrong");
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentCorrupt && Game.Cells.Active.Encounter.Entered, 20f, "the apartment becomes the Margin copy in place");
+            yield return new WaitForSeconds(2f);
+            yield return Shot("25_margin_apartment");
+
+            var corrupt = (ApartmentCell)Game.Cells.Active;
+            Game.Passport.Open(HandSide.Desktop);
+            Game.Passport.Select(CountryId.Egypt, true);
+            var seam = corrupt.Seams.First(s => s.Id == "kitchen");
+            var stand = seam.Center + seam.Forward * 1.3f;
+            var look = seam.Center - stand; look.y = 0;
+            Game.Rig.PlaceAt(new Vector3(stand.x, 0f, stand.z), Quaternion.LookRotation(look).eulerAngles.y);
+            yield return null; yield return null;
+            Check(Game.Tears.HasTarget, "a seam is targeted in the apartment");
+            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.3f);
+            Check(Game.Tears.Active != null, "first tear opened (to Egypt)");
+            yield return WaitUntil(() => corrupt.Trace.Revealed, 3f, "light reveals the genuine note");
+            yield return new WaitForSeconds(1f);
+            yield return Shot("26_first_tear");
+            Game.Rig.PlaceAt(corrupt.Trace.transform.position + new Vector3(0, -1.25f, -1.2f), 0f);
+            yield return null;
+            corrupt.Trace.Use(hand);
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.UAE), 4f, "homecoming seal verified via the genuine detail");
+            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
+            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "tutorial tear sealed");
+            yield return WaitUntil(() => Game.Passenger.Visible, 10f, "first controlled threat appears");
+            yield return new WaitForSeconds(1f);
+            yield return Shot("27_first_threat");
+
+            Game.Passport.Open(HandSide.Desktop);
+            Game.Passport.Select(CountryId.Egypt, true);
+            Game.Rig.PlaceAt(new Vector3(stand.x, 0f, stand.z), Quaternion.LookRotation(look).eulerAngles.y);
+            yield return null; yield return null;
+            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 3.6f);
+            Check(Game.Tears.Active != null && Game.Tears.Active.Size == TearSize.Doorway, "tear widened to a doorway");
+            yield return Shot("28_doorway");
+            Game.Tears.Traverse();
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Egypt && !Game.Story.Busy, 8f, "stepped through the doorway into Egypt");
+            Check(Game.Campaign.HasFlag(StoryFlags.TutorialDone), "tutorial complete after escaping the apartment");
+            yield return new WaitForSeconds(1.5f);
+            yield return Shot("29_egypt_after_escape");
+        }
+
+        // ------------------------------------------------------------------ helpers for per-country checks
+        IEnumerator Enter(CellId id, Action<CampaignState> configure = null)
+        {
+            Game.Story.StopAllCoroutines();
+            Narration.I?.StopAll();
+            Game.Tears?.ForceReset();
+            Game.Passport?.Close();
+            Game.InputLocks = 0;
+            MenuSystem.I.HideAll();
+            Game.Story.StartAt(id, configure);
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == id && !Game.Story.Busy &&
+                                         Game.Cells.Active.Encounter != null && Game.Cells.Active.Encounter.Entered, 20f, "enters " + id);
+            yield return new WaitForSeconds(1.2f);
+        }
+
+        void AimAt(SeamAnchor seam, float distance = 3f)
+        {
+            var stand = seam.Center + seam.Forward * distance;
+            var look = seam.Center - stand; look.y = 0;
+            Game.Rig.PlaceAt(new Vector3(stand.x, seam.FloorPoint.y, stand.z), Quaternion.LookRotation(look).eulerAngles.y);
+        }
+
+        IEnumerator UseTrace(TraceMark trace, CountryId id)
+        {
+            var floor = Game.Cells.Active.transform.position.y;
+            Game.Rig.PlaceAt(new Vector3(trace.transform.position.x, floor, trace.transform.position.z - 1.2f), 0f);
+            yield return null;
+            Check(trace.Revealed && trace.CanUse(Game.Rig.MainHand) && trace.GetPrompt(null) == trace.Prompt, id + " trace revealed and usable");
+            trace.Use(Game.Rig.MainHand);
+            yield return WaitUntil(() => Game.Campaign.IsVerified(id), 5f, id + " seal verified");
+        }
+
+        static Grabbable Item(Transform root, string id) =>
+            root == null ? null : root.GetComponentsInChildren<Grabbable>(true).FirstOrDefault(g => g.ItemId == id);
+
+        IEnumerator CountriesFlow()
+        {
+            Note("--- Countries: New York, Japan, Riyadh, Agra, Rio, London, Marrakech ---");
+            var hand = Game.Rig.MainHand;
+
+            // USA: power the booth, lure the guard off the gate with the noisemaker.
+            yield return Enter(CellId.NewYork);
+            var ny = (NewYorkCell)Game.Cells.Active;
+            yield return Shot("30_newyork");
+            Check(ny.Trace.GetPrompt(null) != ny.Trace.Prompt, "arrival gate blocked while it stands there");
+            yield return PassengerCloseup("30b_newyork_passenger_close", 2.6f);
+            Game.Rig.PlaceAt(ny.Arrival.position, ny.Arrival.eulerAngles.y);
+            yield return null;
+            ny.Breaker.Use(hand);
+            yield return new WaitForSeconds(1f);
+            Check(ny.ScreenGlow.activeSelf, "booth powered; screen shows the double arrival");
+            yield return Shot("31_newyork_screen");
+            hand.Grab(ny.Noisemaker);
+            ny.Noisemaker.OnActivate?.Invoke(ny.Noisemaker, hand);
+            hand.ForceRelease(false);
+            ny.Noisemaker.transform.position = ny.transform.TransformPoint(new Vector3(-4.5f, 0.05f, 5.5f));
+            yield return WaitUntil(() => Game.Passenger.State == PassengerState.Investigate, 4f, "noisemaker draws it off the gate");
+            yield return WaitUntil(() => ny.Trace.GetPrompt(null) == ny.Trace.Prompt, 12f, "arrival gate clear");
+            yield return UseTrace(ny.Trace, CountryId.USA);
+            Check(Game.Campaign.HasResource(ResourceId.Noisemaker), "noisemaker becomes a carried resource");
+
+            // Japan: the lantern on the right hook leaves only the genuine mark.
+            yield return Enter(CellId.Japan);
+            var jp = (JapanCell)Game.Cells.Active;
+            yield return Shot("32_japan");
+            hand.Grab(jp.HandLantern);
+            hand.PlaceInto(jp.Hooks[jp.CorrectHook]);
+            yield return WaitUntil(() => jp.Trace.Revealed, 3f, "lantern on the correct hook reveals the genuine trace");
+            yield return new WaitForSeconds(0.8f);
+            yield return Shot("33_japan_solved");
+            yield return UseTrace(jp.Trace, CountryId.Japan);
+
+            // Saudi Arabia: align the optical panel, walk through the honest arch.
+            yield return Enter(CellId.Riyadh);
+            var ry = (RiyadhCell)Game.Cells.Active;
+            yield return Shot("34_riyadh");
+            for (int i = 0; i < ry.TargetIndex; i++) { ry.Panel.Use(hand); yield return new WaitForSeconds(0.35f); }
+            Check(ry.Panel.Index == ry.TargetIndex, "optical panel aligned");
+            var arch = ry.Arches[ry.HonestArch];
+            Game.Rig.PlaceAt(new Vector3(arch.position.x, ry.transform.position.y, arch.position.z), 0f);
+            yield return WaitUntil(() => ry.Trace.Revealed, 3f, "walking through the honest arch reveals the trace");
+            yield return Shot("35_riyadh_solved");
+            yield return UseTrace(ry.Trace, CountryId.SaudiArabia);
+
+            // India: the lamp's reflection shows what the extra person stands on.
+            yield return Enter(CellId.Agra);
+            var ag = (AgraCell)Game.Cells.Active;
+            yield return Shot("36_agra");
+            hand.Grab(ag.Lamp);
+            hand.PlaceInto(ag.Pedestals[ag.CorrectPedestal]);
+            yield return WaitUntil(() => ag.Trace.Revealed, 3f, "lamp on the correct pedestal reveals the trace");
+            yield return new WaitForSeconds(2.5f);
+            yield return Shot("37_agra_stepout");
+            yield return UseTrace(ag.Trace, CountryId.India);
+
+            // Brazil: three stamps masked by the drum beat.
+            yield return Enter(CellId.Rio);
+            var rio = (RioCell)Game.Cells.Active;
+            var rioEnc = (RioEncounter)rio.Encounter;
+            Game.Rig.PlaceAt(new Vector3(rio.Plate.position.x, rio.transform.position.y, rio.Plate.position.z - 1.1f), 0f);
+            yield return new WaitForSeconds(0.5f);
+            yield return Shot("38_rio");
+            for (int i = 0; i < 3; i++)
+            {
+                yield return WaitUntil(() => !rioEnc.OnBeat, 2f, "between beats");
+                yield return WaitUntil(() => rioEnc.OnBeat, 2f, "drum beat " + (i + 1));
+                rio.StampPlate.Use(hand);
+                yield return null;
+            }
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.Brazil), 5f, "Brazil verified by three masked stamps");
+
+            // UK: open the tear under the clock chime so the rip is masked.
+            yield return Enter(CellId.London);
+            var lon = (LondonCell)Game.Cells.Active;
+            var lonEnc = (LondonEncounter)lon.Encounter;
+            yield return Shot("39_london");
+            Game.Passport.Open(HandSide.Desktop);
+            Game.Passport.Select(CountryId.Egypt, true);
+            AimAt(lon.CheckpointSeam);
+            yield return null; yield return null;
+            Check(Game.Tears.HasTarget && Game.Tears.Target == lon.CheckpointSeam, "checkpoint seam targeted");
+            yield return WaitUntil(() => lonEnc.Chiming, 20f, "clock chime");
+            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.2f);
+            yield return WaitUntil(() => lon.Trace.Revealed, 2f, "tear opened under the chime reveals the trace");
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("40_london_chime");
+            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
+            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "London tear sealed");
+            Game.Passport.Close();
+            yield return UseTrace(lon.Trace, CountryId.UnitedKingdom);
+
+            // Morocco: rebuild the counter, fit the calibration insert, hear the optician's notes.
+            yield return Enter(CellId.ShopCorrupt);
+            var shop = (ShopCell)Game.Cells.Active;
+            // Puzzle-logic check only: the observer's drain is switched off so ~40 s of notes can't fail the run.
+            if (Game.Passenger != null) Game.Passenger.Threatening = false;
+            Note("(Marrakech: Passenger drain disabled for this puzzle-logic check)");
+            Game.Rig.PlaceAt(shop.CounterTop.position + new Vector3(0, -1.04f, -1.1f), 0f);
+            yield return new WaitForSeconds(0.5f);
+            yield return Shot("41_marrakech_margin");
+            var mp = shop.transform.Find("MoroccoProps");
+            Check(mp != null, "Marrakech puzzle props built");
+            var ids = new[] { "postcard", "brass_tray", "camera" };
+            for (int i = 0; i < 3 && mp != null; i++)
+            {
+                hand.Grab(Item(mp, ids[i]));
+                hand.PlaceInto(shop.CounterMarks[i].GetComponent<Socket>());
+                yield return null;
+            }
+            yield return WaitUntil(() => Item(mp, "calibration_insert") != null, 4f, "counter rebuilt; the drawer gives up the calibration insert");
+            hand.Grab(Item(mp, "calibration_insert"));
+            var caseSock = mp != null ? mp.GetComponentsInChildren<Socket>(true).FirstOrDefault(s => s.name == "InsertSocket") : null;
+            Check(caseSock != null, "glasses case set out on the counter");
+            if (caseSock != null) hand.PlaceInto(caseSock);
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.OpticianNotesRead), 3f, "insert fitted; hidden notes appear");
+            yield return new WaitForSeconds(2f);
+            yield return Shot("42_marrakech_notes");
+            yield return WaitUntil(() => shop.Trace.Revealed, 90f, "optician's notes read in full; trace revealed");
+            yield return UseTrace(shop.Trace, CountryId.Morocco);
+            Check(Game.Campaign.HasResource(ResourceId.CalibrationInsert), "calibration insert recovered");
+        }
+
+        /// <summary>Diagnostic: where the sunbeam is, how strong, and whether anything blocks it from a point.</summary>
+        void LogBeam(Vector3 point)
+        {
+            var t = Game.Tears.Active;
+            var beam = t != null ? t.Beam : null;
+            if (beam == null) { Note("beam: none"); return; }
+            var local = beam.transform.InverseTransformPoint(point);
+            bool blocked = Physics.Linecast(beam.transform.position + beam.transform.forward * 0.3f, point, out var hit, 1 << Layers.Default, QueryTriggerInteraction.Ignore);
+            Note($"beam pos={beam.transform.position:F2} fwd={beam.transform.forward:F2} strength={beam.Strength:0.00} aperture={t.Aperture:0.00} " +
+                 $"target={point:F2} local={local:F2} exposure={LightVolumes.Exposure(point, true):0.00} " +
+                 $"blocked={(blocked ? hit.collider.name + " (" + LayerMask.LayerToName(hit.collider.gameObject.layer) + ") at " + hit.point.ToString("F2") : "no")}");
+        }
+
+        IEnumerator FinaleFlow()
+        {
+            Note("--- Finale: Berlin -> near miss -> real home -> epilogue -> results ---");
+            var hand = Game.Rig.MainHand;
+            yield return Enter(CellId.Berlin, c =>
+            {
+                // The state a real run reaches before Berlin: ten other seals, their resources, the counterfeit seen.
+                foreach (var d in CountryDatabase.All) if (d.Id != CountryId.Germany) c.Verify(d.Id);
+                c.SetFlag(StoryFlags.FirstTearDone);
+                c.SetFlag(StoryFlags.CounterfeitRevealed);
+                c.SetFlag(StoryFlags.OpticianNotesRead);
+            });
+            var b = (BerlinCell)Game.Cells.Active;
+            var enc = (BerlinEncounter)b.Encounter;
+            yield return Shot("50_berlin");
+            Check(!b.HomeSeam.Revealed, "the true return is hidden at the start");
+            Game.Rig.PlaceAt(b.Plinth.transform.position + new Vector3(0, -1.07f, -1.3f), 0f);
+            yield return null;
+            Check(b.Plinth.GetPrompt(null) == b.Plinth.Prompt, "registration plinth accepts ten seals plus the insert");
+            b.Plinth.Use(hand);
+            yield return WaitUntil(() => Game.Campaign.AllElevenVerified, 5f, "eleven of eleven seals verified");
+            yield return WaitUntil(() => Game.Passenger.Visible, 15f, "the mimic appears at the blank wall");
+            yield return new WaitForSeconds(1.5f);
+            yield return Shot("51_berlin_mimic");
+            yield return PassengerCloseup("51b_berlin_mimic_close", 2.6f);
+
+            var noise = Item(b.transform, "noisemaker");
+            Check(noise != null, "the noisemaker from New York is here");
+            if (noise != null)
+            {
+                noise.OnActivate?.Invoke(noise, hand);
+                noise.transform.position = b.transform.TransformPoint(new Vector3(6f, 0.05f, -5.5f));
+            }
+            Game.Passport.Open(HandSide.Desktop);
+            Game.Passport.Select(CountryId.Egypt, true);
+            AimAt(b.LightSeam, 2.2f);
+            yield return null; yield return null;
+            Check(Game.Tears.HasTarget && Game.Tears.Target == b.LightSeam, "seam facing the doors targeted");
+            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 1.6f);
+            Check(Game.Tears.Active != null && Game.Tears.Active.Beam != null, "Egyptian sunlight pours toward the decoy doors");
+            LogBeam(b.DecoyDoors[1].position - b.DecoyDoors[1].forward * 0.35f + Vector3.up * 1.3f);
+            yield return WaitUntil(() => enc.Exposed, 6f, "daylight exposes the forged HOME doors");
+            yield return new WaitForSeconds(1f);
+            yield return Shot("52_berlin_sunlight");
+
+            hand.Grab(b.VoidStamp);
+            b.VoidStamp.OnActivate?.Invoke(b.VoidStamp, hand);
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.ForgedCancelled), 3f, "forged HOME stamp cancelled with VOID");
+            hand.ForceRelease(false);
+            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
+            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "resource tear sealed before the home tear");
+            Check(Game.Campaign.CanOpenGenuineHome && b.HomeSeam.Revealed, "genuine home can open (11 seals, insert, forgery cancelled)");
+
+            AimAt(b.HomeSeam, 2.4f);
+            yield return null; yield return null;
+            Check(Game.Tears.HasTarget && Game.Tears.Target == b.HomeSeam, "the blank wall holds the true return");
+            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 3.6f);
+            Check(Game.Tears.Active != null && Game.Tears.Active.Destination == CountryDatabase.Home && Game.Tears.Active.Size == TearSize.Doorway,
+                  "home tear opened to the real apartment");
+            yield return Shot("53_home_tear");
+            Game.Tears.Traverse();
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.Escaped), 12f, "near miss survived; glasses removed (virtual gesture)");
+            yield return new WaitForSeconds(2.5f);
+            yield return Shot("54_real_home");
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.GlassesBroken), 10f, "glasses put down and broken");
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.CampaignComplete), 45f, "bathroom, epilogue, campaign complete");
+            yield return WaitUntil(() => MenuSystem.I.IsOpen, 6f, "results shown");
+            yield return new WaitForSeconds(0.8f);
+            yield return Shot("55_results");
+            MenuSystem.I.HideAll();
+        }
+
+        void OnDestroy() => Application.logMessageReceived -= OnLog;
+    }
+}

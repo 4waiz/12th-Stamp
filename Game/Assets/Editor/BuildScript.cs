@@ -14,6 +14,13 @@ namespace TwelfthStamp.EditorTools
     /// </summary>
     public static class BuildScript
     {
+        /// <summary>Idempotent project setup followed by the Windows build (one headless session).</summary>
+        public static void SetupAndBuild()
+        {
+            ProjectSetup.Run();
+            BuildWindows();
+        }
+
         public static void BuildWindows()
         {
             string path = GetArg("-buildPath");
@@ -43,9 +50,23 @@ namespace TwelfthStamp.EditorTools
                 foreach (var m in step.messages)
                     if (m.type == LogType.Error || m.type == LogType.Exception)
                         Debug.Log("[TS-Build] ERROR: " + m.content);
+            if (s.result == BuildResult.Succeeded) CopyPlayerFiles(Path.GetDirectoryName(path));
 
             if (Application.isBatchMode)
                 EditorApplication.Exit(s.result == BuildResult.Succeeded ? 0 : 1);
+        }
+
+        /// <summary>Ships the shortcut installer, its icon and the player README next to the .exe.</summary>
+        static void CopyPlayerFiles(string buildDir)
+        {
+            var src = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "..", "Tools", "install"));
+            foreach (var name in new[] { "Install-Shortcuts.ps1", "Install Shortcuts.cmd", "TheTwelfthStamp.ico", "README.txt" })
+            {
+                var from = Path.Combine(src, name);
+                if (!File.Exists(from)) { Debug.Log("[TS-Build] Missing player file: " + from); continue; }
+                File.Copy(from, Path.Combine(buildDir, name), true);
+                Debug.Log("[TS-Build] Copied " + name);
+            }
         }
 
         static void ApplyIcon()

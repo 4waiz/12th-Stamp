@@ -65,6 +65,14 @@ namespace TwelfthStamp
                 Objective = "Validate the eleven seals, cancel the forged home stamp, and find the real way home.", Tint = new Color(0.82f, 0.84f, 0.88f) },
         };
 
+        /// <summary>Not a country: the genuine way home (Berlin finale). Never counted among the eleven.</summary>
+        public static readonly CountryDef Home = new CountryDef
+        {
+            Id = CountryId.UAE, StableId = "home", DisplayName = "Home", Place = "Abu Dhabi, the real apartment",
+            EncounterTitle = "Home", Cell = CellId.ApartmentNormal, StampTexture = "stamp_uae", RecommendedOrder = 99,
+            Objective = "", Tint = new Color(1f, 0.8f, 0.55f)
+        };
+
         public static IReadOnlyList<CountryDef> All => s_All;
 
         public static CountryDef Get(CountryId id) => s_All[(int)id];

@@ -11,6 +11,7 @@ Shader "TwelfthStamp/Particle"
         [Enum(UnityEngine.Rendering.BlendMode)] _SrcBlend ("Src blend", Float) = 5
         [Enum(UnityEngine.Rendering.BlendMode)] _DstBlend ("Dst blend", Float) = 10
         _UsePocketClip ("Clip at tear plane", Float) = 0
+        _NearFade ("Near-camera fade (start m, range m)", Vector) = (0.45, 1.3, 0, 0)
         _StencilRef ("Stencil ref", Float) = 1
         [Enum(UnityEngine.Rendering.CompareFunction)] _StencilComp ("Stencil comp", Float) = 8
     }
@@ -43,6 +44,7 @@ Shader "TwelfthStamp/Particle"
                 float _SrcBlend;
                 float _DstBlend;
                 float _UsePocketClip;
+                float4 _NearFade;
                 float _StencilRef;
                 float _StencilComp;
             CBUFFER_END
@@ -72,6 +74,11 @@ Shader "TwelfthStamp/Particle"
                     discard;
                 half4 c = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv) * i.color * _TintColor;
                 c.rgb *= _Intensity;
+                // Fade particles that pass right in front of the eye (rain streaks, sand, motes): they read as
+                // smears on the lens on a monitor and are uncomfortable in a headset.
+                half fade = saturate((distance(i.positionWS, GetCameraPositionWS()) - _NearFade.x) / max(_NearFade.y, 0.01));
+                c.a *= fade;
+                if (_DstBlend < 1.5) c.rgb *= fade; // additive (dst = One): alpha alone would not fade it
                 return c;
             }
             ENDHLSL

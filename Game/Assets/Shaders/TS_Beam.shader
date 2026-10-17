@@ -9,6 +9,7 @@ Shader "TwelfthStamp/Beam"
         _EdgeSoftness ("Edge softness", Range(0.5,8)) = 2.5
         _LengthFade ("Length fade", Range(0.1,4)) = 1.4
         _Dust ("Dust", Range(0,1)) = 0.35
+        _NearFade ("Near-camera fade (start m, range m)", Vector) = (0.5, 1.9, 0, 0)
         _StencilRef ("Stencil ref", Float) = 1
         [Enum(UnityEngine.Rendering.CompareFunction)] _StencilComp ("Stencil comp", Float) = 8
     }
@@ -39,6 +40,7 @@ Shader "TwelfthStamp/Beam"
                 float _EdgeSoftness;
                 float _LengthFade;
                 float _Dust;
+                float4 _NearFade;
                 float _StencilRef;
                 float _StencilComp;
             CBUFFER_END
@@ -73,7 +75,10 @@ Shader "TwelfthStamp/Beam"
                 float2 dp = float2(i.uv.x * 40.0, i.uv.y * 30.0 - _Time.y * 0.6);
                 float dust = step(0.985, hash21(floor(dp))) * _Dust;
 
-                float a = edge * along * startFade;
+                // Standing inside a shaft (the safe light at a counter, sunlight pouring past you) must not wrap the
+                // view in bright panels: surfaces close to the eye fade out, the far part of the shaft stays.
+                float nearFade = saturate((distance(GetCameraPositionWS(), i.positionWS) - _NearFade.x) / max(_NearFade.y, 0.01));
+                float a = edge * along * startFade * nearFade;
                 half3 c = _Color.rgb * _Intensity * (a * 0.35 + dust * a * 2.0);
                 return half4(c, 1.0);
             }
