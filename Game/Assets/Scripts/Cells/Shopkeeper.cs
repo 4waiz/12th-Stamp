@@ -332,7 +332,7 @@ namespace TwelfthStamp
             fm.Grid(14, 12, (u, v) =>
             {
                 float y = 1.462f - 0.42f * v;
-                float w = 0.125f * Mathf.Pow(Mathf.Sin(Mathf.PI * (0.06f + 0.94f * v)), 0.7f) * (1f - 0.3f * v);
+                float w = 0.125f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * (0.06f + 0.94f * v))), 0.7f) * (1f - 0.3f * v);
                 float t = 0.02f * Mathf.Sqrt(1f - v) + 0.003f;
                 float ph = u * Mathf.PI * 2f;
                 float x = w * Mathf.Cos(ph);
@@ -372,7 +372,7 @@ namespace TwelfthStamp
                 fm.Grid(10, 8, (u, v) =>
                 {
                     float th = u * Mathf.PI;
-                    float w = 0.043f * Mathf.Pow(Mathf.Sin(Mathf.PI * (0.15f + 0.85f * v)), 0.6f);
+                    float w = 0.043f * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(Mathf.PI * (0.15f + 0.85f * v))), 0.6f);
                     float h = 0.045f * (1f - Mathf.Pow(v, 2.2f)) + 0.005f;
                     return new Vector3(sx * 0.085f + w * Mathf.Cos(th), h * Mathf.Sin(th) + 0.006f * Mathf.Pow(v, 4f), 0.04f + 0.2f * v);
                 }, (u, v) => new Vector3(sx * 0.085f, 0f, 0.04f + 0.2f * v), false, 0.15f);
@@ -490,7 +490,7 @@ namespace TwelfthStamp
                 {
                     var d = Dir(u * Mathf.PI * 2f, v * Mathf.PI);
                     var q = new Vector3(d.x * 0.0075f, d.y * 0.031f, d.z * 0.0175f);
-                    if (d.x * sx > 0f) q.x -= sx * 0.004f * G(new Vector2(d.y, d.z).magnitude, 0.55f); // the bowl of the ear
+                    q.x -= sx * 0.004f * G(new Vector2(d.y, d.z).magnitude, 0.55f) * Ss(0f, 0.3f, d.x * sx); // the bowl of the ear (outer face only, eased in so the rim has no step)
                     q.x += sx * 0.002f * Mathf.Pow(Mathf.Abs(d.z), 3f);
                     return c + rot * q;
                 }, (u, v) => c, true, 0.05f);
@@ -968,12 +968,23 @@ namespace TwelfthStamp
         public int TriangleCount { get { int n = 0; foreach (var t in m_T) n += t.Count; return n / 3; } }
         public int VertexCount => m_V.Count;
 
+        /// <summary>
+        /// Unit vector without Unity's cut-off. Vector3.normalized returns zero for anything shorter than 1e-5, and the
+        /// finite differences on a figure this small (eyes, fingers, the head itself) are far shorter than that. A zero
+        /// normal shades as NaN in URP: black, with a bloom halo, and on the normal-mapped robe, stripes.
+        /// </summary>
+        internal static Vector3 Unit(Vector3 v)
+        {
+            double m = Math.Sqrt((double)v.x * v.x + (double)v.y * v.y + (double)v.z * v.z);
+            return m > 1e-30 && m < 1e30 ? new Vector3((float)(v.x / m), (float)(v.y / m), (float)(v.z / m)) : Vector3.zero;
+        }
+
         int Add(Vector3 p, Vector3 n, Vector2 uv)
         {
             if (Mirror) { p.x = -p.x; n.x = -n.x; }
             var cp = Xf.MultiplyPoint3x4(p);
             m_V.Add(cp);
-            m_N.Add(Xf.MultiplyVector(n).normalized);
+            m_N.Add(Unit(Xf.MultiplyVector(n)));
             m_UV.Add(uv);
             m_W.Add(Weights != null ? Weights(cp) : new BoneWeight { boneIndex0 = Bone, weight0 = 1f });
             return m_V.Count - 1;
@@ -993,8 +1004,6 @@ namespace TwelfthStamp
         public void Grid(int nu, int nv, Func<float, float, Vector3> f, Func<float, float, Vector3> inside, bool closedU, float tile)
         {
             const float e = 1e-3f;
-            var pos = new Vector3[nu + 1, nv + 1];
-            for (int j = 0; j <= nv; j++) for (int i = 0; i <= nu; i++) pos[i, j] = f(i / (float)nu, j / (float)nv);
             Vector3 Normal(float u, float v)
             {
                 for (int k = 0; k < 4; k++)
@@ -1002,65 +1011,105 @@ namespace TwelfthStamp
                     float vv = Mathf.Clamp(v + (k == 0 ? 0f : (v < 0.5f ? 1f : -1f) * e * 3f * k), 0f, 1f);
                     float u0 = closedU ? u - e : Mathf.Max(0f, u - e), u1 = closedU ? u + e : Mathf.Min(1f, u + e);
                     float v0 = Mathf.Max(0f, vv - e), v1 = Mathf.Min(1f, vv + e);
-                    var n = Vector3.Cross(f(u1, vv) - f(u0, vv), f(u, v1) - f(u, v0));
-                    if (n.sqrMagnitude > 1e-14f) return n.normalized;
+                    // Unit tangents before the cross product: on a 1 cm part the raw differences are ~1e-5 m and their
+                    // cross product ~1e-10, which Vector3.normalized silently turns into a zero normal.
+                    var n = Vector3.Cross(Unit(f(u1, vv) - f(u0, vv)), Unit(f(u, v1) - f(u, v0)));
+                    if (n.sqrMagnitude > 1e-6f) return Unit(n);
                 }
-                return Vector3.up;
+                return Vector3.zero; // degenerate here: ToMesh rebuilds it from the faces around
             }
-            float um = 0.5f, vm = 0.5f;
-            bool flip = Vector3.Dot(Normal(um, vm), f(um, vm) - inside(um, vm)) < 0f;
+            float Facing(float u, float v) => Vector3.Dot(Normal(u, v), Unit(f(u, v) - inside(u, v)));
+            float facing = Facing(0.5f, 0.5f);
+            if (Mathf.Abs(facing) < 0.2f) facing += Facing(0.25f, 0.5f) + Facing(0.75f, 0.5f) + Facing(0.5f, 0.3f) + Facing(0.5f, 0.7f);
+            bool flip = facing < 0f;
+            Sheet(nu, nv, f, (u, v) => flip ? -Normal(u, v) : Normal(u, v), flip, tile);
+        }
+
+        /// <summary>
+        /// The vertices and triangles of a grid p = f(u, v) with the given (outward) normals. Triangles wind with
+        /// cross(dp/du, dp/dv) as their front, or the other way when <paramref name="reverse"/> is set. UVs follow the
+        /// surface's own lengths (tile metres a repeat).
+        /// </summary>
+        void Sheet(int nu, int nv, Func<float, float, Vector3> f, Func<float, float, Vector3> normal, bool reverse, float tile)
+        {
+            var pos = new Vector3[nu + 1, nv + 1];
+            for (int j = 0; j <= nv; j++) for (int i = 0; i <= nu; i++) pos[i, j] = f(i / (float)nu, j / (float)nv);
             var uvAcc = new Vector2[nu + 1, nv + 1];
             for (int j = 0; j <= nv; j++) for (int i = 1; i <= nu; i++) uvAcc[i, j].x = uvAcc[i - 1, j].x + Vector3.Distance(pos[i, j], pos[i - 1, j]);
             for (int i = 0; i <= nu; i++) for (int j = 1; j <= nv; j++) uvAcc[i, j].y = uvAcc[i, j - 1].y + Vector3.Distance(pos[i, j], pos[i, j - 1]);
             int start = m_V.Count;
             for (int j = 0; j <= nv; j++)
                 for (int i = 0; i <= nu; i++)
-                {
-                    var n = Normal(i / (float)nu, j / (float)nv);
-                    Add(pos[i, j], flip ? -n : n, uvAcc[i, j] / tile);
-                }
+                    Add(pos[i, j], normal(i / (float)nu, j / (float)nv), uvAcc[i, j] / tile);
             for (int j = 0; j < nv; j++)
                 for (int i = 0; i < nu; i++)
                 {
                     int a = start + j * (nu + 1) + i, b = a + 1, c = a + nu + 2, d = a + nu + 1;
-                    Tri(a, b, c, flip);
-                    Tri(a, c, d, flip);
+                    Tri(a, b, c, reverse);
+                    Tri(a, c, d, reverse);
                 }
         }
 
+        /// <summary>An ellipsoid with exact normals (its parametrisation winds inward, hence reverse).</summary>
         public void Ellipsoid(Vector3 c, Vector3 r, int nu, int nv)
         {
-            Grid(nu, nv, (u, v) =>
+            Vector3 S(float u, float v)
             {
                 float th = u * Mathf.PI * 2f, ph = v * Mathf.PI;
-                return c + new Vector3(Mathf.Sin(ph) * Mathf.Sin(th) * r.x, Mathf.Cos(ph) * r.y, Mathf.Sin(ph) * Mathf.Cos(th) * r.z);
-            }, (u, v) => c, true, 0.05f);
+                return new Vector3(Mathf.Sin(ph) * Mathf.Sin(th), Mathf.Cos(ph), Mathf.Sin(ph) * Mathf.Cos(th));
+            }
+            Sheet(nu, nv, (u, v) => c + Vector3.Scale(S(u, v), r),
+                (u, v) => { var s = S(u, v); return Unit(new Vector3(s.x / r.x, s.y / r.y, s.z / r.z)); }, true, 0.05f);
         }
 
-        /// <summary>A tube along path(t) with an elliptic section (x across, y along <paramref name="up"/>), optionally capped or closed in a loop.</summary>
+        /// <summary>
+        /// A tube along path(t) with an elliptic section (x across, y along <paramref name="up"/>), optionally capped or
+        /// closed in a loop. Normals are exact for the section (tilted for any taper), not finite differences: on short
+        /// tubes the float noise in the path twists neighbouring rings more than they advance.
+        /// </summary>
         public void Tube(Func<float, Vector3> path, Func<float, Vector2> radius, int segs, int sides, Vector3 up, bool capStart, bool capEnd, bool loop = false)
         {
-            const float e = 1e-3f;
+            const float e = 0.01f; // tangent baseline, as a fraction of the path
+            float Wrap(float t) => loop ? t - Mathf.Floor(t) : t;
+            float T0(float t) => loop ? t - e : Mathf.Max(0f, t - e);
+            float T1(float t) => loop ? t + e : Mathf.Min(1f, t + e);
             Vector3 Tangent(float t)
             {
-                float t0 = loop ? t - e : Mathf.Max(0f, t - e), t1 = loop ? t + e : Mathf.Min(1f, t + e);
-                var d = path(Wrap(t1)) - path(Wrap(t0));
-                return d.sqrMagnitude > 1e-14f ? d.normalized : Vector3.forward;
+                var d = Unit(path(Wrap(T1(t))) - path(Wrap(T0(t))));
+                return d.sqrMagnitude > 0.5f ? d : Vector3.forward;
             }
-            float Wrap(float t) => loop ? t - Mathf.Floor(t) : t;
+            void Frame(float t, out Vector3 tan, out Vector3 n, out Vector3 b)
+            {
+                tan = Tangent(t);
+                n = Vector3.ProjectOnPlane(up, tan);
+                if (n.sqrMagnitude < 1e-8f) n = Vector3.ProjectOnPlane(Mathf.Abs(tan.y) < 0.9f ? Vector3.up : Vector3.right, tan);
+                n = Unit(n);
+                b = Vector3.Cross(tan, n);
+            }
             Vector3 P(float u, float t)
             {
-                var c = path(Wrap(t));
-                var tan = Tangent(t);
-                var n = Vector3.ProjectOnPlane(up, tan);
-                if (n.sqrMagnitude < 1e-8f) n = Vector3.ProjectOnPlane(Mathf.Abs(tan.y) < 0.9f ? Vector3.up : Vector3.right, tan);
-                n.Normalize();
-                var b = Vector3.Cross(tan, n);
+                Frame(t, out _, out var n, out var b);
                 var r = radius(Mathf.Clamp01(t));
                 float a = u * Mathf.PI * 2f;
-                return c + b * (Mathf.Cos(a) * r.x) + n * (Mathf.Sin(a) * r.y);
+                return path(Wrap(t)) + b * (Mathf.Cos(a) * r.x) + n * (Mathf.Sin(a) * r.y);
             }
-            Grid(sides, segs, (u, v) => P(u, v), (u, v) => path(Wrap(v)), true, 0.05f);
+            Vector3 N(float u, float t)
+            {
+                Frame(t, out var tan, out var n, out var b);
+                float a = u * Mathf.PI * 2f, ca = Mathf.Cos(a), sa = Mathf.Sin(a);
+                var r = radius(Mathf.Clamp01(t));
+                var radial = Unit(b * (ca / Mathf.Max(1e-6f, r.x)) + n * (sa / Mathf.Max(1e-6f, r.y)));
+                // Taper: the section's radius at this angle, changing along the tube, tilts the normal back.
+                float t0 = T0(t), t1 = T1(t);
+                var r0 = radius(Mathf.Clamp01(t0));
+                var r1 = radius(Mathf.Clamp01(t1));
+                float rho0 = new Vector2(r0.x * ca, r0.y * sa).magnitude, rho1 = new Vector2(r1.x * ca, r1.y * sa).magnitude;
+                float ds = (path(Wrap(t1)) - path(Wrap(t0))).magnitude;
+                float slope = ds > 1e-6f ? Mathf.Clamp((rho1 - rho0) / ds, -20f, 20f) : 0f;
+                return Unit(radial - tan * slope);
+            }
+            // The rings run from b towards n, so cross(dP/du, dP/dt) points into the tube: wind the other way.
+            Sheet(sides, segs, P, N, true, 0.05f);
             if (capStart) Disc(path(0f), -Tangent(0f), radius(0f).x, sides, radius(0f).y, up);
             if (capEnd) Disc(path(1f), Tangent(1f), radius(1f).x, sides, radius(1f).y, up);
         }
@@ -1068,11 +1117,11 @@ namespace TwelfthStamp
         /// <summary>A flat disc (ellipse when ry is given) facing <paramref name="normal"/>.</summary>
         public void Disc(Vector3 c, Vector3 normal, float rx, int sides, float ry = -1f, Vector3? up = null)
         {
-            normal.Normalize();
+            normal = Unit(normal);
             if (ry < 0f) ry = rx;
             var n = Vector3.ProjectOnPlane(up ?? Vector3.up, normal);
             if (n.sqrMagnitude < 1e-8f) n = Vector3.ProjectOnPlane(Mathf.Abs(normal.y) < 0.9f ? Vector3.up : Vector3.right, normal);
-            n.Normalize();
+            n = Unit(n);
             var b = Vector3.Cross(normal, n);
             var ring = new List<Vector3>(sides);
             for (int i = 0; i < sides; i++)
@@ -1086,9 +1135,14 @@ namespace TwelfthStamp
         /// <summary>A triangle fan over a closed outline, facing <paramref name="normal"/>.</summary>
         public void Fan(IList<Vector3> loop, Vector3 centre, Vector3 normal)
         {
-            int c = Add(centre, normal, new Vector2(0.5f, 0.5f));
+            // Planar UVs (5 cm a repeat) rather than one shared UV, so the tangents are defined everywhere.
+            var nn = Unit(normal);
+            var ax = Unit(Vector3.Cross(nn, Mathf.Abs(nn.y) < 0.9f ? Vector3.up : Vector3.right));
+            var ay = Vector3.Cross(nn, ax);
+            Vector2 Uv(Vector3 p) => new Vector2(0.5f + Vector3.Dot(p - centre, ax) / 0.05f, 0.5f + Vector3.Dot(p - centre, ay) / 0.05f);
+            int c = Add(centre, normal, Uv(centre));
             int first = m_V.Count;
-            foreach (var p in loop) Add(p, normal, new Vector2(0.5f, 0.5f));
+            foreach (var p in loop) Add(p, normal, Uv(p));
             int n = loop.Count;
             for (int i = 0; i < n; i++)
             {
@@ -1100,18 +1154,76 @@ namespace TwelfthStamp
 
         public Mesh ToMesh(string name, Matrix4x4[] bindposes)
         {
+            RepairNormals();
             var mesh = new Mesh { name = name };
             if (m_V.Count > 65000) mesh.indexFormat = IndexFormat.UInt32;
             mesh.SetVertices(m_V);
             mesh.SetNormals(m_N);
             mesh.SetUVs(0, m_UV);
+            mesh.SetTangents(Tangents());
             mesh.boneWeights = m_W.ToArray();
             mesh.bindposes = bindposes;
             mesh.subMeshCount = m_T.Length;
             for (int i = 0; i < m_T.Length; i++) mesh.SetTriangles(m_T[i], i);
             mesh.RecalculateBounds();
-            mesh.RecalculateTangents();
             return mesh;
+        }
+
+        /// <summary>Any normal still zero or NaN (a degenerate point of a surface) takes the faces around it instead.</summary>
+        void RepairNormals()
+        {
+            bool any = false;
+            foreach (var n in m_N) if (!(n.sqrMagnitude > 0.5f)) { any = true; break; }
+            if (!any) return;
+            var acc = new Vector3[m_N.Count];
+            foreach (var t in m_T)
+                for (int k = 0; k < t.Count; k += 3)
+                {
+                    var fn = Vector3.Cross(m_V[t[k + 1]] - m_V[t[k]], m_V[t[k + 2]] - m_V[t[k]]);
+                    acc[t[k]] += fn; acc[t[k + 1]] += fn; acc[t[k + 2]] += fn;
+                }
+            for (int i = 0; i < m_N.Count; i++)
+                if (!(m_N[i].sqrMagnitude > 0.5f))
+                {
+                    var n = Unit(acc[i]);
+                    m_N[i] = n.sqrMagnitude > 0.5f ? n : Vector3.up;
+                }
+        }
+
+        /// <summary>
+        /// Per-vertex tangents from the UVs, for the normal-mapped cloth. Triangles with no UV area (where a surface
+        /// closes to a point) are skipped rather than dividing by zero, and a vertex no triangle gave a direction to
+        /// gets any tangent perpendicular to its normal, so nothing can turn NaN.
+        /// </summary>
+        List<Vector4> Tangents()
+        {
+            int count = m_V.Count;
+            var tan = new Vector3[count];
+            var bit = new Vector3[count];
+            foreach (var t in m_T)
+                for (int k = 0; k < t.Count; k += 3)
+                {
+                    int a = t[k], b = t[k + 1], c = t[k + 2];
+                    Vector3 e1 = m_V[b] - m_V[a], e2 = m_V[c] - m_V[a];
+                    Vector2 d1 = m_UV[b] - m_UV[a], d2 = m_UV[c] - m_UV[a];
+                    float det = d1.x * d2.y - d2.x * d1.y;
+                    if (!(Mathf.Abs(det) > 1e-10f)) continue;
+                    float r = 1f / det;
+                    var s = (e1 * d2.y - e2 * d1.y) * r;
+                    var w = (e2 * d1.x - e1 * d2.x) * r;
+                    tan[a] += s; tan[b] += s; tan[c] += s;
+                    bit[a] += w; bit[b] += w; bit[c] += w;
+                }
+            var result = new List<Vector4>(count);
+            for (int i = 0; i < count; i++)
+            {
+                var n = m_N[i];
+                var tt = Unit(tan[i] - n * Vector3.Dot(n, tan[i]));
+                if (tt.sqrMagnitude < 0.5f) tt = Unit(Vector3.Cross(n, Mathf.Abs(n.y) < 0.9f ? Vector3.up : Vector3.right));
+                float hand = Vector3.Dot(Vector3.Cross(n, tt), bit[i]) < 0f ? -1f : 1f;
+                result.Add(new Vector4(tt.x, tt.y, tt.z, hand));
+            }
+            return result;
         }
     }
 }

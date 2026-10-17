@@ -301,44 +301,51 @@ PlayerSettings:
   - m_BuildTarget: Standalone
     m_Icons:
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: c9cc5fda68cadb74d8aa3dc2aa0566ea, type: 3}
+      m_Icon: {fileID: 2800000, guid: ad5473ef690bc1a4a87aeb772a19b2e9, type: 3}
       m_Width: 1024
       m_Height: 1024
       m_Kind: 0
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: c9cc5fda68cadb74d8aa3dc2aa0566ea, type: 3}
+      m_Icon: {fileID: 2800000, guid: ca12721e759ef234bb090ebece54c8c5, type: 3}
       m_Width: 512
       m_Height: 512
       m_Kind: 0
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: c9cc5fda68cadb74d8aa3dc2aa0566ea, type: 3}
+      m_Icon: {fileID: 2800000, guid: 8dae24abf64951142a4b699a3367ae40, type: 3}
       m_Width: 256
       m_Height: 256
       m_Kind: 0
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: c9cc5fda68cadb74d8aa3dc2aa0566ea, type: 3}
+      m_Icon: {fileID: 2800000, guid: 2b49c4e934ccf20419647fe01cb0ad6e, type: 3}
       m_Width: 128
       m_Height: 128
       m_Kind: 0
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: c9cc5fda68cadb74d8aa3dc2aa0566ea, type: 3}
+      m_Icon: {fileID: 2800000, guid: 2a368c933cee06b4d9907103c22e4fc5, type: 3}
       m_Width: 64
       m_Height: 64
       m_Kind: 0
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: c9cc5fda68cadb74d8aa3dc2aa0566ea, type: 3}
+      m_Icon: {fileID: 2800000, guid: db51b0a14d7bb4a43ad7f8f4992c2e9e, type: 3}
       m_Width: 48
       m_Height: 48
       m_Kind: 0
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: c9cc5fda68cadb74d8aa3dc2aa0566ea, type: 3}
+      m_Icon: {fileID: 2800000, guid: 366ffb7ed68b3844eaabac733509c062, type: 3}
       m_Width: 32
       m_Height: 32
       m_Kind: 0
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: c9cc5fda68cadb74d8aa3dc2aa0566ea, type: 3}
+      m_Icon: {fileID: 2800000, guid: 6007d9b7f2b5f534086ac77ea8d1bc96, type: 3}
       m_Width: 16
       m_Height: 16
+      m_Kind: 0
+  - m_BuildTarget: 
+    m_Icons:
+    - serializedVersion: 2
+      m_Icon: {fileID: 2800000, guid: ad5473ef690bc1a4a87aeb772a19b2e9, type: 3}
+      m_Width: 128
+      m_Height: 128
       m_Kind: 0
   m_BuildTargetPlatformIcons: []
   m_BuildTargetBatching: []
