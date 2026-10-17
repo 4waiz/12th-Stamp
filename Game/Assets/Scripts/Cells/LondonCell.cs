@@ -83,6 +83,7 @@ namespace TwelfthStamp
             // Bounds: BuildBridgeWalk adds one box round the promenade and the way over the bridge to the far embankment,
             // and keeps the promenade's river-side limit.
             SetEncounter(gameObject.AddComponent<LondonEncounter>());
+            Expand_UK.Build(this, g); // Lamplighter Mews behind the terrace (Cells/Expand_UK.cs)
         }
     }
 

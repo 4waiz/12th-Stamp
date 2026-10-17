@@ -247,6 +247,7 @@ namespace TwelfthStamp
             SetArrival(new Vector3(-2.8f, 0f, -2.4f), 60f);
             AddBounds(new Vector3(0, 0, -0.5f), new Vector3(8.8f, 3f, 9f));
 
+            Expand_Interiors.UaePostcards(this); // the Margin copy is the UAE: three postcards (Cells/Expand_Interiors.cs)
             if (Corrupted) SetEncounter(gameObject.AddComponent<UaeEncounter>());
             else SetEncounter(gameObject.AddComponent<HomeEncounter>());
         }

@@ -204,6 +204,12 @@ namespace TwelfthStamp
                 if (kv.Key == null) continue;
                 kv.Key.layer = pocket ? Layers.Pocket : kv.Value;
             }
+            // Interactables put themselves on the Interactable layer in Awake, which for a cell built inactive runs only at
+            // its first activation, after the layers above were cached. Put them back, or near-hand use and grabbing (VR),
+            // which look only on that layer, miss everything in a place on its first visit and after it was a pocket.
+            if (!pocket)
+                foreach (var it in GetComponentsInChildren<Interactable>(true))
+                    Interactable.SetLayerRecursive(it.gameObject, Layers.Interactable);
         }
 
         public void RefreshProbe()

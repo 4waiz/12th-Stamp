@@ -83,6 +83,7 @@ namespace TwelfthStamp
             }
             Landmarks.Pyramids(g, new Vector3(40f, -1f, 190f), 18f, Mats.Backdrop(new Color(0.86f, 0.72f, 0.52f), Lighting));
             BuildCourtDetail(g, sandstone, trim, wood, bronze);
+            Expand_Egypt.Build(this, g); // the oasis camp east of the court (Cells/Expand_Egypt.cs)
 
             // The plain pillar and its wrong shadow (pointing toward the sun, south-west).
             MeshFactory.Box("Pillar", g, new Vector3(4.2f, 1.6f, 6.4f), new Vector3(0.5f, 3.2f, 0.5f), sandstone, true, 3.5f);

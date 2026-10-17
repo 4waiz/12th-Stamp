@@ -141,7 +141,10 @@ namespace TwelfthStamp
 
         static Material SlotFor(string importedName)
         {
-            switch (Models.SlotOf(importedName))
+            var slot = Models.SlotOf(importedName);
+            var textured = SaeedMaterial(slot);
+            if (textured != null) return textured;
+            switch (slot)
             {
                 case "TS_Skin": case "TS_Face": case "TS_Body": return HandMesh.BodySkinMaterial;
                 case "TS_Kandura": case "TS_Cotton": case "TS_Robe": case "TS_Cloth": case "TS_Fabric": case "TS_FabricWhite": return HandMesh.KanduraMaterial;
@@ -151,6 +154,67 @@ namespace TwelfthStamp
                 case "TS_Suede": case "TS_Shoe": case "TS_Shoes": return SuedeMaterial;
             }
             return null;
+        }
+
+        static readonly Dictionary<string, Material> s_SaeedMats = new Dictionary<string, Material>();
+        static Material s_EyeMat;
+
+        /// <summary>
+        /// Saeed's own painted maps (Resources/Art/Saeed: albedo + "_n" normal per slot, from the Blender build), so the
+        /// face, beard and fabric keep their detail. Null when the art is missing (the flat materials below are used).
+        /// </summary>
+        static Material SaeedMaterial(string slot)
+        {
+            if (slot == null) return null;
+            if (s_SaeedMats.TryGetValue(slot, out var cached)) return cached;
+            string file;
+            float smooth;
+            switch (slot)
+            {
+                case "TS_Skin": file = "saeed_skin"; smooth = 0.36f; break;
+                case "TS_Kandura": file = "saeed_kandura"; smooth = 0.2f; break;
+                case "TS_Hair": file = "saeed_hair"; smooth = 0.32f; break;
+                case "TS_Eyes": file = "saeed_eyes"; smooth = 0.86f; break;
+                case "TS_Leather": file = "saeed_leather"; smooth = 0.42f; break;
+                case "TS_Suede": file = "saeed_suede"; smooth = 0.08f; break;
+                default: return null;
+            }
+            var albedo = Tex.Art("Saeed/" + file);
+            if (albedo == null) return null;
+            var normal = Tex.Art("Saeed/" + file + "_n");
+            var m = new Material(Mats.Template(normal != null ? "Lit_Normal" : "Lit_Opaque")) { name = "Saeed_" + file };
+            // Untinted: the skin bake already uses the first-person hands' colour (HandMesh.SkinColor), so the mirror
+            // and the hands agree.
+            m.SetColor("_BaseColor", Color.white);
+            m.SetTexture("_BaseMap", albedo);
+            if (normal != null) { m.SetTexture("_BumpMap", normal); m.SetFloat("_BumpScale", 1f); }
+            m.SetFloat("_Smoothness", smooth);
+            m.SetFloat("_Metallic", 0f);
+            s_SaeedMats[slot] = m;
+            if (slot == "TS_Eyes") s_EyeMat = m;
+            return m;
+        }
+
+        /// <summary>The model's eyes (its TS_Eyes part), in body space at rest: where the camera should sit.</summary>
+        bool TryModelEyes(out Vector3 eye)
+        {
+            eye = default;
+            if (s_EyeMat == null) return false;
+            foreach (var smr in GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                var mesh = smr.sharedMesh;
+                if (mesh == null) continue;
+                var mats = smr.sharedMaterials;
+                for (int i = 0; i < mats.Length && i < mesh.subMeshCount; i++)
+                {
+                    if (mats[i] != s_EyeMat) continue;
+                    var b = mesh.GetSubMesh(i).bounds;
+                    if (b.size.sqrMagnitude < 1e-8f) return false;
+                    eye = transform.InverseTransformPoint(smr.transform.TransformPoint(b.center)) + new Vector3(0f, 0f, 0.012f);
+                    return eye.y > 0.8f && eye.y < 2.4f;
+                }
+            }
+            return false;
         }
 
         static Material HairMaterial => Mats.Lit(new Color(0.07f, 0.055f, 0.05f), 0.3f);
@@ -213,6 +277,7 @@ namespace TwelfthStamp
             // Eyes ahead of and above the head bone, in proportion to the body.
             float k = Rest(B.Head).y / 1.555f;
             m_RestEye = Rest(B.Head) + new Vector3(0f, 0.065f, 0.08f) * k;
+            if (UsingModel && TryModelEyes(out var eyes)) m_RestEye = eyes; // the Blender model knows where its eyes are
             m_ArmHingeL = RestHinge(B.UpperArmL, B.ForearmL, B.HandL, Vector3.forward);
             m_ArmHingeR = RestHinge(B.UpperArmR, B.ForearmR, B.HandR, Vector3.forward);
             m_LegHinge = RestHinge(B.UpperLegL, B.LowerLegL, B.FootL, Vector3.back);

@@ -136,6 +136,7 @@ namespace TwelfthStamp
             // Bounds: BuildIslandPier keeps the terminal's old walls (with the pier gate in the east one) and adds one box
             // round the terminal and the way out to the statue.
             SetEncounter(gameObject.AddComponent<NewYorkEncounter>());
+            Expand_USA.Build(this, transform); // the rec pier beside the terminal (Cells/Expand_USA.cs)
         }
     }
 

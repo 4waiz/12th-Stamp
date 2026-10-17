@@ -101,6 +101,7 @@ namespace TwelfthStamp
             HandLantern.HoldLocalPosition = new Vector3(0, -0.25f, 0);
 
             BuildStreetDetail(g, postWood);
+            Expand_Japan.Build(this, g); // the tea garden off the lantern approach, street crows, lane lamps (Cells/Expand_Japan.cs)
             AddSeam("arrival", new Vector3(0f, 0f, -6.6f), 0f);
             AddSeam("exit", new Vector3(0f, 0f, 12.9f), 180f);
             SetArrival(new Vector3(0f, 0f, -5.6f), 0f);
@@ -293,6 +294,7 @@ namespace TwelfthStamp
             label.transform.localPosition = new Vector3(0, -0.14f, -0.025f);
 
             BuildPlazaDetail(g);
+            Expand_Riyadh.Build(this, g); // the coffee court outside the north gatehouse, plaza doves (Cells/Expand_Riyadh.cs)
             AddSeam("arrival", new Vector3(0f, 0f, -4.6f), 0f);
             AddSeam("plaza", new Vector3(-7.4f, 0f, 2f), 90f);
             SetArrival(new Vector3(0f, 0f, -3.6f), 0f);

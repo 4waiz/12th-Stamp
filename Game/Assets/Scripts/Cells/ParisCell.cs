@@ -185,6 +185,7 @@ namespace TwelfthStamp
             AddBounds(new Vector3(49f, -2.5f, 66.875f), new Vector3(110f, 6f, 150.25f), 12f);
 
             SetEncounter(gameObject.AddComponent<ParisEncounter>());
+            Expand_France.Build(this, g); // the Cour du Douzième south of the street (after AddBounds: it shortens the south bound)
         }
     }
 

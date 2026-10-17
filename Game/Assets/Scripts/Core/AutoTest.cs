@@ -94,6 +94,7 @@ namespace TwelfthStamp
             if (m_Name == "all" || m_Name == "finale") yield return FinaleFlow();
             if (m_Name == "models") yield return ModelsFlow(); // art review of the Blender models (AutoTestModels.cs); not part of "all"
             if (m_Name == "shift") yield return ShiftFlow();   // art review of the glasses moment (AutoTestShift.cs); not part of "all"
+            if (m_Name == "explore") yield return ExploreFlow(); // the expanded countries (AutoTestExplore.cs)
             if (m_Name == "all" || m_Name == "lifecycle") yield return LifecycleFlow(); // AutoTestLifecycle.cs
             if (m_Name == "persist1") yield return Persist1Flow();
             if (m_Name == "persist2") yield return Persist2Flow();

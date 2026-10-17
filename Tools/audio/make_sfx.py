@@ -812,6 +812,35 @@ def lantern_place(rng):
     return x
 
 
+def _wingbeat(rng, dur, lo, hi):
+    """One downstroke: a band-limited air rush with a soft feather clap under it."""
+    n = N(dur)
+    air = bp(rng.standard_normal(n), lo, hi)
+    env = (1.0 - np.exp(-np.linspace(0, 45, n))) * np.exp(-np.linspace(0, 7.5, n))
+    clap = lp(rng.standard_normal(n), 420) * np.exp(-np.linspace(0, 14, n))
+    return pk(air * env) + 0.55 * pk(clap)
+
+
+def birds_flutter(rng, idx):
+    """A small flock bursting off the ground: 4-7 birds, each a run of wingbeats (9-13 Hz) that thins as it climbs."""
+    L = 1.6
+    x = Z(L)
+    birds = int(rng.integers(4, 8)) + idx % 2
+    for _b in range(birds):
+        t = float(rng.uniform(0.0, 0.22))
+        rate = float(rng.uniform(9.0, 13.0))
+        beats = int(rng.integers(8, 15))
+        gain = float(rng.uniform(0.5, 1.0))
+        lo, hi = float(rng.uniform(380, 700)), float(rng.uniform(3400, 6500))
+        for k in range(beats):
+            tt = t + k / rate + float(rng.uniform(-0.006, 0.006))
+            if tt > L - 0.12:
+                break
+            a = gain * (1.0 - k / beats) ** 1.4 * float(rng.uniform(0.7, 1.0))
+            place(x, a * _wingbeat(rng, float(rng.uniform(0.035, 0.06)), lo, hi), tt)
+    return reverb(pk(x), room(0.6, rng), wet=0.12)
+
+
 def drum_hit(rng):
     n = N(0.6)
     x = membrane(n, 62, rng, decay=0.55, drop=1.22, drop_time=0.045)
@@ -1007,6 +1036,9 @@ for _i, _d, _fo in [("grab", 0.15, 0.03), ("drop_soft", 0.3, 0.05), ("drop_hard"
                     ("skyline_shift", 4.0, 0.3)]:
     reg(_i, globals()[_i], _d, fade_out=_fo)
 reg("noisemaker_loop", noisemaker_loop, 4.0, loop=True, norm=("lufs", -20.0))
+for _k in range(3):
+    reg(f"birds_flutter_{_k + 1}", V(birds_flutter, _k), 1.6, fade_out=0.2, group="World",
+        desc="a small flock bursting off the ground (AmbientBirds)")
 reg("fridge_hum_loop", fridge_hum_loop, 6.0, loop=True, norm=("lufs", -24.0))
 SFX["fridge_stop"]["norm"] = ("match", "fridge_hum_loop")
 SFX["fridge_stop"]["note"] = "level-matched to fridge_hum_loop"
@@ -1028,6 +1060,7 @@ LOUD = {
     "case_close": -18, "glasses_break": -15, "coin_token": -17, "booth_power": -16, "lantern_place": -18, "drum_hit": -15,
     "clock_chime": -14, "clock_tick": -20, "phone_buzz": -17, "voicemail_beep": -19, "camera_shutter": -18,
     "reflection_sting": -14, "skyline_shift": -15,
+    "birds_flutter_1": -18, "birds_flutter_2": -18, "birds_flutter_3": -18,
 }
 for _i, _t in LOUD.items():
     SFX[_i]["norm"] = ("loud", float(_t), -2.0, (-10.0, 6.0))

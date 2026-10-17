@@ -60,6 +60,7 @@ SFX_SPEC = [  # (id, requested seconds, group)
     ("clock_tick", 0.1, "Props"), ("phone_buzz", 1.0, "Props"), ("voicemail_beep", 0.3, "Props"),
     ("fridge_hum_loop", 6.0, "Props"), ("fridge_stop", 0.6, "Props"), ("camera_shutter", 0.3, "Props"),
     ("reflection_sting", 2.0, "Props"), ("skyline_shift", 4.0, "Props"),
+    ("birds_flutter_1", 1.6, "Props"), ("birds_flutter_2", 1.6, "Props"), ("birds_flutter_3", 1.6, "Props"),
 ] + [(f"{k}_{i}", None, "Body") for k, cnt in BODY for i in range(1, cnt + 1)] + [
     (sid, None, grp) for sid, grp in SHIFT]
 AMB_IDS = ["amb_shop", "amb_apartment", "amb_apartment_corrupt", "amb_egypt", "amb_paris_rain", "amb_ny_harbour",

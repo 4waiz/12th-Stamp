@@ -120,6 +120,7 @@ namespace TwelfthStamp
             SetArrival(new Vector3(0f, 0f, -5.6f), 0f);
             AddBounds(new Vector3(0, 0, 1f), new Vector3(17.8f, 6f, 15.8f));
             SetEncounter(gameObject.AddComponent<BerlinEncounter>());
+            Expand_Germany.Build(this, g); // the Festivalhof outside the north glass wall (after AddBounds: it splits the north bound)
         }
     }
 

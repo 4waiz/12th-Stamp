@@ -64,7 +64,7 @@ This pass followed Awaiz Ahmed's playtest notes: the death screen hung, the Pass
 
 ## Evidence
 
-All runs used a desktop build at 1600×900 on an RTX 5080 laptop GPU, built from the repo in a separate project copy. Reports and screenshots are under `%LOCALAPPDATA%\TheTwelfthStamp\QA-archive\`.
+All runs used a desktop build at 1600×900 on an RTX 5080 laptop GPU, built from the repo in a separate project copy. Reports and screenshots are under `C:\Dev\12th-Stamp-builds\QA-archive\`.
 
 | Run | Result |
 |---|---|
@@ -139,3 +139,50 @@ Awaiz's VR playtest found no reflection in the bathroom mirror and crooked hands
 
   Screenshots `20b_bathroom_mirror` and `20c_bathroom_mirror_angle` show the reflection of the room and of the stand-in body.
 - **Not verified:** VR rendering of the mirror and the VR hand fix need the headset. Both are untested in VR.
+
+## 18 October, night: readable light, Egypt cues, Saeed's model, bigger countries
+
+Awaiz, to the other session: *"when i am in egypt what am i even supposed to do ... i put the light at the enemy and im js stuck there ... expand the country maps and yeah make it more interactive animative and cool and gameplay should be really amazing and worth it"*. That session built the step guide, minimap and world map (`Guide/`). This pass did the world side.
+
+- **Light hits read** (`Passenger/PassengerLightFx.cs`).
+  - The moment light catches the Passenger it flinches a step back with a burst of ash and a hiss, and smoke curls off it while it stays lit.
+  - The first time in each place, a caption says it flinched from the light.
+- **Egypt cues** (`Cells/EgyptCues.cs`).
+  - The bronze reflector glints until it is first turned.
+  - The false shadow smoulders as the reflected beam swings near it, more the closer it gets, and sparks while it is on target.
+  - After the beam first drives the mummy back, one line points at the shadow. The guide switches it off and gives its own steps.
+- **Saeed in the mirror.** `MirrorAvatar` now uses the Blender model built from Awaiz's turnaround (`Saeed.fbx`, by the Saeed session), dressed in its own baked textures.
+  - Its eye height comes from the model's eyes.
+  - The skin bake was matched to the first-person hands, so the material is untinted.
+- **VR grabbing fix.** Interactables put themselves on the Interactable layer in `Awake`, which for a cell built inactive runs only at its first activation, after the cell had cached its layers. `Cell.SetLayers` then put them back on Default, on every first visit and after every pocket view.
+  - Desktop aiming still worked, because its ray mask includes Default. VR near-hand use and grabbing, which look only on the Interactable layer, missed everything.
+  - `SetLayers` now restores the Interactable layer.
+- **Bigger, livelier countries.** Every outdoor country has a new side area, and every country has three postcards (`World/Postcard.cs`; 33 in all, saved as campaign flags, counted on the map).
+  - New shared parts: lamps the player can light, whose pools the Passenger will not enter (`World/SwitchLamp.cs`); flocks that scatter as you come close (`World/AmbientBirds.cs`, with synthesised `birds_flutter_1-3`); and wind-driven sway, cloth, rotors, bobbing and flicker (`World/AmbientMotion.cs`).
+  - Each new area has one hands-on set piece:
+
+| Country | New area | Set piece |
+|---|---|---|
+| Egypt | Oasis camp east of the court: pool, palms, tent, a postcard on the dune facing the pyramids | Draw water from the well |
+| France | Courtyard through a new carriage arch: café terrace, fountain, laundry | A street organ plays a waltz |
+| USA | Recreation pier by the island gate: ball court, shed with fire escape, lookout | Open a fire hydrant |
+| Japan | Tea garden off the lantern approach (opens with the route) | Ring the bell; the lanterns swell back to the gate |
+| Saudi Arabia | Najdi coffee court with a roof terrace (opens with the route) | Pour coffee from the dallah |
+| India | Walled water garden with a chhatri | A stone valve starts the jets |
+| Brazil | Tiled hillside lane up to a square with a bar | A surdo: each hit turns a frozen face a little further |
+| United Kingdom | Lamplighter Mews behind the embankment | The phone box rings; lift it and listen |
+| Germany | Festival courtyard off the pavilion | A lever brings a sign and bulbs to life |
+| UAE, Morocco | (the Margin's interiors) | Postcards only |
+
+- **Evidence.**
+  - `QA-archive\combined1_030024`, the repo with every session's work: `--autotest=all` 190 / 190, 0 errors.
+  - The new `--autotest=explore` (`Core/AutoTestExplore.cs`) checks, in every country, the new area's floor and headroom, three postcards and taking one, a lamp's safe pool, and a flock taking off, with screenshots `e_<country>_area`, `_postcard` and `_birds`.
+    - combined1: 92 / 97. Its five failures were the test: flocks already startled by an earlier step could not take off again. It now settles them first.
+    - Its shots found Morocco's postcards out of reach in the Margin shop's see-only aisles; they were moved inside the shop.
+- **Not verified:**
+  - No human has played the new areas.
+  - The helpers placed colliders and routes by calculation, and the test checks viewpoints, not every path.
+  - Japan's and Riyadh's areas open only after their puzzles, along the route to the stamp.
+  - The London phone and the Rio drum use quiet Passenger sounds on purpose, so they may read as the Passenger nearby.
+  - The Paris block adds a lot of geometry; frame times are desktop-only.
+  - Nothing in VR.

@@ -175,6 +175,7 @@ namespace TwelfthStamp
             if (!Corrupted) foreach (var s in Seams) s.Revealed = false;
             SetArrival(Corrupted ? new Vector3(0f, 0f, -2.2f) : new Vector3(0f, 0f, SoukStartZ), 0f);
             AddBounds(new Vector3(0, 0, Corrupted ? -1f : -21f), Corrupted ? new Vector3(40f, 3f, 4.2f) : new Vector3(9f, 3f, 46f));
+            Expand_Interiors.MoroccoPostcards(this); // the Margin shop is Morocco: three postcards (Cells/Expand_Interiors.cs)
             if (Corrupted) SetEncounter(gameObject.AddComponent<MoroccoEncounter>());
             else SetEncounter(gameObject.AddComponent<HomeEncounter>());
         }

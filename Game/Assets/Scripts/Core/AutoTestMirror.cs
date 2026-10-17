@@ -37,6 +37,7 @@ namespace TwelfthStamp
             var body = FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
                 .Where(r => r.enabled && r.gameObject.layer == Layers.MirrorOnly).ToList();
             Check(body.Count > 0, "the player has a full body for mirrors (" + body.Count + " renderers on the MirrorOnly layer)");
+            Check(MirrorAvatar.I != null && MirrorAvatar.I.UsingModel, "the mirror body is Saeed, the Blender model (Saeed.fbx), not the stand-in");
             bool framed = rc != null && body.Any(r =>
             {
                 var vp = rc.WorldToViewportPoint(r.bounds.center);

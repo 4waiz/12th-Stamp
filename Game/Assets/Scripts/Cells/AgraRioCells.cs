@@ -109,6 +109,7 @@ namespace TwelfthStamp
             AddBounds(new Vector3(0, 0, (-6.5f + 170f) / 2f), new Vector3(24f, 5f, 170f + 6.5f));
             SetEncounter(gameObject.AddComponent<AgraEncounter>());
             Landmarks.MarkReachable(this); // the way to the stamp spot is open
+            Expand_India.Build(this, transform); // the water garden east of the long walk (Cells/Expand_India.cs)
         }
     }
 
@@ -273,6 +274,7 @@ namespace TwelfthStamp
             SetArrival(new Vector3(0f, 0f, -4.6f), 0f);
             AddBounds(new Vector3(0, 0, 4f), new Vector3(9f, 5f, 20f));
             SetEncounter(gameObject.AddComponent<RioEncounter>());
+            Expand_Brazil.Build(this, transform); // the hillside lane past the parade (Cells/Expand_Brazil.cs)
         }
     }
 

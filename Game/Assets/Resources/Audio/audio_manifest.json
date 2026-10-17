@@ -1830,6 +1830,36 @@
       "lufs": -19.4
     },
     {
+      "id": "birds_flutter_1",
+      "file": "Audio/SFX/birds_flutter_1",
+      "bus": "SFX",
+      "duration": 1.6,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -25.2
+    },
+    {
+      "id": "birds_flutter_2",
+      "file": "Audio/SFX/birds_flutter_2",
+      "bus": "SFX",
+      "duration": 1.6,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -23.9
+    },
+    {
+      "id": "birds_flutter_3",
+      "file": "Audio/SFX/birds_flutter_3",
+      "bus": "SFX",
+      "duration": 1.6,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -23.5
+    },
+    {
       "id": "breath_calm_out_1",
       "file": "Audio/SFX/breath_calm_out_1",
       "bus": "SFX",
