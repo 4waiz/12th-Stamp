@@ -604,6 +604,54 @@ def true_peak_db(x):
     return float(db(np.max(np.abs(up))))
 
 
+def loud_max(x, win=0.1, hop=0.01):
+    """Peak short-window loudness of a one-shot (K-weighted like BS.1770, LUFS-scaled): the loudest `win` seconds.
+
+    Integrated LUFS is meaningless for transients (ebur128 gates them out below 0.4 s), and peak normalisation
+    makes a click and a sustained tone 'equal'. Energy over ~100 ms follows the ear's temporal integration, so a
+    5 ms click and a 1 s tone are judged on the same scale. Clips shorter than the window are zero-padded."""
+    y = signal.sosfilt(_KW, np.atleast_2d(x), axis=-1)
+    w = max(N(win), 1)
+    if y.shape[1] < w:
+        y = np.concatenate([y, np.zeros((y.shape[0], w - y.shape[1]))], axis=1)
+    cs = np.concatenate([np.zeros((y.shape[0], 1)), np.cumsum(y ** 2, axis=1)], axis=1)
+    idx = np.arange(0, y.shape[1] - w + 1, max(N(hop), 1))
+    ms = ((cs[:, idx + w] - cs[:, idx]) / w).sum(axis=0)
+    return float(-0.691 + 10 * np.log10(ms.max() + 1e-20))
+
+
+def norm_loud(x, target, tp_max=-2.0, clamp=None, max_gr=0.0):
+    """Gain a one-shot so loud_max() hits target, never above tp_max dBTP.
+
+    clamp=(lo, hi) limits the change (dB) relative to plain -3 dBTP peak normalisation, so re-levelling an existing
+    clip cannot move it further than that from what the game was tuned against. max_gr > 0 lets a fast lookahead
+    limiter shave up to that many dB off the first milliseconds of a transient (a heel snap is a 1-3 ms spike) so
+    hard-surface footsteps can reach the same loudness as soft ones; 0 = no limiting. Returns (y, gain_db)."""
+    tp0 = true_peak_db(x)
+    g = target - loud_max(x)
+    if clamp is not None:
+        ref = -3.0 - tp0
+        g = float(np.clip(g, ref + clamp[0], ref + clamp[1]))
+    if tp0 + g <= tp_max:
+        return x * undb(g), g
+    if max_gr <= 0:
+        g = tp_max - tp0
+        return x * undb(g), g
+    g = min(g, tp_max + max_gr - tp0)
+    ceiling = tp_max - 0.4
+    z = x * undb(g)
+    for _ in range(6):
+        z = limiter(x * undb(g), ceiling, lookahead=0.0015, release=0.035)
+        miss = target - loud_max(z)
+        if abs(miss) < 0.1 or g >= tp_max + max_gr - tp0 - 1e-6:
+            break
+        g = min(g + miss, tp_max + max_gr - tp0)
+    tp = true_peak_db(z)
+    if tp > tp_max:
+        z = z * undb(tp_max - tp)
+    return z, g
+
+
 def sample_peak_db(x):
     return float(db(np.max(np.abs(x))))
 

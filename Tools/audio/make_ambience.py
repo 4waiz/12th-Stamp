@@ -1,7 +1,8 @@
 """Ambience loops for The Twelfth Stamp (original synthesis, stereo, 48-60 s, seamless).
 
-  Tools/.venv/Scripts/python.exe -I Tools/audio/make_ambience.py            # all
-  Tools/.venv/Scripts/python.exe -I Tools/audio/make_ambience.py amb_shop
+  python -I Tools/audio/make_ambience.py            # all
+  python -I Tools/audio/make_ambience.py amb_shop
+  python -I Tools/audio/make_ambience.py --remaster [ids]   # re-run only the mix stage on the float masters
 
 Method: every layer is built as a circular signal of exactly L samples.
   * noise beds: generated for L + 4 s and folded with a correlation-aware equal-power crossfade of
@@ -12,7 +13,8 @@ Method: every layer is built as a circular signal of exactly L samples.
     start, and reverb is a circular convolution, so tails ring across the loop point;
   * the mix is rotated so the file boundary sits in the most broadband, event-free stretch (best
     masking of Vorbis' independent coding of the file's end and start), then onto an upward zero
-    crossing, loudness-normalised (BS.1770) and encoded with ffmpeg libvorbis -q:a 5, 48 kHz stereo.
+    crossing, given the footstep-friendly mix EQ (MIX_EQ), loudness-normalised (BS.1770) and encoded with ffmpeg
+    libvorbis -q:a 5, 48 kHz stereo.
 Layer levels are explicit: beds are RMS-normalised and events peak-normalised, then mixed at the dB
 offsets written in each scene (relative to that scene's main bed RMS).
 Intermediate float WAVs: Audio/_work/amb/ ; output: Game/Assets/Resources/Audio/Ambience/<id>.ogg
@@ -460,21 +462,51 @@ def best_seam_rotation(x):
 
 
 SCENES = {
-    # id: (fn, loop seconds, target integrated LUFS)
-    "amb_shop": (amb_shop, 52.0, -27.0),
+    # id: (fn, loop seconds, target integrated LUFS). The broadband outdoor beds sit 1-1.5 dB lower than they first
+    # did so the player's footsteps read over rain, wind and water (see MIX_EQ).
+    "amb_shop": (amb_shop, 52.0, -28.0),
     "amb_apartment": (amb_apartment, 52.0, -29.0),
     "amb_apartment_corrupt": (amb_apartment_corrupt, 52.0, -30.0),
-    "amb_egypt": (amb_egypt, 56.0, -26.0),
-    "amb_paris_rain": (amb_paris_rain, 56.0, -26.0),
-    "amb_ny_harbour": (amb_ny_harbour, 60.0, -27.0),
+    "amb_egypt": (amb_egypt, 56.0, -27.5),
+    "amb_paris_rain": (amb_paris_rain, 56.0, -27.5),
+    "amb_ny_harbour": (amb_ny_harbour, 60.0, -28.0),
     "amb_japan_night": (amb_japan_night, 52.0, -29.0),
-    "amb_riyadh_wind": (amb_riyadh_wind, 52.0, -27.0),
+    "amb_riyadh_wind": (amb_riyadh_wind, 52.0, -28.0),
     "amb_india_garden": (amb_india_garden, 52.0, -28.0),
     "amb_rio_frozen": (amb_rio_frozen, 48.0, -30.0),
-    "amb_london_river": (amb_london_river, 56.0, -27.0),
+    "amb_london_river": (amb_london_river, 56.0, -28.0),
     "amb_berlin_hall": (amb_berlin_hall, 56.0, -28.0),
     "amb_margin": (amb_margin, 60.0, -28.0),
 }
+
+# Footstep-friendly mix: a wide, gentle dip where hard-soled steps carry (1.5-4 kHz) in the broadband beds, applied
+# circularly after rotation and before loudness normalisation. [(centre Hz, gain dB, Q)]
+MIX_EQ = {
+    "amb_paris_rain": [(2600.0, -3.0, 0.7)],
+    "amb_egypt": [(2600.0, -3.0, 0.7)],
+    "amb_riyadh_wind": [(2600.0, -2.5, 0.7)],
+    "amb_london_river": [(2600.0, -2.5, 0.7)],
+    "amb_ny_harbour": [(2600.0, -2.0, 0.7)],
+    "amb_japan_night": [(2600.0, -2.0, 0.7)],
+    "amb_shop": [(2600.0, -2.0, 0.7)],
+}
+
+
+def peak_sos(f, gain_db, q):
+    """RBJ peaking biquad as SOS (so it can run circularly with circ_sosfilt)."""
+    from scipy.signal import tf2sos
+    A = 10 ** (gain_db / 40)
+    w = TAU * f / SR
+    al = np.sin(w) / (2 * q)
+    b = np.array([1 + al * A, -2 * np.cos(w), 1 - al * A])
+    a = np.array([1 + al / A, -2 * np.cos(w), 1 - al / A])
+    return tf2sos(b / a[0], a / a[0])
+
+
+def apply_mix(sid, x):
+    for f, g, q in MIX_EQ.get(sid, []):
+        x = circ_sosfilt(peak_sos(f, g, q), x, N(2.0))
+    return x
 
 
 def main(only):
@@ -496,20 +528,60 @@ def main(only):
         x = x - x.mean(axis=1, keepdims=True)
         x = best_seam_rotation(x)
         x, _ = rotate_to_zero_crossing(x)
-        y = norm_lufs(x, target, tp_max=-3.0, circular=True)
+        x = apply_mix(sid, x)
+        finish(sid, x, L, target, meta)
+    with open(META, "w", encoding="utf-8") as fh:
+        json.dump(meta, fh, indent=1)
+
+
+def finish(sid, x, L, target, meta):
+    y = norm_lufs(x, target, tp_max=-3.0, circular=True)
+    wav = os.path.join(WORK, sid + ".wav")
+    sf.write(wav, y.T.astype(np.float32), SR, subtype="FLOAT")
+    ogg = os.path.join(OUT, sid + ".ogg")
+    cmd = encode_ogg(wav, ogg, 5)
+    rel = lambda c: os.path.relpath(c, ROOT).replace(os.sep, "/") if os.path.isabs(c) else c  # noqa: E731
+    meta[sid] = {"bus": "Ambience", "loop": True, "channels": 2, "loop_seconds": L, "target_lufs": target,
+                 "mix_eq": MIX_EQ.get(sid, []),
+                 "synth_lufs": round(lufs(y), 2), "synth_tp": round(true_peak_db(y), 2), "seam": seam_report(y),
+                 "source": "synth:Tools/audio/make_ambience.py", "license": LIC,
+                 "encode": " ".join(rel(c) for c in cmd)}
+    print(f"{sid:24s} L={L:4.1f}s LUFS={meta[sid]['synth_lufs']:6.2f} TP={meta[sid]['synth_tp']:6.2f} "
+          f"eq={meta[sid]['mix_eq']} seam={meta[sid]['seam']}", flush=True)
+
+
+def remaster(only):
+    """Fast path: re-apply the mix stage (MIX_EQ + target) to the existing float masters in Audio/_work/amb instead of
+    re-synthesising. Equivalent to a full run (the EQ is linear and circular; masters are already rotated). A master
+    whose recorded EQ differs from MIX_EQ is skipped: run the full generator for it."""
+    meta = {}
+    if os.path.exists(META):
+        with open(META, encoding="utf-8") as fh:
+            meta = json.load(fh)
+    for sid, (fn, L, target) in SCENES.items():
+        if only and sid not in only:
+            continue
         wav = os.path.join(WORK, sid + ".wav")
-        sf.write(wav, y.T.astype(np.float32), SR, subtype="FLOAT")
-        ogg = os.path.join(OUT, sid + ".ogg")
-        cmd = encode_ogg(wav, ogg, 5)
-        meta[sid] = {"bus": "Ambience", "loop": True, "channels": 2, "loop_seconds": L, "target_lufs": target,
-                     "synth_lufs": round(lufs(y), 2), "synth_tp": round(true_peak_db(y), 2), "seam": seam_report(y),
-                     "source": "synth:Tools/audio/make_ambience.py", "license": LIC,
-                     "encode": " ".join(os.path.relpath(c, ROOT).replace("\\", "/") if os.path.isabs(c) else c for c in cmd)}
-        print(f"{sid:24s} L={L:4.1f}s LUFS={meta[sid]['synth_lufs']:6.2f} TP={meta[sid]['synth_tp']:6.2f} "
-              f"seam={meta[sid]['seam']}", flush=True)
+        if not os.path.exists(wav):
+            print(f"{sid}: no float master, run the full generator", flush=True)
+            continue
+        x, _ = sf.read(wav, always_2d=True)
+        x = x.T.astype(np.float64)
+        done = [list(e) for e in meta.get(sid, {}).get("mix_eq", [])]
+        want = [list(e) for e in MIX_EQ.get(sid, [])]
+        if done and done != want:
+            print(f"{sid}: master already carries EQ {done} (wanted {want}); skipped - run the full generator", flush=True)
+            continue
+        if not done:
+            x = apply_mix(sid, x)
+        finish(sid, x, L, target, meta)
     with open(META, "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=1)
 
 
 if __name__ == "__main__":
-    main(set(sys.argv[1:]))
+    args = sys.argv[1:]
+    if "--remaster" in args:
+        remaster(set(a for a in args if a != "--remaster"))
+    else:
+        main(set(args))

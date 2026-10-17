@@ -61,6 +61,7 @@ namespace TwelfthStamp
             m_Body = gameObject.AddComponent<CharacterController>();
             m_Body.height = 1.6f; m_Body.radius = 0.22f; m_Body.center = new Vector3(0, 0.8f, 0);
             m_Body.stepOffset = 0.3f; m_Body.skinWidth = 0.02f;
+            m_Body.minMoveDistance = 0f; // a gentle stick push at 90-120 Hz must still move (default 1 mm minimum)
 
             m_Offset = new GameObject("CameraOffset").transform;
             m_Offset.SetParent(transform, false);
@@ -87,6 +88,10 @@ namespace TwelfthStamp
             m_Right = MakeHand(HandSide.Right, m_RightGrip, m_RightAim);
             m_LeftModel = ControllerModel.Create(m_LeftGrip, HandSide.Left);
             m_RightModel = ControllerModel.Create(m_RightGrip, HandSide.Right);
+            // Hands are drawn at the grips; the controller models sit in the same hand frame and show (ghosted) only with their labels.
+            m_LeftModel.transform.localRotation = VRHands.GripToModel;
+            m_RightModel.transform.localRotation = VRHands.GripToModel;
+            VRHands.Create(this);
 
             m_PassportMountL = Mount(m_LeftGrip, false);
             m_PassportMountR = Mount(m_RightGrip, true);
@@ -120,7 +125,9 @@ namespace TwelfthStamp
         {
             var hold = new GameObject("HoldPoint").transform;
             hold.SetParent(grip, false);
-            hold.localPosition = new Vector3(0, -0.01f, 0.05f);
+            // Authored in the controller model's frame (y up, z forward as held); same alignment as the model and hands.
+            hold.localPosition = VRHands.GripToModel * new Vector3(0, -0.01f, 0.05f);
+            hold.localRotation = VRHands.GripToModel;
             var it = grip.gameObject.AddComponent<Interactor>();
             it.Side = side;
             it.HoldPoint = hold;
@@ -133,8 +140,9 @@ namespace TwelfthStamp
         {
             var t = new GameObject("PassportMount").transform;
             t.SetParent(grip, false);
-            t.localPosition = new Vector3(mirrored ? -0.02f : 0.02f, 0.07f, 0.07f);
-            t.localRotation = Quaternion.Euler(48f, mirrored ? -12f : 12f, 0f);
+            // Authored in the controller model's frame: in front of and above the controller as held, tilted to the eyes.
+            t.localPosition = VRHands.GripToModel * new Vector3(mirrored ? -0.02f : 0.02f, 0.07f, 0.07f);
+            t.localRotation = VRHands.GripToModel * Quaternion.Euler(48f, mirrored ? -12f : 12f, 0f);
             return t;
         }
 
@@ -193,7 +201,8 @@ namespace TwelfthStamp
 
             UpdateHeadBlock();
             UpdateLocomotion(canAct);
-            UpdateFootsteps(0.75f);
+            // Longer strides as the stick run builds (2.0 m/s walk, 3.3 m/s run), so running steps don't patter.
+            UpdateFootsteps(Mathf.Lerp(0.75f, 1.15f, Mathf.InverseLerp(2f, 3.3f, MoveSpeed)));
 
             foreach (var h in m_Hands) h.UpdateFocus(canAct && !(Game.Passport != null && Game.Passport.IsHeldBy(h.Side)));
             UpdateLasers(canAct);
@@ -298,9 +307,11 @@ namespace TwelfthStamp
                     m_Body.Move(dir * speed * Time.deltaTime + Vector3.down * 2f * Time.deltaTime);
                 }
                 else m_RunHold = 0f;
+                Sprinting = move.sqrMagnitude > 0.04f && m_RunHold > 0.35f; // breathing, heartbeat and the sleeves read this
             }
             else
             {
+                Sprinting = false;
                 if (move.y > 0.6f) m_Aiming = true;
                 if (m_Aiming)
                 {

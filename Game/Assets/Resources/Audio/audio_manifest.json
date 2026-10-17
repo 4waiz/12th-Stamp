@@ -567,7 +567,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -15.5
+      "lufs": -22.6
     },
     {
       "id": "ui_slider_tick",
@@ -587,7 +587,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -21.4
+      "lufs": -20.4
     },
     {
       "id": "pp_close",
@@ -597,7 +597,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -23.6
+      "lufs": -23.7
     },
     {
       "id": "pp_page",
@@ -607,7 +607,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -16.2
+      "lufs": -22.2
     },
     {
       "id": "pp_tab",
@@ -627,7 +627,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -13.3
+      "lufs": -20.9
     },
     {
       "id": "tear_open_slit",
@@ -637,7 +637,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -19.0
+      "lufs": -23.0
     },
     {
       "id": "tear_open_window",
@@ -647,7 +647,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -18.1
+      "lufs": -20.5
     },
     {
       "id": "tear_open_door",
@@ -657,7 +657,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -15.5
+      "lufs": -18.3
     },
     {
       "id": "tear_seal",
@@ -667,7 +667,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -24.1
+      "lufs": -23.1
     },
     {
       "id": "tear_breach",
@@ -677,7 +677,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -25.7
+      "lufs": -24.7
     },
     {
       "id": "tear_hum_loop",
@@ -717,7 +717,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -17.3
+      "lufs": -21.6
     },
     {
       "id": "seal_counterfeit",
@@ -727,7 +727,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -19.2
+      "lufs": -21.8
     },
     {
       "id": "stamp_void",
@@ -737,7 +737,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -28.3
+      "lufs": -27.3
     },
     {
       "id": "sunbeam_on",
@@ -767,7 +767,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -23.0
+      "lufs": -22.0
     },
     {
       "id": "pass_step_1",
@@ -807,7 +807,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -21.0
+      "lufs": -21.5
     },
     {
       "id": "pass_creak_2",
@@ -817,7 +817,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -23.1
+      "lufs": -22.1
     },
     {
       "id": "pass_creak_3",
@@ -827,7 +827,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -20.9
+      "lufs": -21.1
     },
     {
       "id": "pass_breath",
@@ -837,7 +837,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -16.0
+      "lufs": -18.7
     },
     {
       "id": "pass_recoil",
@@ -847,7 +847,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -13.8
+      "lufs": -19.6
     },
     {
       "id": "pass_tap",
@@ -857,7 +857,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -25.0
+      "lufs": -24.0
     },
     {
       "id": "pass_drone_loop",
@@ -877,7 +877,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -19.1
+      "lufs": -21.4
     },
     {
       "id": "pass_sting",
@@ -887,93 +887,133 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -19.9
+      "lufs": -20.1
     },
     {
       "id": "foot_wood_1",
       "file": "Audio/SFX/foot_wood_1",
       "bus": "SFX",
-      "duration": 0.25,
+      "duration": 0.147,
       "loop": false,
-      "source": "kenney-cc0:footstep_wood_000.ogg",
-      "license": "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)",
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": null
     },
     {
       "id": "foot_wood_2",
       "file": "Audio/SFX/foot_wood_2",
       "bus": "SFX",
-      "duration": 0.252,
+      "duration": 0.241,
       "loop": false,
-      "source": "kenney-cc0:footstep_wood_001.ogg",
-      "license": "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)",
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": null
     },
     {
       "id": "foot_wood_3",
       "file": "Audio/SFX/foot_wood_3",
       "bus": "SFX",
-      "duration": 0.251,
+      "duration": 0.152,
       "loop": false,
-      "source": "kenney-cc0:footstep_wood_002.ogg",
-      "license": "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)",
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": null
     },
     {
       "id": "foot_wood_4",
       "file": "Audio/SFX/foot_wood_4",
       "bus": "SFX",
-      "duration": 0.252,
+      "duration": 0.163,
       "loop": false,
-      "source": "kenney-cc0:footstep_wood_003.ogg",
-      "license": "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)",
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_wood_5",
+      "file": "Audio/SFX/foot_wood_5",
+      "bus": "SFX",
+      "duration": 0.249,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_wood_6",
+      "file": "Audio/SFX/foot_wood_6",
+      "bus": "SFX",
+      "duration": 0.172,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": null
     },
     {
       "id": "foot_stone_1",
       "file": "Audio/SFX/foot_stone_1",
       "bus": "SFX",
-      "duration": 0.106,
+      "duration": 0.161,
       "loop": false,
-      "source": "kenney-cc0:footstep_concrete_000.ogg",
-      "license": "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)",
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": null
     },
     {
       "id": "foot_stone_2",
       "file": "Audio/SFX/foot_stone_2",
       "bus": "SFX",
-      "duration": 0.108,
+      "duration": 0.18,
       "loop": false,
-      "source": "kenney-cc0:footstep_concrete_001.ogg",
-      "license": "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)",
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": null
     },
     {
       "id": "foot_stone_3",
       "file": "Audio/SFX/foot_stone_3",
       "bus": "SFX",
-      "duration": 0.113,
+      "duration": 0.163,
       "loop": false,
-      "source": "kenney-cc0:footstep_concrete_002.ogg",
-      "license": "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)",
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": null
     },
     {
       "id": "foot_stone_4",
       "file": "Audio/SFX/foot_stone_4",
       "bus": "SFX",
-      "duration": 0.111,
+      "duration": 0.168,
       "loop": false,
-      "source": "kenney-cc0:footstep_concrete_003.ogg",
-      "license": "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)",
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_stone_5",
+      "file": "Audio/SFX/foot_stone_5",
+      "bus": "SFX",
+      "duration": 0.15,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_stone_6",
+      "file": "Audio/SFX/foot_stone_6",
+      "bus": "SFX",
+      "duration": 0.172,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": null
     },
     {
       "id": "foot_tile_1",
       "file": "Audio/SFX/foot_tile_1",
       "bus": "SFX",
-      "duration": 0.3,
+      "duration": 0.16,
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
@@ -983,7 +1023,7 @@
       "id": "foot_tile_2",
       "file": "Audio/SFX/foot_tile_2",
       "bus": "SFX",
-      "duration": 0.3,
+      "duration": 0.16,
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
@@ -993,7 +1033,7 @@
       "id": "foot_tile_3",
       "file": "Audio/SFX/foot_tile_3",
       "bus": "SFX",
-      "duration": 0.3,
+      "duration": 0.149,
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
@@ -1003,7 +1043,27 @@
       "id": "foot_tile_4",
       "file": "Audio/SFX/foot_tile_4",
       "bus": "SFX",
-      "duration": 0.3,
+      "duration": 0.162,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_tile_5",
+      "file": "Audio/SFX/foot_tile_5",
+      "bus": "SFX",
+      "duration": 0.146,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_tile_6",
+      "file": "Audio/SFX/foot_tile_6",
+      "bus": "SFX",
+      "duration": 0.149,
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
@@ -1013,7 +1073,7 @@
       "id": "foot_sand_1",
       "file": "Audio/SFX/foot_sand_1",
       "bus": "SFX",
-      "duration": 0.35,
+      "duration": 0.313,
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
@@ -1023,7 +1083,7 @@
       "id": "foot_sand_2",
       "file": "Audio/SFX/foot_sand_2",
       "bus": "SFX",
-      "duration": 0.35,
+      "duration": 0.314,
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
@@ -1033,7 +1093,7 @@
       "id": "foot_sand_3",
       "file": "Audio/SFX/foot_sand_3",
       "bus": "SFX",
-      "duration": 0.35,
+      "duration": 0.312,
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
@@ -1043,7 +1103,427 @@
       "id": "foot_sand_4",
       "file": "Audio/SFX/foot_sand_4",
       "bus": "SFX",
-      "duration": 0.35,
+      "duration": 0.314,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_sand_5",
+      "file": "Audio/SFX/foot_sand_5",
+      "bus": "SFX",
+      "duration": 0.299,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_sand_6",
+      "file": "Audio/SFX/foot_sand_6",
+      "bus": "SFX",
+      "duration": 0.313,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_grass_1",
+      "file": "Audio/SFX/foot_grass_1",
+      "bus": "SFX",
+      "duration": 0.298,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_grass_2",
+      "file": "Audio/SFX/foot_grass_2",
+      "bus": "SFX",
+      "duration": 0.299,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_grass_3",
+      "file": "Audio/SFX/foot_grass_3",
+      "bus": "SFX",
+      "duration": 0.287,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_grass_4",
+      "file": "Audio/SFX/foot_grass_4",
+      "bus": "SFX",
+      "duration": 0.262,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_grass_5",
+      "file": "Audio/SFX/foot_grass_5",
+      "bus": "SFX",
+      "duration": 0.283,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_grass_6",
+      "file": "Audio/SFX/foot_grass_6",
+      "bus": "SFX",
+      "duration": 0.28,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_metal_1",
+      "file": "Audio/SFX/foot_metal_1",
+      "bus": "SFX",
+      "duration": 0.229,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_metal_2",
+      "file": "Audio/SFX/foot_metal_2",
+      "bus": "SFX",
+      "duration": 0.231,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_metal_3",
+      "file": "Audio/SFX/foot_metal_3",
+      "bus": "SFX",
+      "duration": 0.235,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_metal_4",
+      "file": "Audio/SFX/foot_metal_4",
+      "bus": "SFX",
+      "duration": 0.224,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_metal_5",
+      "file": "Audio/SFX/foot_metal_5",
+      "bus": "SFX",
+      "duration": 0.242,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_metal_6",
+      "file": "Audio/SFX/foot_metal_6",
+      "bus": "SFX",
+      "duration": 0.231,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_wood_1",
+      "file": "Audio/SFX/foot_run_wood_1",
+      "bus": "SFX",
+      "duration": 0.128,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_wood_2",
+      "file": "Audio/SFX/foot_run_wood_2",
+      "bus": "SFX",
+      "duration": 0.218,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_wood_3",
+      "file": "Audio/SFX/foot_run_wood_3",
+      "bus": "SFX",
+      "duration": 0.125,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_wood_4",
+      "file": "Audio/SFX/foot_run_wood_4",
+      "bus": "SFX",
+      "duration": 0.206,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_stone_1",
+      "file": "Audio/SFX/foot_run_stone_1",
+      "bus": "SFX",
+      "duration": 0.128,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_stone_2",
+      "file": "Audio/SFX/foot_run_stone_2",
+      "bus": "SFX",
+      "duration": 0.13,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_stone_3",
+      "file": "Audio/SFX/foot_run_stone_3",
+      "bus": "SFX",
+      "duration": 0.122,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_stone_4",
+      "file": "Audio/SFX/foot_run_stone_4",
+      "bus": "SFX",
+      "duration": 0.135,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_tile_1",
+      "file": "Audio/SFX/foot_run_tile_1",
+      "bus": "SFX",
+      "duration": 0.115,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_tile_2",
+      "file": "Audio/SFX/foot_run_tile_2",
+      "bus": "SFX",
+      "duration": 0.118,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_tile_3",
+      "file": "Audio/SFX/foot_run_tile_3",
+      "bus": "SFX",
+      "duration": 0.137,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_tile_4",
+      "file": "Audio/SFX/foot_run_tile_4",
+      "bus": "SFX",
+      "duration": 0.11,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_sand_1",
+      "file": "Audio/SFX/foot_run_sand_1",
+      "bus": "SFX",
+      "duration": 0.274,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_sand_2",
+      "file": "Audio/SFX/foot_run_sand_2",
+      "bus": "SFX",
+      "duration": 0.282,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_sand_3",
+      "file": "Audio/SFX/foot_run_sand_3",
+      "bus": "SFX",
+      "duration": 0.261,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_sand_4",
+      "file": "Audio/SFX/foot_run_sand_4",
+      "bus": "SFX",
+      "duration": 0.274,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_grass_1",
+      "file": "Audio/SFX/foot_run_grass_1",
+      "bus": "SFX",
+      "duration": 0.284,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_grass_2",
+      "file": "Audio/SFX/foot_run_grass_2",
+      "bus": "SFX",
+      "duration": 0.286,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_grass_3",
+      "file": "Audio/SFX/foot_run_grass_3",
+      "bus": "SFX",
+      "duration": 0.269,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_grass_4",
+      "file": "Audio/SFX/foot_run_grass_4",
+      "bus": "SFX",
+      "duration": 0.284,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_metal_1",
+      "file": "Audio/SFX/foot_run_metal_1",
+      "bus": "SFX",
+      "duration": 0.253,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_metal_2",
+      "file": "Audio/SFX/foot_run_metal_2",
+      "bus": "SFX",
+      "duration": 0.233,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_metal_3",
+      "file": "Audio/SFX/foot_run_metal_3",
+      "bus": "SFX",
+      "duration": 0.271,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_run_metal_4",
+      "file": "Audio/SFX/foot_run_metal_4",
+      "bus": "SFX",
+      "duration": 0.215,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_wet_1",
+      "file": "Audio/SFX/foot_wet_1",
+      "bus": "SFX",
+      "duration": 0.163,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_wet_2",
+      "file": "Audio/SFX/foot_wet_2",
+      "bus": "SFX",
+      "duration": 0.146,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_wet_3",
+      "file": "Audio/SFX/foot_wet_3",
+      "bus": "SFX",
+      "duration": 0.151,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "foot_wet_4",
+      "file": "Audio/SFX/foot_wet_4",
+      "bus": "SFX",
+      "duration": 0.16,
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
@@ -1057,7 +1537,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -19.0
+      "lufs": -22.6
     },
     {
       "id": "heartbeat_loop",
@@ -1097,7 +1577,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -26.4
+      "lufs": -25.4
     },
     {
       "id": "place_socket",
@@ -1127,7 +1607,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -22.9
+      "lufs": -22.5
     },
     {
       "id": "button_press",
@@ -1147,7 +1627,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -22.0
+      "lufs": -21.0
     },
     {
       "id": "door_open",
@@ -1157,7 +1637,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -18.9
+      "lufs": -19.4
     },
     {
       "id": "door_close",
@@ -1167,7 +1647,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -23.7
+      "lufs": -23.3
     },
     {
       "id": "glasses_unfold",
@@ -1177,7 +1657,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -24.8
+      "lufs": -23.8
     },
     {
       "id": "case_open",
@@ -1187,7 +1667,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -30.2
+      "lufs": -29.2
     },
     {
       "id": "case_close",
@@ -1207,7 +1687,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -27.5
+      "lufs": -26.5
     },
     {
       "id": "coin_token",
@@ -1217,7 +1697,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -22.3
+      "lufs": -24.1
     },
     {
       "id": "booth_power",
@@ -1227,7 +1707,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -13.8
+      "lufs": -18.7
     },
     {
       "id": "noisemaker_loop",
@@ -1247,7 +1727,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -25.9
+      "lufs": -24.9
     },
     {
       "id": "drum_hit",
@@ -1257,7 +1737,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -26.5
+      "lufs": -25.5
     },
     {
       "id": "clock_chime",
@@ -1267,7 +1747,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -21.4
+      "lufs": -22.0
     },
     {
       "id": "clock_tick",
@@ -1287,7 +1767,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -14.7
+      "lufs": -19.8
     },
     {
       "id": "voicemail_beep",
@@ -1337,7 +1817,7 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -16.8
+      "lufs": -19.6
     },
     {
       "id": "skyline_shift",
@@ -1347,7 +1827,644 @@
       "loop": false,
       "source": "synth:Tools/audio/make_sfx.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -18.6
+      "lufs": -19.4
+    },
+    {
+      "id": "breath_calm_out_1",
+      "file": "Audio/SFX/breath_calm_out_1",
+      "bus": "SFX",
+      "duration": 1.005,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -27.5
+    },
+    {
+      "id": "breath_calm_out_2",
+      "file": "Audio/SFX/breath_calm_out_2",
+      "bus": "SFX",
+      "duration": 1.234,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -27.9
+    },
+    {
+      "id": "breath_calm_out_3",
+      "file": "Audio/SFX/breath_calm_out_3",
+      "bus": "SFX",
+      "duration": 1.045,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -27.7
+    },
+    {
+      "id": "breath_calm_in_1",
+      "file": "Audio/SFX/breath_calm_in_1",
+      "bus": "SFX",
+      "duration": 1.065,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -26.9
+    },
+    {
+      "id": "breath_calm_in_2",
+      "file": "Audio/SFX/breath_calm_in_2",
+      "bus": "SFX",
+      "duration": 1.069,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -27.1
+    },
+    {
+      "id": "breath_calm_in_3",
+      "file": "Audio/SFX/breath_calm_in_3",
+      "bus": "SFX",
+      "duration": 1.192,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -26.6
+    },
+    {
+      "id": "breath_run_out_1",
+      "file": "Audio/SFX/breath_run_out_1",
+      "bus": "SFX",
+      "duration": 0.331,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_out_2",
+      "file": "Audio/SFX/breath_run_out_2",
+      "bus": "SFX",
+      "duration": 0.29,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_out_3",
+      "file": "Audio/SFX/breath_run_out_3",
+      "bus": "SFX",
+      "duration": 0.326,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_out_4",
+      "file": "Audio/SFX/breath_run_out_4",
+      "bus": "SFX",
+      "duration": 0.278,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_out_5",
+      "file": "Audio/SFX/breath_run_out_5",
+      "bus": "SFX",
+      "duration": 0.271,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_out_6",
+      "file": "Audio/SFX/breath_run_out_6",
+      "bus": "SFX",
+      "duration": 0.314,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_in_1",
+      "file": "Audio/SFX/breath_run_in_1",
+      "bus": "SFX",
+      "duration": 0.306,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_in_2",
+      "file": "Audio/SFX/breath_run_in_2",
+      "bus": "SFX",
+      "duration": 0.247,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_in_3",
+      "file": "Audio/SFX/breath_run_in_3",
+      "bus": "SFX",
+      "duration": 0.262,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_in_4",
+      "file": "Audio/SFX/breath_run_in_4",
+      "bus": "SFX",
+      "duration": 0.314,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_in_5",
+      "file": "Audio/SFX/breath_run_in_5",
+      "bus": "SFX",
+      "duration": 0.243,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_run_in_6",
+      "file": "Audio/SFX/breath_run_in_6",
+      "bus": "SFX",
+      "duration": 0.284,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_hard_out_1",
+      "file": "Audio/SFX/breath_hard_out_1",
+      "bus": "SFX",
+      "duration": 0.334,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_hard_out_2",
+      "file": "Audio/SFX/breath_hard_out_2",
+      "bus": "SFX",
+      "duration": 0.377,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_hard_out_3",
+      "file": "Audio/SFX/breath_hard_out_3",
+      "bus": "SFX",
+      "duration": 0.353,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_hard_out_4",
+      "file": "Audio/SFX/breath_hard_out_4",
+      "bus": "SFX",
+      "duration": 0.348,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_hard_in_1",
+      "file": "Audio/SFX/breath_hard_in_1",
+      "bus": "SFX",
+      "duration": 0.281,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_hard_in_2",
+      "file": "Audio/SFX/breath_hard_in_2",
+      "bus": "SFX",
+      "duration": 0.326,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_hard_in_3",
+      "file": "Audio/SFX/breath_hard_in_3",
+      "bus": "SFX",
+      "duration": 0.262,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_hard_in_4",
+      "file": "Audio/SFX/breath_hard_in_4",
+      "bus": "SFX",
+      "duration": 0.298,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_pant_out_1",
+      "file": "Audio/SFX/breath_pant_out_1",
+      "bus": "SFX",
+      "duration": 0.249,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_pant_out_2",
+      "file": "Audio/SFX/breath_pant_out_2",
+      "bus": "SFX",
+      "duration": 0.174,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_pant_out_3",
+      "file": "Audio/SFX/breath_pant_out_3",
+      "bus": "SFX",
+      "duration": 0.242,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_pant_out_4",
+      "file": "Audio/SFX/breath_pant_out_4",
+      "bus": "SFX",
+      "duration": 0.184,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_pant_in_1",
+      "file": "Audio/SFX/breath_pant_in_1",
+      "bus": "SFX",
+      "duration": 0.156,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_pant_in_2",
+      "file": "Audio/SFX/breath_pant_in_2",
+      "bus": "SFX",
+      "duration": 0.156,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_pant_in_3",
+      "file": "Audio/SFX/breath_pant_in_3",
+      "bus": "SFX",
+      "duration": 0.18,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_pant_in_4",
+      "file": "Audio/SFX/breath_pant_in_4",
+      "bus": "SFX",
+      "duration": 0.151,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_fear_in_1",
+      "file": "Audio/SFX/breath_fear_in_1",
+      "bus": "SFX",
+      "duration": 0.545,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -19.7
+    },
+    {
+      "id": "breath_fear_in_2",
+      "file": "Audio/SFX/breath_fear_in_2",
+      "bus": "SFX",
+      "duration": 0.437,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -19.5
+    },
+    {
+      "id": "breath_fear_in_3",
+      "file": "Audio/SFX/breath_fear_in_3",
+      "bus": "SFX",
+      "duration": 0.44,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -19.0
+    },
+    {
+      "id": "breath_fear_in_4",
+      "file": "Audio/SFX/breath_fear_in_4",
+      "bus": "SFX",
+      "duration": 0.472,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -18.3
+    },
+    {
+      "id": "breath_fear_out_1",
+      "file": "Audio/SFX/breath_fear_out_1",
+      "bus": "SFX",
+      "duration": 0.765,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -23.0
+    },
+    {
+      "id": "breath_fear_out_2",
+      "file": "Audio/SFX/breath_fear_out_2",
+      "bus": "SFX",
+      "duration": 0.749,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -24.3
+    },
+    {
+      "id": "breath_fear_out_3",
+      "file": "Audio/SFX/breath_fear_out_3",
+      "bus": "SFX",
+      "duration": 0.585,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -23.5
+    },
+    {
+      "id": "breath_gasp_1",
+      "file": "Audio/SFX/breath_gasp_1",
+      "bus": "SFX",
+      "duration": 0.359,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_gasp_2",
+      "file": "Audio/SFX/breath_gasp_2",
+      "bus": "SFX",
+      "duration": 0.331,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_gasp_3",
+      "file": "Audio/SFX/breath_gasp_3",
+      "bus": "SFX",
+      "duration": 0.358,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "breath_relief_1",
+      "file": "Audio/SFX/breath_relief_1",
+      "bus": "SFX",
+      "duration": 1.266,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -22.0
+    },
+    {
+      "id": "breath_relief_2",
+      "file": "Audio/SFX/breath_relief_2",
+      "bus": "SFX",
+      "duration": 1.257,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -21.4
+    },
+    {
+      "id": "cloth_run_1",
+      "file": "Audio/SFX/cloth_run_1",
+      "bus": "SFX",
+      "duration": 0.219,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "cloth_run_2",
+      "file": "Audio/SFX/cloth_run_2",
+      "bus": "SFX",
+      "duration": 0.221,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "cloth_run_3",
+      "file": "Audio/SFX/cloth_run_3",
+      "bus": "SFX",
+      "duration": 0.176,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "cloth_run_4",
+      "file": "Audio/SFX/cloth_run_4",
+      "bus": "SFX",
+      "duration": 0.245,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "cloth_run_5",
+      "file": "Audio/SFX/cloth_run_5",
+      "bus": "SFX",
+      "duration": 0.23,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "cloth_run_6",
+      "file": "Audio/SFX/cloth_run_6",
+      "bus": "SFX",
+      "duration": 0.213,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "heart_beat_1",
+      "file": "Audio/SFX/heart_beat_1",
+      "bus": "SFX",
+      "duration": 0.36,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "heart_beat_2",
+      "file": "Audio/SFX/heart_beat_2",
+      "bus": "SFX",
+      "duration": 0.348,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "heart_beat_3",
+      "file": "Audio/SFX/heart_beat_3",
+      "bus": "SFX",
+      "duration": 0.358,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "heart_beat_4",
+      "file": "Audio/SFX/heart_beat_4",
+      "bus": "SFX",
+      "duration": 0.363,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": null
+    },
+    {
+      "id": "shift_rumble",
+      "file": "Audio/SFX/shift_rumble",
+      "bus": "SFX",
+      "duration": 5.0,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -19.6,
+      "peak": 4.0
+    },
+    {
+      "id": "shift_whoosh",
+      "file": "Audio/SFX/shift_whoosh",
+      "bus": "SFX",
+      "duration": 2.0,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -20.1,
+      "peak": 1.5
+    },
+    {
+      "id": "shift_reverse_swell",
+      "file": "Audio/SFX/shift_reverse_swell",
+      "bus": "SFX",
+      "duration": 2.5,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -21.1,
+      "peak": 2.4
+    },
+    {
+      "id": "shift_tear",
+      "file": "Audio/SFX/shift_tear",
+      "bus": "SFX",
+      "duration": 1.6,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -18.5,
+      "peak": 0.05
+    },
+    {
+      "id": "shift_arrive",
+      "file": "Audio/SFX/shift_arrive",
+      "bus": "SFX",
+      "duration": 3.5,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -21.8,
+      "peak": 0.02
+    },
+    {
+      "id": "sting_chase_1",
+      "file": "Audio/SFX/sting_chase_1",
+      "bus": "SFX",
+      "duration": 2.2,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -23.5,
+      "peak": 0.01
+    },
+    {
+      "id": "sting_chase_2",
+      "file": "Audio/SFX/sting_chase_2",
+      "bus": "SFX",
+      "duration": 2.2,
+      "loop": false,
+      "source": "synth:Tools/audio/make_sfx.py",
+      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
+      "lufs": -23.8,
+      "peak": 0.01
     },
     {
       "id": "amb_shop",
@@ -1357,7 +2474,7 @@
       "loop": true,
       "source": "synth:Tools/audio/make_ambience.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -27.2
+      "lufs": -28.2
     },
     {
       "id": "amb_apartment",
@@ -1387,7 +2504,7 @@
       "loop": true,
       "source": "synth:Tools/audio/make_ambience.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -26.4
+      "lufs": -27.9
     },
     {
       "id": "amb_paris_rain",
@@ -1397,7 +2514,7 @@
       "loop": true,
       "source": "synth:Tools/audio/make_ambience.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -26.4
+      "lufs": -27.9
     },
     {
       "id": "amb_ny_harbour",
@@ -1407,7 +2524,7 @@
       "loop": true,
       "source": "synth:Tools/audio/make_ambience.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -27.1
+      "lufs": -28.1
     },
     {
       "id": "amb_japan_night",
@@ -1427,7 +2544,7 @@
       "loop": true,
       "source": "synth:Tools/audio/make_ambience.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -27.4
+      "lufs": -28.3
     },
     {
       "id": "amb_india_garden",
@@ -1457,7 +2574,7 @@
       "loop": true,
       "source": "synth:Tools/audio/make_ambience.py",
       "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -27.3
+      "lufs": -28.3
     },
     {
       "id": "amb_berlin_hall",

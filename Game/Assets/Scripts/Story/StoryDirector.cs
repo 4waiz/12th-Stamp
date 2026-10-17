@@ -146,7 +146,10 @@ namespace TwelfthStamp
         {
             if (Busy) return;
             if (dest == CountryDatabase.Home) { StartCoroutine(EndingChapter.Run()); return; }
-            StartCoroutine(EnterCell(dest.Cell, true));
+            // Stepping through a doorway tear is a trip into another world, not a cut (playtest: "more dramatic"): a short
+            // dimension shift with the doorway still open in front of the player until the swap.
+            AudioDirector.I?.Play("tear_open_door", null, 0.6f);
+            StartCoroutine(ShiftInto(dest.Cell, 1.8f));
         }
 
         public IEnumerator EnterCell(CellId id, bool viaTear, string titleOverride = null)
@@ -301,21 +304,26 @@ namespace TwelfthStamp
             pc.StartChase();
         }
 
-        IEnumerator StampShift(CellId next)
+        IEnumerator StampShift(CellId next) => ShiftInto(next, 3f);
+
+        /// <summary>Into the next place through the dimension shift (a collected stamp, or stepping through a doorway tear).
+        /// Nothing can catch the player during the build-up; the old place, its tear and its Passenger go at the swap.</summary>
+        IEnumerator ShiftInto(CellId next, float buildUp)
         {
             Busy = true;
-            Game.Passenger?.Despawn();
-            Game.Tears?.ForceReset();
+            if (Game.Passenger != null) Game.Passenger.Threatening = false;
             Game.Passport?.Close();
             Narration.I?.ClearTutorial();
             Cell cell = null;
             yield return DimensionShift.Run(() =>
             {
+                Game.Passenger?.Despawn();
+                Game.Tears?.ForceReset();
                 foreach (var h in Game.Rig.Hands) if (h.Held != null && !h.Held.Essential) h.ForceRelease(true);
                 ClearStamp();
                 cell = Game.Cells.Activate(next);
                 if (cell != null) Game.Rig.PlaceAt(cell.Arrival.position, cell.Arrival.eulerAngles.y);
-            }, 3f);
+            }, buildUp, next); // the cracks show the destination's light
             if (cell == null) { Busy = false; yield break; }
             var country = CountryDatabase.ByCell(next);
             bool first = country != null && !Game.Campaign.IsVisited(country.Id);

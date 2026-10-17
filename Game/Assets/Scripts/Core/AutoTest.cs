@@ -173,6 +173,31 @@ namespace TwelfthStamp
             Check(Game.Passenger.Visible && Game.Passenger.State == PassengerState.Guard, "Passenger guards the desk");
             Check(paris.Trace.GetPrompt(null) != paris.Trace.Prompt, "trace is blocked while the Passenger is at the desk");
             yield return Shot("02_paris_arrival");
+            // The body: run down the street through the real movement path (arms pump, head bobs, steps and breathing).
+            if (Game.Rig is DesktopRig runner)
+            {
+                var startFeet = runner.Feet;
+                // Start 2 m short of the guarded desk and run south, away from it, down the whole street (room to run, then walk).
+                runner.PlaceAt(paris.transform.TransformPoint(new Vector3(0.6f, 0f, 3.0f)), 180f);
+                yield return null;
+                runner.TestMove = new Vector2(0f, 1f); runner.TestSprint = true;
+                yield return new WaitForSeconds(1.1f); // mid-run: the street ends about 5 m south of the arrival
+                Note("run check: locks " + Game.InputLocks + ", menu " + Game.InMenu + ", paused " + Game.Paused + ", busy " + Game.Story.Busy +
+                     ", moved " + (runner.Feet - startFeet).magnitude.ToString("0.00") + " m, sprinting " + runner.Sprinting);
+                Check(runner.Sprinting && runner.MoveSpeed > 3f, "Shift-running: the player sprints (" + runner.MoveSpeed.ToString("0.0") + " m/s)");
+                yield return Shot("02b_running_arms");
+                yield return new WaitForSeconds(0.13f);
+                yield return Shot("02c_running_arms");
+                // A few steps at a walk (the hands swing up into the corners), then let go.
+                runner.TestSprint = false;
+                yield return new WaitForSeconds(0.9f);
+                yield return Shot("02d_walking_arms");
+                runner.TestMove = null;
+                yield return new WaitForSeconds(0.8f);
+                Check(runner.MoveSpeed < 1.5f, "letting go: the player slows to a stop");
+                runner.PlaceAt(startFeet, 0f);
+                yield return new WaitForSeconds(0.3f);
+            }
 
             Game.Passport.Open(HandSide.Desktop);
             Game.Passport.Select(CountryId.Egypt, true);
@@ -319,21 +344,27 @@ namespace TwelfthStamp
             yield return new WaitForSeconds(2.5f);
             Check(shop.transform.InverseTransformPoint(Game.Rig.Feet).y > -0.5f, "the memory starts on solid ground at the far end of the souk");
             yield return Shot("21_flashback_lane");
-            // Walk the souk to the shop door at a walking pace; the market paints itself in ahead of the player.
+            // Walk the souk to the shop door for real (the movement path, colliders and all, at walking pace); the market
+            // paints itself in ahead of the player.
             float zStart = shop.transform.InverseTransformPoint(Game.Rig.Feet).z, zDoor = shop.DoorPoint.localPosition.z + 0.7f, walked = 0f;
             bool midShot = false;
-            while (walked < 40f)
+            var walker = Game.Rig as DesktopRig;
+            if (walker != null) { walker.PlaceAt(Game.Rig.Feet, shop.transform.eulerAngles.y); walker.TestMove = new Vector2(0f, 1f); walker.TestSprint = false; }
+            while (walked < 30f)
             {
                 var lp = shop.transform.InverseTransformPoint(Game.Rig.Feet);
                 if (lp.z >= zDoor) break;
-                lp.z = Mathf.Min(zDoor, lp.z + 2.4f * Time.deltaTime);
-                lp.x = Mathf.MoveTowards(lp.x, 0f, Time.deltaTime);
-                lp.y = 0f; // walk on the lane floor (never carry a fall along if the floor were missing)
-                Game.Rig.PlaceAt(shop.transform.TransformPoint(lp), shop.transform.eulerAngles.y);
+                if (walker == null)
+                {
+                    lp.z = Mathf.Min(zDoor, lp.z + 2.4f * Time.deltaTime);
+                    Game.Rig.PlaceAt(shop.transform.TransformPoint(new Vector3(0f, 0.02f, lp.z)), shop.transform.eulerAngles.y);
+                }
                 walked += Time.deltaTime;
                 if (!midShot && lp.z > (zStart + zDoor) * 0.5f) { midShot = true; yield return Shot("21b_souk_reveal"); }
                 yield return null;
             }
+            if (walker != null) walker.TestMove = null;
+            Check(shop.transform.InverseTransformPoint(Game.Rig.Feet).z >= zDoor - 0.3f, "the souk lane is walkable end to end, to the shop door (" + walked.ToString("0.0") + " s)");
             yield return new WaitForSeconds(1.5f);
             Check(MemoryReveal.Progress(shop.transform) > 0.8f, "the souk and the shop painted themselves in along the walk (" + (MemoryReveal.Progress(shop.transform) * 100f).ToString("0") + "%)");
             yield return Shot("22_flashback_shopkeeper");

@@ -62,6 +62,9 @@ namespace TwelfthStamp
             PostFx.I?.SetPreset(next.Lighting);
             AudioDirector.I?.SetAmbience(string.IsNullOrEmpty(next.Ambience) ? AmbienceOf(id) : next.Ambience);
             if (!string.IsNullOrEmpty(next.Music)) AudioDirector.I?.SetMusic(next.Music);
+            // The menu's music doesn't follow the player into the story: places without music of their own play their
+            // ambience (chapters and the chase set music explicitly).
+            else if (AudioDirector.I != null && AudioDirector.I.CurrentMusic == "mus_menu") AudioDirector.I.SetMusic(null, 2f);
             Game.Passport?.Refresh();
             return next;
         }

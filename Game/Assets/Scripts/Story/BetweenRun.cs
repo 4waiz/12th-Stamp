@@ -23,6 +23,9 @@ namespace TwelfthStamp
         static readonly Vector3 s_Offset = new Vector3(0f, 0f, 3000f);
         static readonly Color s_Void = new Color(0.07f, 0.008f, 0.016f);
 
+        /// <summary>The Between's light as it shows through the cracks when the glasses go on: the abyss's fire, white-hot.</summary>
+        public static readonly Color Glimpse = new Color(1f, 0.7f, 0.38f);
+
         public int Collected { get; private set; }
         public bool Finished { get; private set; }
         public int Catches { get; private set; }

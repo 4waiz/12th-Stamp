@@ -8,15 +8,33 @@ namespace TwelfthStamp
     /// Generic Quest-style (ring-less) touch controller (the Blender model, or a procedural one if it is missing), with
     /// labelled callouts attached to the actual controls. Labels are generated from GameInput bindings, so they always match what the buttons do.
     /// Labels appear during onboarding highlights, or whenever the player raises a controller to look at it.
+    /// In VR the player's hands are drawn instead (VRHands); the controller then appears, ghosted, only while its labels are up.
     /// </summary>
     public class ControllerModel : MonoBehaviour
     {
         public HandSide Side;
+        /// <summary>Set by VRHands: the hands are drawn, so the controller shows (ghosted) only while its labels are up.</summary>
+        public bool HandsShown;
         readonly Dictionary<string, Transform> m_Controls = new Dictionary<string, Transform>();
         readonly Dictionary<string, Renderer> m_ControlRenderers = new Dictionary<string, Renderer>();
         readonly Dictionary<string, Callout> m_Callouts = new Dictionary<string, Callout>();
         readonly HashSet<string> m_Highlighted = new HashSet<string>();
+        readonly Dictionary<Material, Material> m_GhostOf = new Dictionary<Material, Material>();
+        readonly Dictionary<Material, Material> m_SolidOf = new Dictionary<Material, Material>();
+        Renderer[] m_ModelRenderers;
+        bool m_Ghosted, m_ModelHidden;
         Material m_Body, m_Button, m_ButtonLit;
+
+        /// <summary>True while any button label is showing on this controller.</summary>
+        public bool LabelsShown
+        {
+            get
+            {
+                if (m_AutoShown || m_Highlighted.Count > 0) return true;
+                foreach (var kv in m_Callouts) if (kv.Value.Root.activeSelf) return true;
+                return false;
+            }
+        }
 
         class Callout
         {
@@ -45,6 +63,7 @@ namespace TwelfthStamp
             if (BuildModel())
             {
                 MeshFactory.NoShadows(gameObject);
+                m_ModelRenderers = GetComponentsInChildren<Renderer>(true); // before any callout exists
                 return;
             }
             float s = Side == HandSide.Left ? 1f : -1f; // mirror x for the right hand
@@ -70,6 +89,7 @@ namespace TwelfthStamp
             var grip = MeshFactory.Box("grip", transform, new Vector3(0.017f * s, -0.035f, -0.01f), new Vector3(0.006f, 0.04f, 0.02f), m_Button, false, 1f, Quaternion.Euler(-35f, 0, 0));
             Register("grip", grip.transform);
             MeshFactory.NoShadows(gameObject);
+            m_ModelRenderers = GetComponentsInChildren<Renderer>(true);
         }
 
         /// <summary>
@@ -127,15 +147,55 @@ namespace TwelfthStamp
             c.Root.SetActive(true);
             c.Line.enabled = true;
             if (highlight) m_Highlighted.Add(control); else m_Highlighted.Remove(control);
-            if (m_ControlRenderers.TryGetValue(control, out var r)) r.sharedMaterial = highlight ? m_ButtonLit : m_Button;
+            if (m_ControlRenderers.TryGetValue(control, out var r)) r.sharedMaterial = highlight ? m_ButtonLit : Look(m_Button);
         }
 
         public void ClearCallouts()
         {
             foreach (var kv in m_Callouts) { kv.Value.Root.SetActive(false); kv.Value.Line.enabled = false; }
             foreach (var id in m_Highlighted)
-                if (m_ControlRenderers.TryGetValue(id, out var r)) r.sharedMaterial = m_Button;
+                if (m_ControlRenderers.TryGetValue(id, out var r)) r.sharedMaterial = Look(m_Button);
             m_Highlighted.Clear();
+        }
+
+        // ------------------------------------------------------------------ hands mode (VR): hidden, or ghosted while labelled
+        void ApplyHandsMode()
+        {
+            if (m_ModelRenderers == null) return;
+            bool show = !HandsShown || LabelsShown;
+            if (show == m_ModelHidden)
+            {
+                m_ModelHidden = !show;
+                foreach (var r in m_ModelRenderers) if (r != null) r.enabled = show;
+            }
+            if (HandsShown != m_Ghosted)
+            {
+                m_Ghosted = HandsShown;
+                foreach (var r in m_ModelRenderers)
+                {
+                    if (r == null) continue;
+                    var mats = r.sharedMaterials;
+                    for (int i = 0; i < mats.Length; i++) mats[i] = Look(mats[i]);
+                    r.sharedMaterials = mats;
+                }
+            }
+        }
+
+        /// <summary>The material a slot should wear now: a ghosted copy while the hands are drawn (the onboarding glow stays solid).</summary>
+        Material Look(Material m)
+        {
+            if (m == null || m == m_ButtonLit) return m;
+            if (!m_Ghosted) return m_SolidOf.TryGetValue(m, out var solid) ? solid : m;
+            if (m_SolidOf.ContainsKey(m)) return m;
+            if (!m_GhostOf.TryGetValue(m, out var ghost))
+            {
+                var c = m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : Color.white;
+                ghost = new Material(Mats.Glass(new Color(Mathf.Lerp(c.r, 0.8f, 0.5f), Mathf.Lerp(c.g, 0.88f, 0.5f), Mathf.Lerp(c.b, 0.94f, 0.5f), 0.3f), 0.7f))
+                    { name = m.name + "_Ghost" };
+                m_GhostOf[m] = ghost;
+                m_SolidOf[ghost] = m;
+            }
+            return ghost;
         }
 
         Callout MakeCallout(string control)
@@ -179,6 +239,7 @@ namespace TwelfthStamp
                               Vector3.Dot(head.forward, (transform.position - head.position).normalized) > 0.75f;
             if (inspecting && m_Highlighted.Count == 0 && Game.Input != null && !Game.InMenu) ShowBindingLabels();
             else if (!inspecting && m_Highlighted.Count == 0 && m_AutoShown) { ClearCallouts(); m_AutoShown = false; }
+            ApplyHandsMode();
 
             float pulse = 0.65f + 0.35f * Mathf.Sin(Time.unscaledTime * 6f);
             foreach (var kv in m_Callouts)

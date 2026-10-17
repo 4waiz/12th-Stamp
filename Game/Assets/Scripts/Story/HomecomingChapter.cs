@@ -170,11 +170,11 @@ namespace TwelfthStamp
                 var margin = Game.Cells.Activate(CellId.ApartmentCorrupt);
                 margin.RefreshProbe();
                 BetweenRun.Enter(margin);
-            }, Game.IsAutoTest ? 2f : 4.5f);
+            }, Game.IsAutoTest ? 2f : 4.5f, CellId.None, BetweenRun.Glimpse);
             yield return BetweenRun.Play();
 
             // The seal throws him into the Margin copy of the apartment, where he stood.
-            yield return DimensionShift.Run(() => BetweenRun.Leave(homeFeet, homeYaw), Game.IsAutoTest ? 1f : 2f);
+            yield return DimensionShift.Run(() => BetweenRun.Leave(homeFeet, homeYaw), Game.IsAutoTest ? 1f : 2f, CellId.ApartmentCorrupt);
             var corrupt = (ApartmentCell)Game.Cells.Active;
             c.SetFlag(StoryFlags.SeamRevealed);
             Game.Passport.Available = true;

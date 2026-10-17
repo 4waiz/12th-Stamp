@@ -30,6 +30,12 @@ REPORT = os.path.join(WORK, "verify_report.json")
 SR = 48000
 HF_VERSION = "0.8.167"
 
+SURFACES = ("wood", "stone", "tile", "sand", "grass", "metal")
+BODY = [("breath_calm_out", 3), ("breath_calm_in", 3), ("breath_run_out", 6), ("breath_run_in", 6), ("breath_hard_out", 4),
+        ("breath_hard_in", 4), ("breath_pant_out", 4), ("breath_pant_in", 4), ("breath_fear_in", 4), ("breath_fear_out", 3),
+        ("breath_gasp", 3), ("breath_relief", 2), ("cloth_run", 6), ("heart_beat", 4)]
+SHIFT = [("shift_rumble", "Shift"), ("shift_whoosh", "Shift"), ("shift_reverse_swell", "Shift"), ("shift_tear", "Shift"),
+         ("shift_arrive", "Shift"), ("sting_chase_1", "Threat"), ("sting_chase_2", "Threat")]
 SFX_SPEC = [  # (id, requested seconds, group)
     ("ui_hover", 0.08, "UI"), ("ui_click", 0.12, "UI"), ("ui_back", 0.15, "UI"), ("ui_confirm", 0.4, "UI"),
     ("ui_slider_tick", 0.05, "UI"),
@@ -42,7 +48,9 @@ SFX_SPEC = [  # (id, requested seconds, group)
 ] + [(f"pass_step_{i}", 0.3, "Passenger") for i in (1, 2, 3)] + [(f"pass_creak_{i}", 0.8, "Passenger") for i in (1, 2, 3)] + [
     ("pass_breath", 2.0, "Passenger"), ("pass_recoil", 0.7, "Passenger"), ("pass_tap", 1.2, "Passenger"),
     ("pass_drone_loop", 8.0, "Passenger"), ("pass_whisper", 2.5, "Passenger"), ("pass_sting", 1.5, "Passenger"),
-] + [(f"foot_{s}_{i}", None, "Player") for s in ("wood", "stone", "tile", "sand") for i in (1, 2, 3, 4)] + [
+] + [(f"foot_{s}_{i}", None, "Player") for s in SURFACES for i in range(1, 7)] + [
+    (f"foot_run_{s}_{i}", None, "Player") for s in SURFACES for i in range(1, 5)] + [
+    (f"foot_wet_{i}", None, "Player") for i in range(1, 5)] + [
     ("breath_scared", 3.0, "Player"), ("heartbeat_loop", 2.0, "Player"),
     ("grab", 0.15, "Props"), ("drop_soft", 0.3, "Props"), ("drop_hard", 0.4, "Props"), ("place_socket", 0.3, "Props"),
     ("dial_click", 0.1, "Props"), ("lever_clunk", 0.5, "Props"), ("button_press", 0.15, "Props"), ("drawer_open", 0.8, "Props"),
@@ -52,7 +60,8 @@ SFX_SPEC = [  # (id, requested seconds, group)
     ("clock_tick", 0.1, "Props"), ("phone_buzz", 1.0, "Props"), ("voicemail_beep", 0.3, "Props"),
     ("fridge_hum_loop", 6.0, "Props"), ("fridge_stop", 0.6, "Props"), ("camera_shutter", 0.3, "Props"),
     ("reflection_sting", 2.0, "Props"), ("skyline_shift", 4.0, "Props"),
-]
+] + [(f"{k}_{i}", None, "Body") for k, cnt in BODY for i in range(1, cnt + 1)] + [
+    (sid, None, grp) for sid, grp in SHIFT]
 AMB_IDS = ["amb_shop", "amb_apartment", "amb_apartment_corrupt", "amb_egypt", "amb_paris_rain", "amb_ny_harbour",
            "amb_japan_night", "amb_riyadh_wind", "amb_india_garden", "amb_rio_frozen", "amb_london_river",
            "amb_berlin_hall", "amb_margin"]
@@ -158,7 +167,8 @@ def main():
         items.append(dict(id=sid, folder="SFX", ext=".wav", bus=mt.get("bus", "UI" if grp == "UI" else "SFX"),
                           loop=bool(mt.get("loop", sid.endswith("_loop"))), source=mt.get("source", "?"),
                           license=mt.get("license", "?"), transcript=None, speaker=None, spec=dur, group=grp,
-                          note=mt.get("note", ""), norm=mt.get("norm")))
+                          note=mt.get("note", ""), norm=mt.get("norm"), peak=mt.get("peak"), desc=mt.get("desc", ""),
+                          loud=mt.get("loud_max"), shift=mt.get("vs_peak3_db")))
     for aid in AMB_IDS:
         mt = amb_meta.get(aid, {})
         items.append(dict(id=aid, folder="Ambience", ext=".ogg", bus="Ambience", loop=True, source=mt.get("source", "?"),
@@ -212,11 +222,14 @@ def main():
             if lo["TP"] is not None and lo["TP"] > -1.95:
                 prob.append(f"true peak {lo['TP']} dBTP > -2")
         elif it["folder"] == "SFX":
-            want_ch = 2 if it["id"] == "tear_hum_loop" else 1
+            mt = sfx_meta.get(it["id"], {})
+            want_ch = mt.get("channels", 2 if it["id"] == "tear_hum_loop" else 1)
             if pr["channels"] != want_ch:
                 prob.append(f"{pr['channels']} channels")
-            if lo["TP"] is not None and lo["TP"] > -2.95:
-                prob.append(f"true peak {lo['TP']} dBTP > -3")
+            nrm = mt.get("norm") or ["peak", -3.0]
+            ceiling = nrm[2] if (nrm[0] == "loud" and len(nrm) > 2) else -3.0
+            if lo["TP"] is not None and lo["TP"] > ceiling + 0.2:
+                prob.append(f"true peak {lo['TP']} dBTP > {ceiling}")
         elif it["folder"] == "Ambience":
             if pr["codec"] != "vorbis" or pr["channels"] != 2:
                 prob.append("not vorbis stereo")
@@ -257,6 +270,8 @@ def main():
             c["transcript"] = it["transcript"]
             c["speaker"] = it["speaker"]
         c["lufs"] = None if lufs_val is None else round(lufs_val, 1)
+        if it.get("peak") is not None:
+            c["peak"] = it["peak"]  # seconds into the clip of its dramatic peak (AudioDirector.PlayToPeak)
         clips.append(c)
         it["r"] = r
         it["lufs"] = lufs_val
@@ -308,9 +323,9 @@ def write_md(items, narration, vlog, glog, asr_s, asr_l, missing, issues, total_
         if "r" in it:
             cnt[it["bus"]] = cnt.get(it["bus"], 0) + 1
     w(f"| Voice | {cnt.get('Voice', 0)} | WAV 48 kHz mono 16-bit, -18 LUFS, TP <= -2 dBTP | {IMPORT['Voice']} |")
-    w(f"| UI | {cnt.get('UI', 0)} | WAV 48 kHz mono 16-bit, -3 dBTP peak | {IMPORT['UI']} |")
-    w(f"| SFX | {cnt.get('SFX', 0)} | WAV 48 kHz 16-bit (mono; `tear_hum_loop` stereo); one-shots -3 dBTP, loops by LUFS | {IMPORT['SFX']} |")
-    w(f"| Ambience | {cnt.get('Ambience', 0)} | OGG Vorbis q5, 48 kHz stereo, seamless 48-60 s loops, -30..-26 LUFS | {IMPORT['Ambience']} |")
+    w(f"| UI | {cnt.get('UI', 0)} | WAV 48 kHz mono 16-bit, Lmax -19, TP <= -2 dBTP | {IMPORT['UI']} |")
+    w(f"| SFX | {cnt.get('SFX', 0)} | WAV 48 kHz 16-bit (mono; `tear_hum_loop` and the shift/sting clips stereo); one-shots by peak short-window loudness, TP <= -2 dBTP; loops by LUFS | {IMPORT['SFX']} |")
+    w(f"| Ambience | {cnt.get('Ambience', 0)} | OGG Vorbis q5, 48 kHz stereo, seamless 48-60 s loops, -30..-27.5 LUFS | {IMPORT['Ambience']} |")
     w(f"| Music | {cnt.get('Music', 0)} | OGG Vorbis q6, 48 kHz stereo, -24 LUFS | {IMPORT['Music']} |")
     w("")
     w(f"Total: **{sum(cnt.values())} clips, {total_bytes / 1e6:.1f} MB** on disk. Missing required ids: "
@@ -352,24 +367,28 @@ def write_md(items, narration, vlog, glog, asr_s, asr_l, missing, issues, total_
 
     # ---------------- sfx
     w("## SFX and UI\n")
-    w("One-shots are true-peak normalised to -3 dBTP. Sustained loops are loudness-normalised (target shown) with peaks "
-      "<= -3 dBTP, so a hum does not dominate at volume 1.0. `sunbeam_on` and `fridge_stop` share the gain of "
-      "`sunbeam_loop` / `fridge_hum_loop` so the transitions match.\n")
-    w("| id | bus | group | dur (s) (asked) | loop | ch | TP (dBTP) | LUFS | source | license / notes |")
-    w("|---|---|---|---|---|---|---|---|---|---|")
+    w("One-shots are loudness-normalised on their **peak short-window loudness** (`Lmax`: K-weighted energy of the "
+      "loudest 100 ms, LUFS-scaled; `dsp.loud_max`) to a per-category target, true peak <= -2 dBTP (-1.5 for the "
+      "stereo shift clips); older clips moved at most -10/+6 dB from their former -3 dBTP peak level (`d` column). "
+      "Footsteps may shave up to 8 dB off the first milliseconds of the heel transient (soft clip + lookahead limiter) "
+      "so hard and soft surfaces sit at the same loudness. Sustained loops are loudness-normalised (target shown) with "
+      "peaks <= -3 dBTP. `sunbeam_on` and `fridge_stop` share the gain of `sunbeam_loop` / `fridge_hum_loop`.\n")
+    w("| id | bus | group | dur (s) (asked) | loop | ch | TP (dBTP) | LUFS | Lmax | d (dB) | peak (s) | notes |")
+    w("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for it in by.get("SFX", []):
         r = it["r"]
         nrm = it.get("norm") or []
         nnote = ""
         if nrm and nrm[0] == "lufs":
             nnote = f"loop normalised to {nrm[1]} LUFS"
+        elif nrm and nrm[0] == "loud":
+            nnote = f"Lmax target {nrm[1]}"
         elif nrm and nrm[0] == "match":
             nnote = f"level-matched to {nrm[1]}"
-        lic = "CC0 (Kenney)" if it["source"].startswith("kenney") else "original synthesis (project-owned)"
-        extra = "; ".join(x for x in [nnote, it.get("note", "") if it["source"].startswith("kenney") else ""] if x)
+        extra = "; ".join(x for x in [it.get("desc", ""), nnote] if x)
         w(f"| {it['id']} | {it['bus']} | {it.get('group', '')} | {r['duration']:.2f} ({fmt(it['spec'], 2)}) | "
-          f"{'yes' if it['loop'] else ''} | {r['channels']} | {fmt(r['TP'])} | {fmt(it['lufs'])} | `{it['source']}` | "
-          f"{lic}{('; ' + extra) if extra else ''} |")
+          f"{'yes' if it['loop'] else ''} | {r['channels']} | {fmt(r['TP'])} | {fmt(it['lufs'])} | {fmt(it.get('loud'))} | "
+          f"{fmt(it.get('shift'))} | {fmt(it.get('peak'), 2)} | {extra} |")
     w("")
 
     # ---------------- ambience / music
@@ -430,10 +449,8 @@ def write_md(items, narration, vlog, glog, asr_s, asr_l, missing, issues, total_
     w("- **Synthesised SFX / ambience / music:** written from scratch in Python (numpy/scipy) by "
       "`Tools/audio/make_sfx.py`, `make_ambience.py`, `make_music.py` (helpers `dsp.py`, `materials.py`). No samples, "
       "loops or third-party recordings are used. Project-owned.")
-    w("- **Kenney CC0:** `foot_wood_1..4` <- `impact/footstep_wood_000..003.ogg`, `foot_stone_1..4` <- "
-      "`impact/footstep_concrete_000..003.ogg` from the /brag skill bundle "
-      "(`~/.claude/skills/brag/assets/sfx/`; its `references/audio.md` states \"All SFX are CC0 (Kenney.nl, public domain)\"). "
-      "Converted: mono downmix, 44.1 -> 48 kHz, DC removed, onset-trimmed, -3 dBTP. The bundled music was not used.")
+    w("- **No third-party audio.** The earlier Kenney CC0 footsteps (`foot_wood_*`, `foot_stone_*`) were replaced by "
+      "original synthesis (`Tools/audio/sfx_steps.py`); every SFX, ambience and music file is generated by the scripts above.")
     w("")
 
     # ---------------- evidence
@@ -556,8 +573,10 @@ def write_md(items, narration, vlog, glog, asr_s, asr_l, missing, issues, total_
     w("- Taste and realism of every synthesised sound and the music (only objective metrics were checked).")
     w("- Prosody/emotion of the Kokoro lines, the shop_02 \"Ah...\" and the disc_01 \"stamped\" ending, and the "
       "mom_01_glitch edit (large-v3 hears \"Unpacked\" x4; small.en hears \"fun packed\", a common-phrase bias).")
-    w("- Final in-game balance between buses. Reference levels: voice -18, music -24, ambience -30..-26 LUFS; SFX "
-      "one-shots peak at -3 dBTP, so set per-sound volumes in the mixer.")
+    w("- Final in-game balance between buses. Reference levels at clip level: voice -18 LUFS, music -24 LUFS, ambience "
+      "-30..-27.5 LUFS; SFX one-shots by Lmax (UI -19, props -20..-16, events/stingers -16..-13, footsteps -15 walk / "
+      "-17 running layer, breathing -24..-14), set per-sound volumes in code. AudioDirector plays ambience beds at 0.8 "
+      "and ducks music, ambience, SFX (lightly) and body sounds (breath, heartbeat) under narration.")
     with open(MANIFEST_MD, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(L) + "\n")
 

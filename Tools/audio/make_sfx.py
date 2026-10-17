@@ -1,11 +1,16 @@
-"""SFX for The Twelfth Stamp: original physically-inspired synthesis + 8 Kenney CC0 footsteps.
+"""SFX for The Twelfth Stamp: original physically-inspired synthesis only (no samples, no third-party audio).
 
-  Tools/.venv/Scripts/python.exe -I Tools/audio/make_sfx.py            # everything
-  Tools/.venv/Scripts/python.exe -I Tools/audio/make_sfx.py ui_click pp_open
+  python -I Tools/audio/make_sfx.py                 # everything
+  python -I Tools/audio/make_sfx.py ui_click pp_open
+  python -I Tools/audio/make_sfx.py --prefix breath_ foot_   # every id starting with these
 
 Output: Game/Assets/Resources/Audio/SFX/<id>.wav (48 kHz PCM16, mono unless noted; TPDF dither)
-Levels: one-shots are true-peak normalised to -3 dBTP. Sustained loops are loudness-normalised
-(LUFS target per loop, peaks <= -3 dBTP) so a hum does not dominate when played at volume 1.0.
+Modules: sfx_steps.py (player footsteps: walk sets, running layers, wet layer), sfx_body.py (breathing,
+cloth, heartbeats), sfx_shift.py (world-shift transitions, chase stingers; stereo).
+Levels: one-shots are loudness-normalised on their peak short-window loudness (dsp.loud_max: K-weighted
+energy of the loudest 100 ms, LUFS-scaled) to a per-category target, true peak <= -2 dBTP (no limiting);
+re-levelled older clips move at most -10/+6 dB from where -3 dBTP peak normalisation put them. Sustained
+loops are loudness-normalised (LUFS target per loop, peaks <= -3 dBTP) so a hum does not dominate at 1.0.
 Level-matched pairs: sunbeam_on uses sunbeam_loop's gain, fridge_stop uses fridge_hum_loop's gain.
 Loops: rendered circularly (event tails fold to the start, partial frequencies are multiples of
 1/L, noise beds use a correlation-aware equal-power tail->head crossfade), then rotated to start
@@ -19,21 +24,22 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np  # noqa: E402
 
 import materials as M  # noqa: E402
+import sfx_body  # noqa: E402
+import sfx_shift  # noqa: E402
+import sfx_steps  # noqa: E402
 from dsp import (SR, TAU, N, t_axis, rng_for, place, fade, env_points, exp_env, ar_env, colored, shaped_noise,  # noqa: E402
                  smooth_random, lp, hp, bp, peak_eq, shelf, resonator, resonator_bank, tv_lowpass, impulse_train,
                  poisson_clicks, grains, crackle, click, modal, glide_tone, osc, additive, bell, membrane, make_ir,
                  convolve, reverb, pan, fold, loop_crossfade, rotate_to_zero_crossing, seam_report, make_loop,
-                 lufs, true_peak_db, norm_peak, norm_lufs, write_wav, undb, db, mono)
+                 lufs, true_peak_db, norm_peak, norm_lufs, loud_max, norm_loud, write_wav, undb, db, mono)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 OUT = os.path.join(ROOT, "Game", "Assets", "Resources", "Audio", "SFX")
 META = os.path.join(ROOT, "Audio", "_work", "sfx_meta.json")
-KENNEY = os.path.join(os.path.expanduser("~"), ".claude", "skills", "brag", "assets", "sfx")
 
 SYNTH_SRC = "synth:Tools/audio/make_sfx.py"
 SYNTH_LIC = "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)"
-KENNEY_LIC = "CC0 1.0 public domain (Kenney.nl Impact Sounds, bundled with the /brag skill)"
 
 
 def pk(x):
@@ -544,39 +550,7 @@ def pass_sting(rng):
     return pk(y) + 0.18 * pk(wet)
 
 
-# =============================================================================== player
-def foot_tile(rng, idx):
-    x = Z(0.3)
-    s = rng.uniform(0.95, 1.05)
-    exc = Z(0.12)
-    place(exc, click(rng, 0.002, 700, 9000), 0)
-    tile = resonator_bank(exc, [2200 * s, 3150 * s, 4700 * s, 6900 * s], [0.05, 0.035, 0.025, 0.015], [1, .7, .4, .2])
-    place(x, 0.55 * pk(tile) + 0.45 * pk(exc), 0.002)
-    place(x, 0.8 * pk(M.thud(rng, 110 * s, 0.12, 0.05, 1.2, noise=0.3)), 0.0)
-    ts = rng.uniform(0.065, 0.09)
-    sl = bp(rng.standard_normal(N(0.03)), 500, 4000) * np.exp(-np.linspace(0, 7, N(0.03)))
-    place(x, rng.uniform(0.35, 0.5) * pk(sl), ts)
-    sc = M.slide_noise(N(0.03), np.hanning(N(0.03)), rng, 1000, 5000, 400)
-    place(x, 0.1 * pk(sc), ts + 0.01)
-    return reverb(x, room(0.35, rng), wet=0.15)
-
-
-def foot_sand(rng, idx):
-    x = Z(0.35)
-    s = rng.uniform(0.9, 1.1)
-    n1 = N(0.16)
-    e1 = env_points([(0, 0), (0.01, 1.0), (0.06, 0.6), (0.16, 0)], n1)
-    c1 = lp(crackle(n1, 9000 * e1 * s, rng, lo=400, hi=3500, grain=0.0006, amp_sigma=0.7), 5000)
-    place(x, pk(c1), 0.0)
-    place(x, 0.7 * pk(lp(M.thud(rng, 75 * s, 0.15, 0.06, 1.15, noise=0.5), 400)), 0.0)
-    n2 = N(0.2)
-    e2 = env_points([(0, 0), (0.03, 0.7), (0.12, 0.5), (0.2, 0)], n2)
-    c2 = lp(crackle(n2, 5000 * e2, rng, lo=500, hi=4000, grain=0.0005, amp_sigma=0.7), 5500)
-    shh = lp(rng.standard_normal(n2), 3000) * e2
-    place(x, 0.6 * pk(c2) + 0.25 * pk(shh), rng.uniform(0.08, 0.11))
-    return x
-
-
+# =============================================================================== player (footsteps, breathing: sfx_steps / sfx_body)
 def breath_scared(rng):
     x = Z(3.0)
     seq = [(0.05, 0.42, "in", 0.35, 1.0), (0.55, 0.5, "out", 0.12, 0.6), (1.2, 0.38, "in", 0.45, 0.95),
@@ -982,8 +956,12 @@ def V(fn, idx):
 SFX = {}
 
 
-def reg(i, fn, dur, loop=False, norm=("peak", -3.0), ch=1, bus="SFX", note="", fade_out=None):
-    SFX[i] = dict(fn=fn, dur=dur, loop=loop, norm=norm, ch=ch, bus=bus, note=note, fade_out=fade_out)
+def reg(i, fn, dur, loop=False, norm=("peak", -3.0), ch=1, bus="SFX", note="", fade_out=None, group="", desc="",
+        peak=None, trim=False):
+    """peak: seconds into the clip of its dramatic peak (manifest 'peak'; AudioDirector.PlayToPeak lines it up).
+    trim: keep the clip's natural length (variable-length variants) instead of padding to dur."""
+    SFX[i] = dict(fn=fn, dur=dur, loop=loop, norm=norm, ch=ch, bus=bus, note=note, fade_out=fade_out, group=group,
+                  desc=desc, peak=peak, trim=trim)
 
 
 for _i, _d in [("ui_hover", 0.08), ("ui_click", 0.12), ("ui_back", 0.15), ("ui_confirm", 0.4), ("ui_slider_tick", 0.05)]:
@@ -1016,9 +994,6 @@ reg("pass_tap", pass_tap, 1.2, fade_out=0.1)
 reg("pass_drone_loop", pass_drone_loop, 8.0, loop=True, norm=("lufs", -24.0))
 reg("pass_whisper", pass_whisper, 2.5, fade_out=0.15)
 reg("pass_sting", pass_sting, 1.5, fade_out=0.02)
-for _k in range(4):
-    reg(f"foot_tile_{_k + 1}", V(foot_tile, _k), 0.3, fade_out=0.05)
-    reg(f"foot_sand_{_k + 1}", V(foot_sand, _k), 0.35, fade_out=0.05)
 reg("breath_scared", breath_scared, 3.0, fade_out=0.1)
 reg("heartbeat_loop", heartbeat_loop, 2.0, loop=True, norm=("peak", -3.0))
 for _i, _d, _fo in [("grab", 0.15, 0.03), ("drop_soft", 0.3, 0.05), ("drop_hard", 0.4, 0.06), ("place_socket", 0.3, 0.06),
@@ -1036,45 +1011,57 @@ reg("fridge_hum_loop", fridge_hum_loop, 6.0, loop=True, norm=("lufs", -24.0))
 SFX["fridge_stop"]["norm"] = ("match", "fridge_hum_loop")
 SFX["fridge_stop"]["note"] = "level-matched to fridge_hum_loop"
 
-KENNEY_MAP = {f"foot_wood_{k + 1}": f"impact/footstep_wood_00{k}.ogg" for k in range(4)}
-KENNEY_MAP.update({f"foot_stone_{k + 1}": f"impact/footstep_concrete_00{k}.ogg" for k in range(4)})
+# Consistent perceived levels for the older one-shots: peak short-window loudness (dsp.loud_max) per category,
+# true peak <= -2 dBTP, moving each clip at most -10/+6 dB from its former -3 dBTP peak level. Sustained, dense
+# sounds come down (a pure 1 kHz beep at -3 dBTP was ~14 dB hotter than a door); clicks rise only as far as the
+# true-peak ceiling allows.
+LOUD = {
+    "ui_hover": -19, "ui_click": -19, "ui_back": -19, "ui_slider_tick": -19, "ui_confirm": -19,
+    "pp_open": -18, "pp_close": -18, "pp_page": -18, "pp_tab": -19, "pp_seam_shimmer": -17,
+    "tear_open_slit": -16, "tear_open_window": -15, "tear_open_door": -14, "tear_seal": -16, "tear_breach": -14,
+    "stamp_hit": -16, "seal_verify": -15, "seal_counterfeit": -15, "stamp_void": -16, "sun_sizzle": -18,
+    "pass_step_1": -17, "pass_step_2": -17, "pass_step_3": -17, "pass_creak_1": -18, "pass_creak_2": -18,
+    "pass_creak_3": -18, "pass_breath": -15, "pass_recoil": -15, "pass_tap": -18, "pass_whisper": -16, "pass_sting": -14,
+    "breath_scared": -17,
+    "grab": -19, "drop_soft": -18, "drop_hard": -17, "place_socket": -18, "dial_click": -19, "lever_clunk": -17,
+    "button_press": -19, "drawer_open": -18, "door_open": -16, "door_close": -16, "glasses_unfold": -19, "case_open": -19,
+    "case_close": -18, "glasses_break": -15, "coin_token": -17, "booth_power": -16, "lantern_place": -18, "drum_hit": -15,
+    "clock_chime": -14, "clock_tick": -20, "phone_buzz": -17, "voicemail_beep": -19, "camera_shutter": -18,
+    "reflection_sting": -14, "skyline_shift": -15,
+}
+for _i, _t in LOUD.items():
+    SFX[_i]["norm"] = ("loud", float(_t), -2.0, (-10.0, 6.0))
+
+sfx_steps.register(reg)
+sfx_body.register(reg)
+sfx_shift.register(reg)
 
 
 # =============================================================================== render
-def finish_oneshot(x, dur, fade_out):
+def finish_oneshot(x, dur, fade_out, trim=False):
     n = N(dur)
-    if x.shape[-1] < n:
-        x = np.concatenate([x, np.zeros(n - x.shape[-1])])
+    if x.shape[-1] < n and not trim:
+        x = np.concatenate([x, np.zeros(x.shape[:-1] + (n - x.shape[-1],))], axis=-1)
     x = x[..., :n]
+    if trim:  # drop the silent tail of a variable-length variant (keep 10 ms past the last audible sample)
+        a = np.max(np.abs(np.atleast_2d(x)), axis=0)
+        last = int(np.nonzero(a > np.max(a) * undb(-60))[0][-1]) if np.any(a > 0) else len(a) - 1
+        x = x[..., :min(len(a), last + N(0.01))]
     x = hp(x, 20, 2)
     return fade(x, 0.0003, fade_out if fade_out else 0.01)
 
 
-def import_kenney(sid, rel):
-    import soundfile as sf
-    from scipy import signal as sg
-    src = os.path.join(KENNEY, rel.replace("/", os.sep))
-    y, sr = sf.read(src, always_2d=True)
-    y = y.mean(axis=1)
-    if sr != SR:
-        g = np.gcd(SR, sr)
-        y = sg.resample_poly(y, SR // g, sr // g)
-    a = np.abs(y)
-    on = int(np.argmax(a > np.max(a) * undb(-40)))
-    y = y[max(on - N(0.002), 0):]
-    y = hp(y - y.mean(), 20, 2)
-    y = fade(y, 0.001, 0.004)
-    return y, sr
-
-
-def main(only):
+def main(only, prefixes=()):
     os.makedirs(OUT, exist_ok=True)
     meta = {}
     if os.path.exists(META):
         with open(META, encoding="utf-8") as fh:
             meta = json.load(fh)
+    for sid in [k for k in meta if k not in SFX]:  # ids no longer generated (e.g. the old Kenney imports)
+        meta.pop(sid)
     gains = {}
-    want = set(only)
+    want = set(only) | {k for k in SFX if any(k.startswith(p) for p in prefixes)}
+    sel = bool(want) or bool(prefixes)
     for sid in list(want):  # a level-matched clip needs its reference rendered too (and vice versa)
         if sid in SFX and SFX[sid]["norm"][0] == "match":
             want.add(SFX[sid]["norm"][1])
@@ -1084,7 +1071,7 @@ def main(only):
     order = sorted(SFX, key=lambda k: 1 if SFX[k]["norm"][0] == "match" else 0)
     for sid in order:
         spec = SFX[sid]
-        if only and sid not in want:
+        if sel and sid not in want:
             continue
         rng = rng_for(sid)
         x = spec["fn"](rng)
@@ -1093,14 +1080,25 @@ def main(only):
                 x = x.mean(axis=0)
             x, rot = rotate_to_zero_crossing(x)
         else:
-            x = finish_oneshot(x, spec["dur"], spec["fade_out"])
-        kind, val = spec["norm"]
+            if x.ndim == 2 and spec["ch"] == 1:
+                x = x.mean(axis=0)
+            x = finish_oneshot(x, spec["dur"], spec["fade_out"], spec["trim"])
+        kind, val = spec["norm"][0], spec["norm"][1]
+        shift_db = None
         if kind == "peak":
             g = undb(val - true_peak_db(x))
             y = x * g
         elif kind == "lufs":
             y = norm_lufs(x, val, tp_max=-3.0, circular=spec["loop"])
             g = float(np.max(np.abs(y)) / (np.max(np.abs(x)) + 1e-12))
+        elif kind == "loud":
+            tp = spec["norm"][2] if len(spec["norm"]) > 2 else -2.0
+            cl = spec["norm"][3] if len(spec["norm"]) > 3 else None
+            gr = spec["norm"][4] if len(spec["norm"]) > 4 else 0.0
+            y, gdb = norm_loud(x, val, tp_max=tp, clamp=cl, max_gr=gr)
+            g = undb(gdb)
+            if cl is not None:  # a re-levelled older clip: how far it moved from the old -3 dBTP peak normalisation
+                shift_db = round(gdb - (-3.0 - true_peak_db(x)), 2)
         else:  # match another clip's gain
             if val not in gains:
                 raise RuntimeError(f"{sid} needs {val} rendered first")
@@ -1113,26 +1111,26 @@ def main(only):
         write_wav(path, y, rng=np.random.default_rng(7))
         m = {"bus": spec["bus"], "loop": spec["loop"], "channels": 1 if y.ndim == 1 else 2,
              "source": SYNTH_SRC, "license": SYNTH_LIC, "norm": list(spec["norm"]), "note": spec["note"],
-             "synth_lufs": None if lufs(y) is None else round(lufs(y), 2), "synth_tp": round(true_peak_db(y), 2)}
+             "group": spec["group"], "desc": spec["desc"], "peak": spec["peak"],
+             "synth_lufs": None if lufs(y) is None else round(lufs(y), 2), "synth_tp": round(true_peak_db(y), 2),
+             "loud_max": round(loud_max(y), 2), "seconds": round(y.shape[-1] / SR, 3)}
+        if shift_db is not None:
+            m["vs_peak3_db"] = shift_db
         if spec["loop"]:
             m["seam"] = seam_report(y)
         meta[sid] = m
-        print(f"{sid:20s} {y.shape[-1] / SR:5.2f}s ch={m['channels']} TP={m['synth_tp']:6.2f} LUFS={m['synth_lufs']}"
+        print(f"{sid:22s} {y.shape[-1] / SR:5.2f}s ch={m['channels']} TP={m['synth_tp']:6.2f} Lmax={m['loud_max']:6.1f}"
+              f" LUFS={m['synth_lufs']}" + (f" d={shift_db:+.1f}" if shift_db is not None else "")
               + (f" seam={m['seam']}" if spec['loop'] else ""), flush=True)
-    for sid, rel in KENNEY_MAP.items():
-        if only and sid not in only:
-            continue
-        y, sr0 = import_kenney(sid, rel)
-        y = norm_peak(y, -3.0)
-        write_wav(os.path.join(OUT, sid + ".wav"), y, rng=np.random.default_rng(7))
-        meta[sid] = {"bus": "SFX", "loop": False, "channels": 1, "source": f"kenney-cc0:{os.path.basename(rel)}",
-                     "license": KENNEY_LIC, "norm": ["peak", -3.0],
-                     "note": f"from {rel} ({sr0} Hz stereo) -> mono downmix, resampled to 48 kHz, onset-trimmed, -3 dBTP",
-                     "synth_lufs": None if lufs(y) is None else round(lufs(y), 2), "synth_tp": round(true_peak_db(y), 2)}
-        print(f"{sid:20s} {len(y) / SR:5.2f}s kenney {rel}", flush=True)
     with open(META, "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=1)
 
 
 if __name__ == "__main__":
-    main(set(sys.argv[1:]))
+    args = sys.argv[1:]
+    pre = []
+    if "--prefix" in args:
+        i = args.index("--prefix")
+        pre = args[i + 1:]
+        args = args[:i]
+    main(set(args), tuple(pre))

@@ -47,6 +47,16 @@ namespace TwelfthStamp
 
         public float HoldRemoveGlasses { get; protected set; }
 
+        // ------------------------------------------------------------------ movement state (arms, breathing, audio)
+        /// <summary>Horizontal speed of the player's body (m/s, smoothed), from the feet's motion each frame.</summary>
+        public float MoveSpeed { get; private set; }
+        /// <summary>True while the player is running (desktop: Shift; VR: stick fully forward). Set by each rig.</summary>
+        public bool Sprinting { get; protected set; }
+        /// <summary>0..1: builds up over sustained running and eases off at rest (breathing, arm pump).</summary>
+        public float Exertion { get; private set; }
+        /// <summary>Raised on each footstep: the floor's surface kind and whether the player was running.</summary>
+        public event System.Action<string, bool> Footstep;
+
         protected void ConfigureCamera(Camera cam)
         {
             cam.nearClipPlane = 0.04f;
@@ -73,6 +83,11 @@ namespace TwelfthStamp
             var feet = Feet;
             var delta = feet - m_LastFeet; delta.y = 0;
             m_LastFeet = feet;
+            float dt = Time.deltaTime;
+            if (dt > 0f && delta.magnitude <= 1.5f)
+                MoveSpeed = Mathf.Lerp(MoveSpeed, delta.magnitude / dt, 1f - Mathf.Exp(-dt * 10f));
+            bool running = Sprinting && MoveSpeed > 2.8f;
+            Exertion = Mathf.Clamp01(Exertion + (running ? dt / 7f : -dt / (MoveSpeed > 0.5f ? 14f : 6f)));
             if (delta.magnitude > 1.5f) return; // teleported
             m_StepDistance += delta.magnitude;
             if (m_StepDistance < stride) return;
@@ -80,7 +95,8 @@ namespace TwelfthStamp
             string surface = "stone";
             if (Physics.Raycast(feet + Vector3.up * 0.4f, Vector3.down, out var hit, 1.2f, Layers.FloorMask | 1, QueryTriggerInteraction.Ignore))
                 surface = Surface.Of(hit.collider);
-            AudioDirector.I?.Play("foot_" + surface + "_" + Random.Range(1, 5), feet, 0.35f, Random.Range(0.94f, 1.06f));
+            AudioDirector.I?.Play("foot_" + surface + "_" + Random.Range(1, 5), feet, Sprinting ? 0.5f : 0.35f, Random.Range(0.94f, 1.06f));
+            Footstep?.Invoke(surface, Sprinting);
         }
     }
 

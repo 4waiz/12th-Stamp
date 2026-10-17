@@ -113,7 +113,7 @@ namespace TwelfthStamp
             if (m_T <= 0f && Time.time - s_LastSound > 0.2f)
             {
                 s_LastSound = Time.time;
-                AudioDirector.I?.Play("pp_seam_shimmer", transform.position + Vector3.up, 0.16f, Random.Range(1.3f, 1.6f));
+                AudioDirector.I?.Play("pp_seam_shimmer", transform.position + Vector3.up, 0.38f, Random.Range(1.3f, 1.6f)); // re-levelled clip is 7.6 dB quieter
             }
             m_T = Mathf.Min(1f, m_T + Time.deltaTime / Mathf.Max(0.05f, Seconds));
             Apply(m_T);
