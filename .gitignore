@@ -73,3 +73,6 @@ Desktop.ini
 
 # ---- Blender auto-backups ----
 *.blend1
+
+# ---- Zipped QA runs (screenshots live in the run folders; archives stay local) ----
+/Docs/QA/*.zip

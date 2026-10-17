@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -595,6 +596,54 @@ namespace TwelfthStamp.EditorTools
             }
             ai.defaultSampleSettings = s;
             ai.loadInBackground = assetPath.Contains("/Voice/") || assetPath.Contains("/Ambience/") || assetPath.Contains("/Music/");
+        }
+    }
+
+    /// <summary>
+    /// Blender models (Resources/Models): records on each mesh how many metres one UV unit spans (area-weighted median over
+    /// its triangles, so a few odd faces don't skew it). Models.Spawn uses it to keep tiling textures at the game's scale.
+    /// </summary>
+    public class TwelfthStampModelRules : AssetPostprocessor
+    {
+        public override uint GetVersion() => 1;
+
+        void OnPostprocessModel(GameObject root)
+        {
+            if (!assetPath.StartsWith("Assets/Resources/Models/")) return;
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                float metres = mf.sharedMesh != null ? MetresPerUv(mf.sharedMesh) : 0f;
+                if (metres > 0f) mf.gameObject.AddComponent<UvDensity>().MetresPerUv = metres;
+            }
+        }
+
+        static float MetresPerUv(Mesh mesh)
+        {
+            var v = mesh.vertices;
+            var uv = mesh.uv;
+            var t = mesh.triangles;
+            if (uv == null || uv.Length != v.Length) return 0f;
+            var tris = new List<(float ratio, float area)>();
+            float total = 0f;
+            for (int i = 0; i < t.Length; i += 3)
+            {
+                Vector3 a = v[t[i]], b = v[t[i + 1]], c = v[t[i + 2]];
+                Vector2 ua = uv[t[i]], ub = uv[t[i + 1]], uc = uv[t[i + 2]];
+                float area = Vector3.Cross(b - a, c - a).magnitude * 0.5f;
+                float uvArea = Mathf.Abs((ub.x - ua.x) * (uc.y - ua.y) - (uc.x - ua.x) * (ub.y - ua.y)) * 0.5f;
+                if (area < 1e-12f || uvArea < 1e-12f) continue;
+                tris.Add((Mathf.Sqrt(area / uvArea), area));
+                total += area;
+            }
+            if (tris.Count == 0) return 0f;
+            tris.Sort((x, y) => x.ratio.CompareTo(y.ratio));
+            float acc = 0f;
+            foreach (var x in tris)
+            {
+                acc += x.area;
+                if (acc >= total * 0.5f) return x.ratio;
+            }
+            return tris[tris.Count - 1].ratio;
         }
     }
 }

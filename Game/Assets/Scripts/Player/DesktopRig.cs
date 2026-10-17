@@ -84,6 +84,13 @@ namespace TwelfthStamp
             m_LastFeet = Feet;
         }
 
+        /// <summary>Tilts the view up or down (story shots frame their subject while input is locked).</summary>
+        public void SetPitch(float pitch)
+        {
+            m_Pitch = Mathf.Clamp(pitch, -82f, 82f);
+            Head.localRotation = Quaternion.Euler(m_Pitch, 0, 0);
+        }
+
         public override void SetPointerMode(bool on)
         {
             m_Pointer = on;

@@ -54,6 +54,17 @@ namespace TwelfthStamp
             MeshFactory.Box("LaneTileL", g, new Vector3(-1.68f, 0.45f, -6.5f), new Vector3(0.04f, 0.9f, 7.5f), zellige, false, 0.6f);
             MeshFactory.Box("LaneTileR", g, new Vector3(1.68f, 0.45f, -6.5f), new Vector3(0.04f, 0.9f, 7.5f), zellige, false, 0.6f);
             MeshFactory.Box("LaneEnd", g, new Vector3(0, 2.5f, -10.3f), new Vector3(3.8f, 5f, 0.3f), terracotta, true, 1.4f);
+            // Covered souk roof: timber beams under a mat of reeds, with thin gaps of evening sky between them.
+            var timber = Mats.Lit(new Color(0.3f, 0.2f, 0.13f), 0.35f, 0f, "wood_dark");
+            var reed = Mats.Lit(new Color(0.62f, 0.5f, 0.32f), 0.15f, 0f, "wood_oak_floor");
+            for (int i = 0; i < 7; i++)
+                MeshFactory.Box("RoofBeam", g, new Vector3(0, 4.32f, -9.9f + i * 1.1f), new Vector3(3.7f, 0.14f, 0.16f), timber, false);
+            for (int i = 0; i < 20; i++)
+                MeshFactory.Box("RoofReed", g, new Vector3(-1.62f + i * 0.17f, 4.43f, -6.6f), new Vector3(0.11f, 0.05f, 7.3f), reed, false, 1f, Quaternion.Euler(0f, 0f, (i % 3 - 1) * 4f));
+            MeshFactory.Box("RoofEdgeL", g, new Vector3(-1.68f, 4.38f, -6.6f), new Vector3(0.08f, 0.2f, 7.4f), timber, false);
+            MeshFactory.Box("RoofEdgeR", g, new Vector3(1.68f, 4.38f, -6.6f), new Vector3(0.08f, 0.2f, 7.4f), timber, false);
+            // A cloth awning over the shop door.
+            MeshFactory.Box("Awning", g, new Vector3(0, 3.62f, -3.45f), new Vector3(1.9f, 0.04f, 0.7f), Mats.Lit(Corrupted ? new Color(0.35f, 0.38f, 0.37f) : new Color(0.55f, 0.16f, 0.12f), 0.2f, 0f, "fabric_linen"), false, 1f, Quaternion.Euler(-14f, 0f, 0f));
             var lantern = MeshFactory.Frustum("StreetLantern", g, new Vector3(0, 3.1f, -6.2f), 0.18f, 0.1f, 0.38f, Mats.Emissive(new Color(0.4f, 0.3f, 0.15f), Corrupted ? new Color(0.3f, 0.5f, 0.45f) : new Color(1.6f, 0.9f, 0.4f)), 8);
             AddPointLight(g, new Vector3(0, 2.9f, -6.2f), Corrupted ? new Color(0.6f, 0.85f, 0.8f) : new Color(1f, 0.7f, 0.4f), 1.6f, 6f);
 
@@ -216,34 +227,57 @@ namespace TwelfthStamp
 
         void Build()
         {
-            var shirt = Mats.Lit(new Color(0.78f, 0.76f, 0.7f), 0.2f, 0f, "fabric_linen");
-            var vest = Mats.Lit(new Color(0.22f, 0.24f, 0.28f), 0.3f, 0f, "fabric_linen");
-            var trousers = Mats.Lit(new Color(0.25f, 0.22f, 0.2f), 0.25f);
-            var skin = Mats.Lit(new Color(0.62f, 0.45f, 0.34f), 0.35f);
-            var hair = Mats.Lit(new Color(0.55f, 0.53f, 0.5f), 0.3f);
+            // An old shopkeeper in a brown wool djellaba with a cream cap, grey beard and reading glasses.
+            var robe = Mats.Lit(new Color(0.42f, 0.29f, 0.19f), 0.15f, 0f, "fabric_linen");
+            var trim = Mats.Lit(new Color(0.8f, 0.66f, 0.4f), 0.3f, 0f, "fabric_linen");
+            var cream = Mats.Lit(new Color(0.9f, 0.87f, 0.8f), 0.2f, 0f, "fabric_linen");
+            var skin = Mats.Lit(new Color(0.6f, 0.43f, 0.32f), 0.35f);
+            var hair = Mats.Lit(new Color(0.66f, 0.64f, 0.6f), 0.3f);
+            var dark = Mats.Lit(new Color(0.04f, 0.035f, 0.03f), 0.6f);
             var metal = Mats.Lit(new Color(0.6f, 0.6f, 0.62f), 0.7f, 0.9f);
             m_Body = new GameObject("Body").transform;
             m_Body.SetParent(transform, false);
-            MeshFactory.Frustum("Legs", m_Body, Vector3.zero, 0.17f, 0.16f, 0.9f, trousers, 12);
-            MeshFactory.Frustum("Torso", m_Body, new Vector3(0, 0.88f, 0), 0.19f, 0.21f, 0.55f, shirt, 14);
-            MeshFactory.Frustum("Vest", m_Body, new Vector3(0, 0.9f, 0), 0.205f, 0.22f, 0.45f, vest, 14);
+
+            // Djellaba: one long robe from hem to shoulders, rounded shoulders, an embroidered front seam, the hood
+            // hanging down the back.
+            MeshFactory.Frustum("Robe", m_Body, Vector3.zero, 0.3f, 0.2f, 1.45f, robe, 20);
+            var shoulders = MeshFactory.Sphere("Shoulders", m_Body, new Vector3(0, 1.42f, 0), 1f, robe, 16, 10);
+            shoulders.transform.localScale = new Vector3(0.25f, 0.085f, 0.16f);
+            MeshFactory.Box("FrontTrim", m_Body, new Vector3(0, 0.9f, 0.241f), new Vector3(0.045f, 1.08f, 0.012f), trim, false, 1f, Quaternion.Euler(-3.9f, 0f, 0f));
+            MeshFactory.Box("CollarTrim", m_Body, new Vector3(0, 1.47f, 0.07f), new Vector3(0.16f, 0.025f, 0.03f), trim, false);
+            var hood = MeshFactory.Sphere("Hood", m_Body, new Vector3(0, 1.47f, -0.13f), 1f, robe, 14, 10);
+            hood.transform.localScale = new Vector3(0.15f, 0.13f, 0.09f);
+            MeshFactory.Frustum("HoodTip", m_Body, new Vector3(0, 1.18f, -0.17f), 0.01f, 0.07f, 0.24f, robe, 10);
+
             m_Head = new GameObject("Head").transform;
             m_Head.SetParent(m_Body, false);
             m_Head.localPosition = new Vector3(0, 1.55f, 0);
-            MeshFactory.Cylinder("Neck", m_Body, new Vector3(0, 1.42f, 0), 0.055f, 0.1f, skin, 10, false);
-            var head = MeshFactory.Sphere("HeadShape", m_Head, new Vector3(0, 0.1f, 0), 1f, skin, 16, 12);
+            MeshFactory.Cylinder("Neck", m_Body, new Vector3(0, 1.42f, 0), 0.05f, 0.12f, skin, 10, false);
+            var head = MeshFactory.Sphere("HeadShape", m_Head, new Vector3(0, 0.1f, 0), 1f, skin, 18, 14);
             head.transform.localScale = new Vector3(0.1f, 0.125f, 0.11f);
-            var cap = MeshFactory.Sphere("Hair", m_Head, new Vector3(0, 0.15f, -0.01f), 1f, hair, 14, 10);
-            cap.transform.localScale = new Vector3(0.105f, 0.09f, 0.11f);
-            var beard = MeshFactory.Sphere("Beard", m_Head, new Vector3(0, 0.03f, 0.04f), 1f, hair, 12, 8);
-            beard.transform.localScale = new Vector3(0.075f, 0.06f, 0.07f);
-            // Reading glasses perched on the nose (a nod to his trade).
+            var hairBack = MeshFactory.Sphere("Hair", m_Head, new Vector3(0, 0.12f, -0.02f), 1f, hair, 14, 10);
+            hairBack.transform.localScale = new Vector3(0.104f, 0.085f, 0.1f);
+            MeshFactory.Cylinder("Cap", m_Head, new Vector3(0, 0.17f, -0.005f), 0.099f, 0.065f, cream, 20, false);
+            // Face: brows, eyes, nose, moustache and a full grey beard.
+            foreach (var side in new[] { -1f, 1f })
+            {
+                MeshFactory.Sphere("Eye", m_Head, new Vector3(side * 0.033f, 0.115f, 0.094f), 0.011f, dark, 8, 6);
+                MeshFactory.Box("Brow", m_Head, new Vector3(side * 0.034f, 0.139f, 0.097f), new Vector3(0.034f, 0.009f, 0.012f), hair, false, 1f, Quaternion.Euler(0f, 0f, side * -8f));
+            }
+            var nose = MeshFactory.Sphere("Nose", m_Head, new Vector3(0, 0.094f, 0.108f), 1f, skin, 10, 8);
+            nose.transform.localScale = new Vector3(0.017f, 0.027f, 0.022f);
+            MeshFactory.Box("Moustache", m_Head, new Vector3(0, 0.07f, 0.1f), new Vector3(0.052f, 0.013f, 0.016f), hair, false);
+            var beard = MeshFactory.Sphere("Beard", m_Head, new Vector3(0, 0.02f, 0.045f), 1f, hair, 14, 10);
+            beard.transform.localScale = new Vector3(0.082f, 0.08f, 0.072f);
+            // Reading glasses perched low on the nose (a nod to his trade).
             var gl = new MeshBuilder();
-            gl.AddTorus(new Vector3(-0.035f, 0, 0), 0.02f, 0.003f, 16, 4, Quaternion.Euler(90, 0, 0));
-            gl.AddTorus(new Vector3(0.035f, 0, 0), 0.02f, 0.003f, 16, 4, Quaternion.Euler(90, 0, 0));
-            MeshFactory.FromBuilder("ReadingGlasses", gl, metal, m_Head).transform.localPosition = new Vector3(0, 0.1f, 0.105f);
-            m_ArmL = Arm("ArmL", new Vector3(-0.24f, 1.36f, 0), shirt, skin);
-            m_ArmR = Arm("ArmR", new Vector3(0.24f, 1.36f, 0), shirt, skin);
+            gl.AddTorus(new Vector3(-0.034f, 0, 0), 0.02f, 0.0028f, 16, 4, Quaternion.Euler(90, 0, 0));
+            gl.AddTorus(new Vector3(0.034f, 0, 0), 0.02f, 0.0028f, 16, 4, Quaternion.Euler(90, 0, 0));
+            MeshFactory.FromBuilder("ReadingGlasses", gl, metal, m_Head).transform.localPosition = new Vector3(0, 0.1f, 0.108f);
+            MeshFactory.Box("GlassesBridge", m_Head, new Vector3(0, 0.103f, 0.112f), new Vector3(0.03f, 0.004f, 0.004f), metal, false);
+
+            m_ArmL = Arm("ArmL", new Vector3(-0.24f, 1.38f, 0), robe, skin);
+            m_ArmR = Arm("ArmR", new Vector3(0.24f, 1.38f, 0), robe, skin);
             MeshFactory.NoShadows(gameObject);
             foreach (var r in GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         }
@@ -254,9 +288,10 @@ namespace TwelfthStamp
             t.SetParent(m_Body, false);
             t.localPosition = shoulder;
             var b = new MeshBuilder();
-            b.AddFrustum(Vector3.zero, 0.05f, 0.055f, 0.55f, 10);
+            b.AddFrustum(Vector3.zero, 0.08f, 0.06f, 0.55f, 12); // wide djellaba sleeve
             MeshFactory.FromBuilder("Sleeve", b, sleeve, t).transform.localPosition = new Vector3(0, -0.55f, 0);
-            MeshFactory.Sphere("Hand", t, new Vector3(0, -0.6f, 0), 0.045f, skin);
+            var hand = MeshFactory.Sphere("Hand", t, new Vector3(0, -0.6f, 0), 1f, skin, 10, 8);
+            hand.transform.localScale = new Vector3(0.042f, 0.055f, 0.03f);
             return t;
         }
 

@@ -88,7 +88,11 @@ namespace TwelfthStamp
         }
 
         /// <summary>Chapters that switch these off (prologue, homecoming, ending) must never leak into the next run.</summary>
-        void ResetChapterGates() { TearsAllowed = true; ThreatAllowed = true; ShowVitality = true; }
+        void ResetChapterGates()
+        {
+            TearsAllowed = true; ThreatAllowed = true; ShowVitality = true;
+            if (Game.Passport != null) Game.Passport.Available = true; // the opening puts it away; never leave it locked
+        }
 
         IEnumerator RunCampaign()
         {
@@ -96,12 +100,7 @@ namespace TwelfthStamp
             ResetChapterGates();
             MenuSystem.I?.HideAll();
             var c = Game.Campaign;
-            if (!c.HasFlag(StoryFlags.PrologueDone) && CellManager.Factory.ContainsKey(CellId.ShopNormal))
-            {
-                yield return Prologue.Run();
-                if (!InCampaign) yield break;
-            }
-            c.SetFlag(StoryFlags.PrologueDone);
+            // The story opens at home; the Marrakech shop is a flashback inside the homecoming (PrologueChapter).
             if (!c.HasFlag(StoryFlags.GlassesWorn) && CellManager.Factory.ContainsKey(CellId.ApartmentNormal))
             {
                 yield return Homecoming.Run();

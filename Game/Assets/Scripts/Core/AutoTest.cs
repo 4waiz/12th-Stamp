@@ -244,71 +244,42 @@ namespace TwelfthStamp
 
         IEnumerator StoryFlow()
         {
-            Note("--- Story: shop prologue -> homecoming -> corruption -> UAE tutorial -> Egypt ---");
+            Note("--- Story: home -> the bag -> Marrakech flashback -> the glasses -> the Margin -> UAE tutorial -> Egypt ---");
             Game.Story.StopAllCoroutines();
             MenuSystem.I.HideAll();
             Game.Story.StartNewGame();
-            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ShopNormal && !Game.Story.Busy, 20f, "new story starts outside the Marrakech shop");
-            yield return new WaitForSeconds(2f);
-            yield return Shot("20_shop_exterior");
-            var shop = (ShopCell)Game.Cells.Active;
-            var hand = Game.Rig.MainHand;
-            Game.Rig.PlaceAt(shop.CounterTop.position + new Vector3(0, -1.04f, -1.1f), 0f);
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal && !Game.Story.Busy, 20f, "new story starts at home in Abu Dhabi");
             yield return new WaitForSeconds(1.5f);
-            Check(shop.Keeper != null, "shopkeeper present behind the counter");
-            yield return Shot("21_shop_interior");
-            var props = shop.transform.Find("PrologueProps");
-            var postcard = props.GetComponentsInChildren<Grabbable>().FirstOrDefault(g => g.ItemId == "postcard");
-            hand.Grab(postcard);
-            Game.Passport.Open(HandSide.Desktop);
-            yield return new WaitForSeconds(0.8f);
-            Game.Passport.Close();
-            hand.Drop();
-            var glasses = props.GetComponentsInChildren<Grabbable>().FirstOrDefault(g => g.ItemId == "glasses");
-            hand.Grab(glasses);
-            yield return new WaitForSeconds(3f);
-            hand.Drop();
-            var token = props.GetComponentsInChildren<Grabbable>().FirstOrDefault(g => g.ItemId == "festival_token");
-            var tray = FindIn<Socket>(props, "TraySocket");
-            yield return WaitUntil(() => tray.Usable, 6f, "payment step reached");
-            hand.Grab(token);
-            hand.PlaceInto(tray);
-            Check(tray.Current == token, "festival token placed in the brass tray");
-            var caseSocket = props.GetComponentsInChildren<Socket>(true).FirstOrDefault(s => s.name == "CaseSocket");
-            yield return WaitUntil(() => caseSocket.Usable, 8f, "case step reached");
-            hand.Grab(glasses);
-            hand.PlaceInto(caseSocket);
-            Check(caseSocket.Current == glasses, "glasses put in their case (not worn)");
-            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.PrologueDone), 5f, "prologue complete");
-
-            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal && !Game.Story.Busy, 20f, "travel home to the Abu Dhabi apartment");
-            yield return new WaitForSeconds(1.5f);
-            yield return Shot("22_home_arrival");
+            yield return Shot("20_home_bag");
             var apt = (ApartmentCell)Game.Cells.Active;
-            var hp = apt.transform.Find("HomecomingProps");
-            foreach (var id in new[] { "camera", "passport", "glasses_case" })
+            var hand = Game.Rig.MainHand;
+            Interactable bag = null;
+            yield return WaitUntil(() => (bag = apt.Suitcase.GetComponent<Interactable>()) != null, 20f, "voicemail plays by itself, then the bag can be gone through");
+            Check(Game.Campaign.HasFlag(StoryFlags.HomeArrived), "home arrival recorded");
+            if (bag != null) bag.Use(hand);
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ShopNormal, 12f, "the glasses case brings back Marrakech (flashback)");
+            Check(Game.Campaign.HasFlag(StoryFlags.Unpacked), "the bag was gone through");
+            Check(Game.InputLocked, "the flashback is a story: the player does not walk or act");
+            yield return new WaitForSeconds(3f);
+            yield return Shot("21_flashback_lane");
+            var shop = (ShopCell)Game.Cells.Active;
+            yield return WaitUntil(() => Game.Rig.Feet.z > shop.DoorPoint.position.z + 0.5f, 25f, "the memory moves inside the shop");
+            yield return new WaitForSeconds(1.2f);
+            yield return Shot("22_flashback_shopkeeper");
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.PrologueDone), 70f, "the purchase is remembered to the end");
+            Check(Game.Campaign.HasFlag(StoryFlags.ShopPurchased), "the glasses were bought in Marrakech");
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal && !Game.InputLocked, 8f, "back home in the present");
+            Interactable wear = null;
+            yield return WaitUntil(() =>
             {
-                var item = hp.GetComponentsInChildren<Grabbable>().FirstOrDefault(g => g.ItemId == id);
-                var spot = FindIn<Socket>(hp, "Spot_" + id);
-                hand.Grab(item);
-                hand.PlaceInto(spot);
-                yield return null;
-            }
-            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.Unpacked), 3f, "unpacked camera, passport and case onto the table");
-            yield return new WaitForSeconds(2.5f);
-            var phone = apt.PhoneRoot.GetComponent<Interactable>();
-            Check(phone != null, "phone becomes interactive (voicemail)");
-            if (phone != null) phone.Use(hand);
-            yield return new WaitForSeconds(5f);
-            yield return Shot("23_home_voicemail");
-            var caseOpen = hp.GetComponentsInChildren<Interactable>().FirstOrDefault(i => i.name == "CaseOpenHandle");
-            Check(caseOpen != null, "glasses case can be opened");
-            if (caseOpen != null) caseOpen.Use(hand);
+                var hp = apt.transform.Find("HomecomingProps");
+                wear = hp != null ? hp.GetComponentsInChildren<Interactable>().FirstOrDefault(i => i.Prompt == "Put on the glasses") : null;
+                return wear != null;
+            }, 8f, "the case opens and the glasses are ready");
             yield return new WaitForSeconds(0.6f);
-            var homeGlasses = hp.GetComponentsInChildren<Grabbable>(true).FirstOrDefault(g => g.ItemId == "glasses");
-            Check(homeGlasses != null, "glasses taken out of the case");
-            if (homeGlasses != null) { hand.Grab(homeGlasses); yield return new WaitForSeconds(0.5f); homeGlasses.OnActivate?.Invoke(homeGlasses, hand); }
-            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.GlassesWorn), 4f, "glasses worn (safe virtual interaction)");
+            yield return Shot("23_home_glasses");
+            if (wear != null) wear.Use(hand);
+            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.GlassesWorn), 4f, "glasses put on (the one action at home)");
             yield return new WaitForSeconds(9f);
             yield return Shot("24_reflection_wrong");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentCorrupt && Game.Cells.Active.Encounter.Entered, 20f, "the apartment becomes the Margin copy in place");

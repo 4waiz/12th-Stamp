@@ -12,36 +12,16 @@ namespace TwelfthStamp
         static Material CaseNavy => Mats.Lit(new Color(0.08f, 0.1f, 0.2f), 0.38f, 0f, "leather_navy");
         static Material CaseLining => Mats.Lit(new Color(0.88f, 0.84f, 0.74f), 0.15f, 0f, "fabric_linen");
         static Material CaseBrass => Mats.Lit(new Color(0.7f, 0.52f, 0.26f), 0.65f, 0.9f);
+        /// <summary>Glossy dark glass that stays opaque (camera and phone lenses), so the prop still shows through a tear.</summary>
+        static Material DarkGlass => Mats.Lit(new Color(0.03f, 0.04f, 0.05f), 0.95f, 0.2f);
 
         // ------------------------------------------------------------------ Blender models (optional)
         /// <summary>
-        /// Instantiates Resources/Models/&lt;name&gt; when it exists (modelled in Blender: Art/Models/MODELS.md) and swaps its
-        /// TS_* material slots for the game's own materials. Those models face Unity +Z while the procedural props face
-        /// -Z, hence the 180 degree turn. Returns null when the model is missing, so callers keep the procedural mesh.
+        /// Resources/Models/&lt;name&gt; with its TS_* slots on the game's materials, turned 180 degrees to face -Z like the
+        /// procedural props (see <see cref="Models.Spawn(string, Transform, System.Func{string, Material}, Vector3, float, float)"/>).
+        /// Returns null when the model is missing, so callers keep the procedural mesh.
         /// </summary>
-        static GameObject Model(string name, Transform parent, System.Func<string, Material> slot)
-        {
-            var prefab = Resources.Load<GameObject>("Models/" + name);
-            if (prefab == null) return null;
-            var go = Object.Instantiate(prefab, parent, false);
-            go.name = "Model_" + name;
-            go.transform.localPosition = Vector3.zero;
-            go.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-            go.transform.localScale = Vector3.one;
-            foreach (var r in go.GetComponentsInChildren<Renderer>(true))
-            {
-                var mats = r.sharedMaterials;
-                for (int i = 0; i < mats.Length; i++)
-                {
-                    if (mats[i] == null) continue;
-                    var m = slot(mats[i].name);
-                    if (m != null) mats[i] = m;
-                }
-                r.sharedMaterials = mats;
-            }
-            foreach (var c in go.GetComponentsInChildren<Collider>(true)) Object.Destroy(c);
-            return go;
-        }
+        static GameObject Model(string name, Transform parent, System.Func<string, Material> slot) => Models.Spawn(name, parent, slot);
 
         static Material GlassesSlot(string slot)
         {
@@ -183,9 +163,16 @@ namespace TwelfthStamp
             var cover = Tex.Art("passport_cover");
             var navy = Mats.Lit(new Color(0.08f, 0.1f, 0.2f), 0.35f, 0f, "leather_navy");
             var paper = Mats.Lit(new Color(0.92f, 0.89f, 0.8f), 0.15f, 0f, "paper_ivory");
-            MeshFactory.Box("Cover", root.transform, new Vector3(0, 0.006f, 0), new Vector3(0.105f, 0.012f, 0.148f), navy, false);
-            MeshFactory.Box("Pages", root.transform, new Vector3(0.002f, 0.006f, 0), new Vector3(0.1f, 0.0105f, 0.143f), paper, false);
-            if (cover != null) MeshFactory.Quad("CoverArt", root.transform, 0.104f, 0.147f, Mats.Printed(cover, Color.white, 0.3f), new Vector3(0, 0.0122f, 0), Quaternion.Euler(90, 0, 0));
+            // The model stands upright, cover toward +Z, spine on its origin. Lay it on its back with the head of the cover
+            // toward +Z and centre it, like the procedural booklet. Its raised gold emblem replaces the printed cover art.
+            var model = Models.Spawn("Passport_Closed", root.transform, Models.Slots(("TS_LeatherNavy", navy), ("TS_Paper", paper), ("TS_Gold", CaseBrass)),
+                new Vector3(-0.05425f, 0.0043f, 0f), Quaternion.Euler(-90f, 180f, 0f), Vector3.one);
+            if (model == null)
+            {
+                MeshFactory.Box("Cover", root.transform, new Vector3(0, 0.006f, 0), new Vector3(0.105f, 0.012f, 0.148f), navy, false);
+                MeshFactory.Box("Pages", root.transform, new Vector3(0.002f, 0.006f, 0), new Vector3(0.1f, 0.0105f, 0.143f), paper, false);
+                if (cover != null) MeshFactory.Quad("CoverArt", root.transform, 0.104f, 0.147f, Mats.Printed(cover, Color.white, 0.3f), new Vector3(0, 0.0122f, 0), Quaternion.Euler(90, 0, 0));
+            }
             var col = root.AddComponent<BoxCollider>();
             col.center = new Vector3(0, 0.006f, 0); col.size = new Vector3(0.11f, 0.02f, 0.15f);
             return root;
@@ -197,11 +184,15 @@ namespace TwelfthStamp
             root.transform.SetParent(parent, false);
             var leather = Mats.Lit(new Color(0.06f, 0.06f, 0.065f), 0.35f, 0f, "leather_navy");
             var chrome = Mats.Lit(new Color(0.75f, 0.76f, 0.78f), 0.85f, 1f, "metal_brushed");
-            MeshFactory.Box("Body", root.transform, new Vector3(0, 0.04f, 0), new Vector3(0.14f, 0.08f, 0.04f), leather, false);
-            MeshFactory.Box("TopPlate", root.transform, new Vector3(0, 0.085f, 0), new Vector3(0.14f, 0.012f, 0.04f), chrome, false);
-            MeshFactory.Cylinder("Lens", root.transform, new Vector3(0, 0.04f, -0.02f), 0.024f, 0.045f, chrome, 20, false).transform.localRotation = Quaternion.Euler(-90, 0, 0);
-            MeshFactory.Cylinder("Glass", root.transform, new Vector3(0, 0.04f, -0.066f), 0.018f, 0.002f, Mats.Glass(new Color(0.2f, 0.25f, 0.3f, 0.8f)), 20, false).transform.localRotation = Quaternion.Euler(-90, 0, 0);
-            MeshFactory.Cylinder("Dial", root.transform, new Vector3(0.045f, 0.091f, 0), 0.01f, 0.008f, chrome, 12, false);
+            // Lenses and finder windows read as dark glass from outside (opaque, so the camera still shows through a tear).
+            if (Model("VintageCamera", root.transform, Models.Slots(("TS_Leather", leather), ("TS_Chrome", chrome), ("TS_Glass", DarkGlass))) == null)
+            {
+                MeshFactory.Box("Body", root.transform, new Vector3(0, 0.04f, 0), new Vector3(0.14f, 0.08f, 0.04f), leather, false);
+                MeshFactory.Box("TopPlate", root.transform, new Vector3(0, 0.085f, 0), new Vector3(0.14f, 0.012f, 0.04f), chrome, false);
+                MeshFactory.Cylinder("Lens", root.transform, new Vector3(0, 0.04f, -0.02f), 0.024f, 0.045f, chrome, 20, false).transform.localRotation = Quaternion.Euler(-90, 0, 0);
+                MeshFactory.Cylinder("Glass", root.transform, new Vector3(0, 0.04f, -0.066f), 0.018f, 0.002f, Mats.Glass(new Color(0.2f, 0.25f, 0.3f, 0.8f)), 20, false).transform.localRotation = Quaternion.Euler(-90, 0, 0);
+                MeshFactory.Cylinder("Dial", root.transform, new Vector3(0.045f, 0.091f, 0), 0.01f, 0.008f, chrome, 12, false);
+            }
             var col = root.AddComponent<BoxCollider>();
             col.center = new Vector3(0, 0.045f, -0.01f); col.size = new Vector3(0.145f, 0.095f, 0.09f);
             return root;
@@ -224,10 +215,14 @@ namespace TwelfthStamp
             var root = new GameObject("FestivalToken");
             root.transform.SetParent(parent, false);
             var brass = Mats.Lit(new Color(0.78f, 0.6f, 0.3f), 0.7f, 0.95f, "metal_brushed");
-            MeshFactory.Cylinder("Coin", root.transform, Vector3.zero, 0.016f, 0.003f, brass, 24, false);
-            var ring = new MeshBuilder();
-            ring.AddTorus(new Vector3(0, 0.003f, 0), 0.012f, 0.0012f, 24, 4, Quaternion.identity);
-            MeshFactory.FromBuilder("Emboss", ring, brass, root.transform);
+            // The model coin stands on its edge, obverse toward +Z: lay it flat, obverse up, resting on the root.
+            if (Models.Spawn("FestivalToken", root.transform, Models.Slots(("TS_Brass", brass)), new Vector3(0f, 0.0013f, 0f), Quaternion.Euler(-90f, 0f, 0f), Vector3.one) == null)
+            {
+                MeshFactory.Cylinder("Coin", root.transform, Vector3.zero, 0.016f, 0.003f, brass, 24, false);
+                var ring = new MeshBuilder();
+                ring.AddTorus(new Vector3(0, 0.003f, 0), 0.012f, 0.0012f, 24, 4, Quaternion.identity);
+                MeshFactory.FromBuilder("Emboss", ring, brass, root.transform);
+            }
             var col = root.AddComponent<SphereCollider>();
             col.radius = 0.03f;
             return root;
@@ -237,19 +232,49 @@ namespace TwelfthStamp
         {
             var root = new GameObject("Phone");
             root.transform.SetParent(parent, false);
-            MeshFactory.Box("Body", root.transform, new Vector3(0, 0.004f, 0), new Vector3(0.075f, 0.008f, 0.155f), Mats.Lit(new Color(0.05f, 0.05f, 0.06f), 0.85f, 0.3f), false);
+            var body = Mats.Lit(new Color(0.05f, 0.05f, 0.06f), 0.85f, 0.3f);
             screen = Mats.UnlitInstance(new Color(0.02f, 0.02f, 0.025f, 1f), null, false, 1f);
-            MeshFactory.Quad("Screen", root.transform, 0.068f, 0.145f, screen, new Vector3(0, 0.0085f, 0), Quaternion.Euler(90, 0, 0));
+            // The model phone stands upright, screen toward +Z: lay it on its back, screen up and its top toward +Z like the
+            // procedural phone, with the frame (not the camera bump) on the table. The screen keeps the animated material.
+            var model = Models.Spawn("Phone", root.transform, Models.Slots(("TS_MetalDark", body), ("TS_Glass", DarkGlass)),
+                new Vector3(0f, 0.0056f, 0f), Quaternion.Euler(-90f, 180f, 0f), Vector3.one);
+            var display = Models.Child(model, "Screen")?.GetComponent<Renderer>();
+            if (display != null)
+            {
+                display.sharedMaterial = screen;
+                display.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            else
+            {
+                if (model != null) Object.DestroyImmediate(model);
+                MeshFactory.Box("Body", root.transform, new Vector3(0, 0.004f, 0), new Vector3(0.075f, 0.008f, 0.155f), body, false);
+                MeshFactory.Quad("Screen", root.transform, 0.068f, 0.145f, screen, new Vector3(0, 0.0085f, 0), Quaternion.Euler(90, 0, 0));
+            }
             var col = root.AddComponent<BoxCollider>();
             col.size = new Vector3(0.08f, 0.02f, 0.16f);
             return root;
+        }
+
+        /// <summary>
+        /// The modelled portable radio for New York's noisemaker (and the one carried to Berlin), on a root whose origin is
+        /// the bottom centre and whose front faces -Z. False when the model is missing: build the procedural one.
+        /// </summary>
+        public static bool NoisemakerModel(Transform root)
+        {
+            var leather = Mats.Lit(new Color(0.5f, 0.35f, 0.2f), 0.4f, 0f, "leather_navy");
+            var chrome = Mats.Lit(new Color(0.75f, 0.7f, 0.6f), 0.6f, 0.9f, "metal_brushed");
+            var dial = Mats.Lit(new Color(0.86f, 0.79f, 0.62f), 0.35f);
+            var cover = Mats.Glass(new Color(0.7f, 0.75f, 0.75f, 0.18f));
+            return Model("Noisemaker", root, Models.Slots(("TS_Leather", leather), ("TS_Chrome", chrome), ("TS_EmissiveWarm", dial), ("TS_Glass", cover))) != null;
         }
 
         /// <summary>Make a prop grabbable (adds rigidbody, hold pose).</summary>
         public static Grabbable MakeGrabbable(GameObject go, string itemId, string prompt, bool essential = false)
         {
             if (go.GetComponent<Collider>() == null) go.AddComponent<BoxCollider>();
-            var rb = go.GetComponent<Rigidbody>() ?? go.AddComponent<Rigidbody>();
+            // Not `??`: in the editor a missing component comes back as a fake null that `??` does not catch.
+            var rb = go.GetComponent<Rigidbody>();
+            if (rb == null) rb = go.AddComponent<Rigidbody>();
             rb.isKinematic = true;
             rb.mass = 0.3f;
             var g = go.AddComponent<Grabbable>();

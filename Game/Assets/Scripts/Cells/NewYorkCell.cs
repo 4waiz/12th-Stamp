@@ -89,10 +89,13 @@ namespace TwelfthStamp
             var noise = new GameObject("Noisemaker");
             noise.transform.SetParent(booth, false);
             noise.transform.localPosition = new Vector3(-0.35f, 1.04f, -0.45f);
-            MeshFactory.Box("Body", noise.transform, new Vector3(0, 0.07f, 0), new Vector3(0.22f, 0.14f, 0.09f), Mats.Lit(new Color(0.5f, 0.35f, 0.2f), 0.4f, 0f, "leather_navy"), false);
-            MeshFactory.Box("Grille", noise.transform, new Vector3(-0.04f, 0.07f, -0.047f), new Vector3(0.11f, 0.1f, 0.005f), Mats.Lit(new Color(0.75f, 0.7f, 0.6f), 0.6f, 0.9f, "metal_brushed"), false);
-            MeshFactory.Cylinder("Dial", noise.transform, new Vector3(0.06f, 0.07f, -0.05f), 0.025f, 0.01f, Mats.Lit(new Color(0.1f, 0.1f, 0.1f), 0.5f), 12, false).transform.localRotation = Quaternion.Euler(-90, 0, 0);
-            MeshFactory.Cylinder("Antenna", noise.transform, new Vector3(0.09f, 0.14f, 0), 0.003f, 0.25f, Mats.Lit(new Color(0.7f, 0.7f, 0.72f), 0.8f, 1f), 6, false);
+            if (!PropLibrary.NoisemakerModel(noise.transform))
+            {
+                MeshFactory.Box("Body", noise.transform, new Vector3(0, 0.07f, 0), new Vector3(0.22f, 0.14f, 0.09f), Mats.Lit(new Color(0.5f, 0.35f, 0.2f), 0.4f, 0f, "leather_navy"), false);
+                MeshFactory.Box("Grille", noise.transform, new Vector3(-0.04f, 0.07f, -0.047f), new Vector3(0.11f, 0.1f, 0.005f), Mats.Lit(new Color(0.75f, 0.7f, 0.6f), 0.6f, 0.9f, "metal_brushed"), false);
+                MeshFactory.Cylinder("Dial", noise.transform, new Vector3(0.06f, 0.07f, -0.05f), 0.025f, 0.01f, Mats.Lit(new Color(0.1f, 0.1f, 0.1f), 0.5f), 12, false).transform.localRotation = Quaternion.Euler(-90, 0, 0);
+                MeshFactory.Cylinder("Antenna", noise.transform, new Vector3(0.09f, 0.14f, 0), 0.003f, 0.25f, Mats.Lit(new Color(0.7f, 0.7f, 0.72f), 0.8f, 1f), 6, false);
+            }
             noise.AddComponent<BoxCollider>().size = new Vector3(0.24f, 0.16f, 0.11f);
             Noisemaker = PropLibrary.MakeGrabbable(noise, "noisemaker", "Take the noisemaker", true);
             Noisemaker.ActivatePrompt = "Switch the noisemaker on/off";

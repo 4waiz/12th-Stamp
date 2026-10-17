@@ -4,9 +4,10 @@ using UnityEngine;
 namespace TwelfthStamp
 {
     /// <summary>
-    /// Home in Abu Dhabi: unpack (camera, passport, glasses case), Mum's voicemail, try the glasses on — then the
-    /// room quietly stops being the room: the fridge hum stops, a recorded word repeats, the reflection becomes
-    /// wrong, the skyline separates into layers. Not a jump scare; the Margin arrives by subtraction.
+    /// The story opens at home in Abu Dhabi. Mum's voicemail plays; going through the bag turns up the glasses case,
+    /// which brings back the Marrakech corner shop (a flashback, see PrologueChapter); back in the present the only
+    /// thing left to do is put the glasses on, and the room quietly stops being the room: the fridge hum stops, a
+    /// recorded word repeats, the reflection becomes wrong. Not a jump scare; the Margin arrives by subtraction.
     /// </summary>
     public static class HomecomingChapter
     {
@@ -18,115 +19,129 @@ namespace TwelfthStamp
         public static IEnumerator Run()
         {
             var story = StoryDirector.I;
+            var c = Game.Campaign;
             story.TearsAllowed = false;
             story.ThreatAllowed = false;
             story.ShowVitality = false;
-            Game.Passport.Available = true;
+            Game.Passport?.Close();
+            Game.Passport.Available = false; // the passport matters once the Margin begins
             s_Worn = false;
 
             yield return story.EnterCell(CellId.ApartmentNormal, false, "Home");
             var apt = (ApartmentCell)Game.Cells.Active;
+            // Start beside the open bag, facing it.
+            var bagFront = apt.Suitcase.position + new Vector3(0.05f, 0f, -1.3f);
+            Game.Rig.PlaceAt(new Vector3(bagFront.x, apt.transform.position.y, bagFront.z), Quaternion.LookRotation(apt.Suitcase.position - bagFront).eulerAngles.y);
+            if (Game.Rig is DesktopRig desk) desk.SetPitch(45f);
             Hud.I?.ShowTitleCard("ABU DHABI", "Home", 3.5f);
             Narration.I?.Say("home_01", null, false, null, false, true);
+            c.SetFlag(StoryFlags.HomeArrived);
 
-            // Unpacking: three items in the open suitcase, three spots on the table.
+            // What is still in the bag: the camera, the passport and the glasses case from Marrakech.
             var props = new GameObject("HomecomingProps").transform;
             props.SetParent(apt.transform, false);
-            var cam = PropLibrary.MakeGrabbable(PropLibrary.VintageCamera(props), "camera", "Pick up your camera");
-            cam.transform.position = apt.Suitcase.position + new Vector3(-0.18f, 0.22f, 0.02f);
-            var pass = PropLibrary.MakeGrabbable(PropLibrary.PassportClosed(props), "passport", "Pick up your passport");
-            pass.transform.position = apt.Suitcase.position + new Vector3(0.05f, 0.21f, -0.05f);
+            var cam = PropLibrary.VintageCamera(props).transform;
+            cam.position = apt.Suitcase.position + new Vector3(-0.18f, 0.22f, 0.02f);
+            var pass = PropLibrary.PassportClosed(props).transform;
+            pass.position = apt.Suitcase.position + new Vector3(0.05f, 0.21f, -0.05f);
             var caseGo = PropLibrary.GlassesCase(props, false);
-            var gcase = PropLibrary.MakeGrabbable(caseGo, "glasses_case", "Pick up the glasses case");
-            gcase.transform.position = apt.Suitcase.position + new Vector3(0.22f, 0.21f, 0.05f);
-            foreach (var g in new[] { cam, pass, gcase }) g.SetHome();
-
-            Socket MakeSpot(string id, Vector3 offset, string label)
-            {
-                var go = new GameObject("Spot_" + id);
-                go.transform.SetParent(props, false);
-                go.transform.position = apt.TableTop.position + offset;
-                var col = go.AddComponent<BoxCollider>();
-                col.isTrigger = true; col.size = new Vector3(0.25f, 0.12f, 0.2f); col.center = new Vector3(0, 0.05f, 0);
-                var s = go.AddComponent<Socket>();
-                s.Accepts.Add(id);
-                s.Prompt = label;
-                var outline = MeshFactory.Quad("Outline", go.transform, 0.2f, 0.15f, Mats.Unlit(new Color(0.9f, 0.85f, 0.7f, 0.18f), Tex.Ring, true), new Vector3(0, 0.002f, 0), Quaternion.Euler(90, 0, 0));
-                return s;
-            }
-            var spotCam = MakeSpot("camera", new Vector3(-0.45f, 0f, -0.1f), "Set the camera down");
-            var spotPass = MakeSpot("passport", new Vector3(0.05f, 0f, -0.12f), "Set the passport down");
-            var spotCase = MakeSpot("glasses_case", new Vector3(0.45f, 0f, -0.08f), "Set the glasses case down");
+            caseGo.transform.position = apt.Suitcase.position + new Vector3(0.22f, 0.21f, 0.05f);
+            var hall = new GameObject("HallLight").AddComponent<Light>();
+            hall.transform.SetParent(props, false);
+            hall.transform.position = apt.Suitcase.position + new Vector3(0f, 1.7f, -0.35f);
+            hall.type = LightType.Point; hall.range = 3f; hall.intensity = 1.4f; hall.color = new Color(1f, 0.82f, 0.62f);
+            hall.shadows = LightShadows.Soft;
             apt.Recache();
-            Game.Cells.Active.Recache();
-            Hud.I?.SetObjective("Unpack: set your camera, passport and glasses case on the table.");
-            Tutorial.I?.Begin(TutorialStep.Look, TutorialStep.Move, TutorialStep.Grab);
 
-            while (spotCam.Current == null || spotPass.Current == null || spotCase.Current == null) yield return null;
-            Tutorial.I?.End();
-            Game.Campaign.SetFlag(StoryFlags.Unpacked);
-            Game.SaveNow();
-            yield return new WaitForSeconds(1.2f);
-
-            // The voicemail.
-            var phone = apt.PhoneRoot.gameObject;
+            // Mum's voicemail plays by itself (the Margin will replay it wrong later).
+            yield return new WaitForSeconds(2.5f);
             AudioDirector.I?.Play("phone_buzz", apt.PhoneRoot.position, 0.9f);
-            Hud.I?.ShowCaption("your phone buzzes on the table", 3f);
+            Hud.I?.ShowCaption("your phone buzzes on the table", 2.5f);
             apt.PhoneScreen.SetColor("_Color", new Color(0.55f, 0.75f, 0.85f, 1f));
             apt.PhoneScreen.SetFloat("_Intensity", 1.4f);
-            var phoneUse = phone.AddComponent<Interactable>();
-            phoneUse.Prompt = "Play the voicemail";
-            bool played = false;
-            phoneUse.OnUse = _ =>
-            {
-                AudioDirector.I?.Play("voicemail_beep", apt.PhoneRoot.position, 0.8f);
-                Narration.I?.Say("mom_01", apt.PhoneRoot, false, () => played = true, true);
-                phoneUse.Prompt = "Replay the voicemail";
-            };
-            Hud.I?.SetObjective("Your phone: play the voicemail.");
-            while (!played) yield return null;
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(1.4f);
+            AudioDirector.I?.Play("voicemail_beep", apt.PhoneRoot.position, 0.8f);
+            bool heard = false;
+            Narration.I?.Say("mom_01", apt.PhoneRoot, false, () => heard = true, true);
+            for (float t = 0f; !heard && t < 9f; t += Time.deltaTime) yield return null;
 
-            // The glasses: open the case, take them out.
-            Hud.I?.SetObjective("Open the glasses case and try them on.");
-            spotCase.Current.Usable = false;
-            var handle = new GameObject("CaseOpenHandle");
-            handle.transform.SetParent(caseGo.transform, false);
-            var hcol = handle.AddComponent<BoxCollider>();
-            hcol.isTrigger = true; hcol.size = new Vector3(0.19f, 0.07f, 0.09f); hcol.center = new Vector3(0, 0.025f, 0);
-            var caseOpen = handle.AddComponent<Interactable>();
-            caseOpen.Prompt = "Open the case";
+            // The one thing to do: go through the bag.
+            var bagUse = apt.Suitcase.gameObject.AddComponent<Interactable>();
+            bagUse.Prompt = "Go through your bag";
             bool opened = false;
-            caseOpen.OnUse = _ => { if (opened) return; opened = true; AudioDirector.I?.Play("case_open", caseGo.transform.position, 0.8f); PropLibrary.SetCaseOpen(caseGo, true); };
+            bagUse.OnUse = _ => opened = true;
+            Hud.I?.SetObjective("Go through your bag.", false);
             while (!opened) yield return null;
-            UnityEngine.Object.Destroy(handle);
+            UnityEngine.Object.Destroy(bagUse);
+            Hud.I?.SetObjective("", false);
+
+            // Camera and passport come out and are set aside; then the glasses case, into the light.
+            AudioDirector.I?.Play("grab", apt.Suitcase.position + Vector3.up * 0.3f, 0.8f);
+            yield return Lift(cam, apt.Suitcase.position + new Vector3(-0.62f, 0.02f, -0.15f), Quaternion.Euler(0f, 35f, 0f), 0.6f);
+            yield return Lift(pass, apt.Suitcase.position + new Vector3(-0.5f, 0.01f, -0.42f), Quaternion.Euler(0f, -20f, 0f), 0.6f);
+            var caseSpot = apt.Suitcase.position + new Vector3(0.05f, 0.24f, -0.22f);
+            yield return Lift(caseGo.transform, caseSpot, Quaternion.Euler(0f, 180f, 0f), 0.8f);
+            c.SetFlag(StoryFlags.Unpacked);
+            Game.SaveNow();
+            yield return new WaitForSeconds(0.8f);
+
+            // ...and he remembers where it came from.
+            if (!c.HasFlag(StoryFlags.PrologueDone)) yield return PrologueChapter.Flashback();
+            // Present: he holds the case up in front of him and opens it. The only thing left is to put them on.
+            var head = Game.Rig.Head;
+            var fwd = head.forward; fwd.y = 0f;
+            if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
+            fwd.Normalize();
+            var held = head.position + fwd * 0.55f + Vector3.down * 0.2f;
+            yield return Lift(caseGo.transform, held, Quaternion.LookRotation(fwd, Vector3.up), 0.7f);
+            if (Game.Rig is DesktopRig desk2) desk2.SetPitch(Mathf.Atan2(0.2f, 0.55f) * Mathf.Rad2Deg);
+            var lamp = new GameObject("CaseLight").AddComponent<Light>();
+            lamp.transform.SetParent(props, false);
+            lamp.transform.position = head.position + fwd * 0.25f + Vector3.up * 0.15f;
+            lamp.type = LightType.Point; lamp.range = 1.1f; lamp.intensity = 0.14f; lamp.color = new Color(1f, 0.9f, 0.78f);
+            lamp.shadows = LightShadows.None;
+            yield return new WaitForSeconds(0.4f);
+            AudioDirector.I?.Play("case_open", caseGo.transform.position, 0.8f);
+            PropLibrary.SetCaseOpen(caseGo, true);
             var glassesGo = PropLibrary.Glasses(props, true);
             glassesGo.transform.position = caseGo.transform.position + Vector3.up * 0.03f;
             glassesGo.transform.rotation = caseGo.transform.rotation * Quaternion.Euler(-90, 0, 0);
             var col = glassesGo.AddComponent<BoxCollider>();
-            col.size = new Vector3(0.15f, 0.06f, 0.06f);
-            var glasses = PropLibrary.MakeGrabbable(glassesGo, "glasses", "Take the glasses");
-            glasses.ActivatePrompt = Game.Mode == GameMode.VR ? "Lift them to your face" : "Put on the glasses";
-            glasses.OnActivate = (g, who) => s_Worn = true;
-            glasses.Grabbed += (g, who) => Narration.I?.Say("home_02", null, false, null, false, true);
+            col.size = new Vector3(0.2f, 0.1f, 0.12f); // the whole open case is the target
+            var wear = glassesGo.AddComponent<Interactable>();
+            wear.Prompt = "Put on the glasses";
+            wear.OnUse = _ => s_Worn = true;
             apt.Recache();
             AudioDirector.I?.Play("glasses_unfold", glassesGo.transform.position, 0.7f);
-
-            // Wearing: desktop = use the held item; VR = bring them up close to the eyes (no headset touching).
-            while (!s_Worn)
-            {
-                if (Game.Mode == GameMode.VR && glasses.Holder != null && Vector3.Distance(glasses.transform.position, Game.Rig.Head.position) < 0.2f)
-                    s_Worn = true;
-                yield return null;
-            }
-            yield return WearAndCorrupt(apt, glasses);
+            Narration.I?.Say("home_02", null, false, null, false, true);
+            Hud.I?.SetObjective("Put on the glasses.", false);
+            while (!s_Worn) yield return null;
+            // He sets the empty case back on the bag as the room starts to change.
+            UnityEngine.Object.Destroy(lamp.gameObject);
+            caseGo.transform.position = caseSpot;
+            caseGo.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            PropLibrary.SetCaseOpen(caseGo, false);
+            yield return WearAndCorrupt(apt, glassesGo);
         }
 
-        static IEnumerator WearAndCorrupt(ApartmentCell apt, Grabbable glasses)
+        /// <summary>Moves a prop in a short arc (unpacking happens on its own; the player only watches).</summary>
+        static IEnumerator Lift(Transform t, Vector3 to, Quaternion rot, float seconds)
+        {
+            var from = t.position; var r0 = t.rotation;
+            for (float k = 0f; k < 1f; )
+            {
+                k = Mathf.Min(1f, k + Time.deltaTime / seconds);
+                float e = Mathf.SmoothStep(0f, 1f, k);
+                t.position = Vector3.Lerp(from, to, e) + Vector3.up * Mathf.Sin(e * Mathf.PI) * 0.12f;
+                t.rotation = Quaternion.Slerp(r0, rot, e);
+                yield return null;
+            }
+        }
+
+        static IEnumerator WearAndCorrupt(ApartmentCell apt, GameObject glasses)
         {
             var c = Game.Campaign;
-            if (glasses.Holder != null) glasses.Holder.ForceRelease(false);
-            glasses.gameObject.SetActive(false);
+            glasses.SetActive(false);
             AudioDirector.I?.Play("glasses_unfold", Game.Rig.Head.position, 0.6f);
             Fader.I.FadeTo(0.55f, 0.35f);
             yield return new WaitForSeconds(0.45f);
@@ -160,6 +175,7 @@ namespace TwelfthStamp
             corrupt.RefreshProbe();
             Fader.I.FadeTo(0f, 1.2f);
             c.SetFlag(StoryFlags.SeamRevealed);
+            Game.Passport.Available = true;
             c.MarkVisited(CountryId.UAE); // UAE is verified later, by the encounter
             Game.Passport.Refresh();
             Game.SaveCheckpoint(CellId.ApartmentCorrupt);

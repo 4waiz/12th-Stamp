@@ -97,9 +97,15 @@ namespace TwelfthStamp
             var vs = new GameObject("VoidStamp");
             vs.transform.SetParent(g, false);
             vs.transform.localPosition = new Vector3(-3.2f, 0.92f, -4.5f);
-            MeshFactory.Box("Pad", vs.transform, new Vector3(0, 0.02f, 0), new Vector3(0.11f, 0.04f, 0.07f), Mats.Lit(new Color(0.55f, 0.06f, 0.06f), 0.4f), false);
-            MeshFactory.Cylinder("Handle", vs.transform, new Vector3(0, 0.04f, 0), 0.02f, 0.09f, Mats.Lit(new Color(0.3f, 0.2f, 0.12f), 0.5f, 0f, "wood_dark"), 12, false);
-            MeshFactory.Sphere("Knob", vs.transform, new Vector3(0, 0.15f, 0), 0.03f, Mats.Lit(new Color(0.3f, 0.2f, 0.12f), 0.5f));
+            var ink = Mats.Lit(new Color(0.55f, 0.06f, 0.06f), 0.4f);
+            var stampWood = Mats.Lit(new Color(0.3f, 0.2f, 0.12f), 0.5f, 0f, "wood_dark");
+            // The modelled stamp; its rubber die carries the red ink of the procedural pad.
+            if (Models.Spawn("VoidStamp", vs.transform, Models.Slots(("TS_Rubber", ink), ("TS_WoodDark", stampWood))) == null)
+            {
+                MeshFactory.Box("Pad", vs.transform, new Vector3(0, 0.02f, 0), new Vector3(0.11f, 0.04f, 0.07f), ink, false);
+                MeshFactory.Cylinder("Handle", vs.transform, new Vector3(0, 0.04f, 0), 0.02f, 0.09f, stampWood, 12, false);
+                MeshFactory.Sphere("Knob", vs.transform, new Vector3(0, 0.15f, 0), 0.03f, Mats.Lit(new Color(0.3f, 0.2f, 0.12f), 0.5f));
+            }
             vs.AddComponent<BoxCollider>().size = new Vector3(0.13f, 0.2f, 0.09f);
             VoidStamp = PropLibrary.MakeGrabbable(vs, "void_stamp", "Take the VOID stamp");
             VoidStamp.ActivatePrompt = "Stamp VOID over the forged HOME seal";
@@ -177,8 +183,11 @@ namespace TwelfthStamp
             var go = new GameObject("CarriedNoisemaker");
             go.transform.SetParent(B.transform, false);
             go.transform.position = B.NoisemakerSpot.position;
-            MeshFactory.Box("Body", go.transform, new Vector3(0, 0.07f, 0), new Vector3(0.22f, 0.14f, 0.09f), Mats.Lit(new Color(0.5f, 0.35f, 0.2f), 0.4f, 0f, "leather_navy"), false);
-            MeshFactory.Box("Grille", go.transform, new Vector3(-0.04f, 0.07f, -0.047f), new Vector3(0.11f, 0.1f, 0.005f), Mats.Lit(new Color(0.75f, 0.7f, 0.6f), 0.6f, 0.9f, "metal_brushed"), false);
+            if (!PropLibrary.NoisemakerModel(go.transform))
+            {
+                MeshFactory.Box("Body", go.transform, new Vector3(0, 0.07f, 0), new Vector3(0.22f, 0.14f, 0.09f), Mats.Lit(new Color(0.5f, 0.35f, 0.2f), 0.4f, 0f, "leather_navy"), false);
+                MeshFactory.Box("Grille", go.transform, new Vector3(-0.04f, 0.07f, -0.047f), new Vector3(0.11f, 0.1f, 0.005f), Mats.Lit(new Color(0.75f, 0.7f, 0.6f), 0.6f, 0.9f, "metal_brushed"), false);
+            }
             go.AddComponent<BoxCollider>().size = new Vector3(0.24f, 0.16f, 0.11f);
             m_Noise = PropLibrary.MakeGrabbable(go, "noisemaker", "Take the noisemaker (from New York)", true);
             m_Noise.ActivatePrompt = "Switch the noisemaker on/off";
