@@ -32,8 +32,8 @@ namespace TwelfthStamp
     }
 
     /// <summary>
-    /// Saeed's hand with its shirt cuff and jacket sleeve (and, on the left wrist, his watch): one skinned mesh with four
-    /// materials (skin, jacket, shirt, trim for nails, watch and button), built in code. Desktop arms and VR hands share it.
+    /// Saeed's hand with the sleeve of his white kandura (and, on the left wrist, his watch): one skinned mesh with three
+    /// materials (skin, kandura, trim for nails and watch), built in code. Desktop arms, VR hands and the mirror body share it.
     /// </summary>
     public class HandRig
     {
@@ -115,7 +115,7 @@ namespace TwelfthStamp
 
     /// <summary>
     /// Builds the procedural hand: palm with knuckle heads, three-phalanx fingers (capsule joints that stay closed at any bend,
-    /// a slight waist between joints), thumb, nails with a free edge, wrist, shirt cuff with a button, jacket sleeve, and a
+    /// a slight waist between joints), thumb, nails with a free edge, wrist, the kandura sleeve with its folded cuff, and a
     /// wristwatch on the left. Skin uses generated albedo and normal maps (tendons, veins, knuckle and palm creases, pores).
     /// Geometry is made for a right hand and mirrored for the left. Normals are exact surface normals, normalised without
     /// Unity's small-vector cut-off (millimetre faces stay lit).
@@ -123,7 +123,7 @@ namespace TwelfthStamp
     public static class HandMesh
     {
         internal const int BoneHand = 0, BoneForearm = 1, BoneThumb = 2, BoneFinger = 5, BoneCount = 17, BoneHour = 17, BoneMinute = 18;
-        const int SubSkin = 0, SubJacket = 1, SubShirt = 2, SubTrim = 3;
+        internal const int SubSkin = 0, SubSleeve = 1, SubTrim = 2;
 
         // ------------------------------------------------------------------ dimensions (metres, right hand, wrist space)
         // Fingers: knuckle position, rest splay, phalanx lengths, radii at base / middle joint / end joint / tip.
@@ -160,13 +160,14 @@ namespace TwelfthStamp
         };
         internal const float PalmExponent = 2.7f, PalmCap0 = 0.012f, PalmCap1 = 0.009f;
 
-        // Sleeve profiles along the forearm (z from the wrist towards the elbow, radius), ordered inside -> rolled hem -> outside.
-        static readonly Vector2[] Shirt = { new Vector2(0.07f, 0.0318f), new Vector2(0.016f, 0.0318f), new Vector2(0.0105f, 0.0334f), new Vector2(0.0125f, 0.0352f), new Vector2(0.024f, 0.0358f), new Vector2(0.046f, 0.0366f) };
-        static readonly Vector2[] Jacket =
+        // Kandura sleeve along the forearm (z from the wrist towards the elbow, radius), ordered inside -> rolled hem -> the
+        // folded cuff -> the cuff's top edge stepping down onto the sleeve -> the sleeve loosening towards the elbow.
+        static readonly Vector2[] Kandura =
         {
-            new Vector2(0.09f, 0.0402f), new Vector2(0.034f, 0.0402f), new Vector2(0.0285f, 0.0428f), new Vector2(0.031f, 0.0462f), new Vector2(0.05f, 0.047f),
-            new Vector2(0.068f, 0.0488f), new Vector2(0.084f, 0.0474f), new Vector2(0.115f, 0.0492f), new Vector2(0.165f, 0.0512f), new Vector2(0.215f, 0.0528f),
-            new Vector2(0.252f, 0.0536f), new Vector2(0.28f, 0.0505f), new Vector2(0.297f, 0.042f), new Vector2(0.306f, 0.025f),
+            new Vector2(0.075f, 0.0334f), new Vector2(0.017f, 0.0334f), new Vector2(0.0112f, 0.035f), new Vector2(0.0132f, 0.0371f), new Vector2(0.022f, 0.0378f),
+            new Vector2(0.036f, 0.0381f), new Vector2(0.0392f, 0.0378f), new Vector2(0.0402f, 0.0366f), new Vector2(0.052f, 0.0374f), new Vector2(0.075f, 0.0398f),
+            new Vector2(0.09f, 0.0414f), new Vector2(0.105f, 0.0422f), new Vector2(0.13f, 0.0452f), new Vector2(0.16f, 0.0472f), new Vector2(0.2f, 0.05f),
+            new Vector2(0.24f, 0.0524f), new Vector2(0.268f, 0.0532f), new Vector2(0.288f, 0.0508f), new Vector2(0.3f, 0.043f), new Vector2(0.307f, 0.026f),
         };
 
         // Watch (left wrist, forearm space): dial centre along the arm, case radius; 12 o'clock towards the little-finger side.
@@ -185,10 +186,11 @@ namespace TwelfthStamp
             a0 = Mathf.Lerp(GripAngles.x, FistAngles.x, t); a1 = Mathf.Lerp(GripAngles.y, FistAngles.y, t); a2 = Mathf.Lerp(GripAngles.z, FistAngles.z, t);
         }
 
-        // ------------------------------------------------------------------ materials (four: skin, jacket, shirt, trim)
-        // A faint self-glow (about 6 % of albedo, set as linear values) keeps the hands readable in the darkest rooms.
-        static Material s_Skin, s_Jacket, s_Shirt, s_Trim;
-        static readonly Color JacketTint = new Color(0.52f, 0.57f, 0.74f), ShirtColor = new Color(0.76f, 0.76f, 0.72f);
+        // ------------------------------------------------------------------ materials (three: skin, kandura, trim)
+        // A faint self-glow (about 5-6 % of albedo, set as linear values) keeps the hands readable in the darkest rooms.
+        static Material s_Skin, s_Kandura, s_Trim, s_BodySkin;
+        /// <summary>Off-white kandura cotton (about #EDEBE4) and Saeed's warm light-brown skin (sRGB).</summary>
+        internal static readonly Color KanduraColor = new Color(0.91f, 0.9f, 0.87f), SkinColor = new Color(0.7f, 0.52f, 0.4f);
 
         public static Material SkinMaterial
         {
@@ -204,48 +206,50 @@ namespace TwelfthStamp
                 s_Skin.SetFloat("_Smoothness", 0.36f);
                 s_Skin.SetFloat("_Metallic", 0f);
                 s_Skin.SetTexture("_EmissionMap", HandSkin.Albedo);
-                s_Skin.SetVector("_EmissionColor", new Vector4(0.065f, 0.065f, 0.065f, 1f));
+                s_Skin.SetVector("_EmissionColor", new Vector4(0.06f, 0.06f, 0.06f, 1f));
                 return s_Skin;
             }
         }
 
-        public static Material JacketMaterial
+        /// <summary>The kandura's cotton: a plain off-white base (the linen albedo is too dark to tint up to white) with the
+        /// linen weave as relief. The first-person sleeves, and the robe of the mirror body.</summary>
+        public static Material KanduraMaterial
         {
             get
             {
-                if (s_Jacket != null) return s_Jacket;
-                var albedo = Tex.Albedo("fabric_linen");
+                if (s_Kandura != null) return s_Kandura;
                 var normal = Tex.Normal("fabric_linen");
-                s_Jacket = new Material(Mats.Template(normal != null ? "Lit_NormalEmissive" : "Lit_Emissive")) { name = "TS_HandJacket" };
-                s_Jacket.SetColor("_BaseColor", JacketTint);
-                if (albedo != null) s_Jacket.SetTexture("_BaseMap", albedo);
-                if (normal != null) { s_Jacket.SetTexture("_BumpMap", normal); s_Jacket.SetFloat("_BumpScale", 0.55f); }
-                s_Jacket.SetFloat("_Smoothness", 0.16f);
-                s_Jacket.SetFloat("_Metallic", 0f);
-                s_Jacket.SetTexture("_EmissionMap", albedo != null ? albedo : Tex.White);
-                var lin = JacketTint.linear;
-                s_Jacket.SetVector("_EmissionColor", new Vector4(lin.r * 0.06f, lin.g * 0.06f, lin.b * 0.06f, 1f));
-                return s_Jacket;
+                s_Kandura = new Material(Mats.Template(normal != null ? "Lit_NormalEmissive" : "Lit_Emissive")) { name = "TS_Kandura" };
+                s_Kandura.SetColor("_BaseColor", KanduraColor);
+                s_Kandura.SetTexture("_BaseMap", Tex.White);
+                if (normal != null) { s_Kandura.SetTexture("_BumpMap", normal); s_Kandura.SetFloat("_BumpScale", 0.45f); }
+                s_Kandura.SetFloat("_Smoothness", 0.18f);
+                s_Kandura.SetFloat("_Metallic", 0f);
+                s_Kandura.SetTexture("_EmissionMap", Tex.White);
+                var lin = KanduraColor.linear;
+                s_Kandura.SetVector("_EmissionColor", new Vector4(lin.r * 0.05f, lin.g * 0.05f, lin.b * 0.05f, 1f));
+                return s_Kandura;
             }
         }
 
-        public static Material ShirtMaterial
+        /// <summary>Plain skin (no hand atlas) for the face and other body parts of the mirror body's stand-in.</summary>
+        public static Material BodySkinMaterial
         {
             get
             {
-                if (s_Shirt != null) return s_Shirt;
-                s_Shirt = new Material(Mats.Template("Lit_Emissive")) { name = "TS_HandShirt" };
-                s_Shirt.SetColor("_BaseColor", ShirtColor);
-                s_Shirt.SetFloat("_Smoothness", 0.22f);
-                s_Shirt.SetFloat("_Metallic", 0f);
-                s_Shirt.SetTexture("_EmissionMap", Tex.White);
-                var lin = ShirtColor.linear;
-                s_Shirt.SetVector("_EmissionColor", new Vector4(lin.r * 0.05f, lin.g * 0.05f, lin.b * 0.05f, 1f));
-                return s_Shirt;
+                if (s_BodySkin != null) return s_BodySkin;
+                s_BodySkin = new Material(Mats.Template("Lit_Emissive")) { name = "TS_BodySkin" };
+                s_BodySkin.SetColor("_BaseColor", SkinColor);
+                s_BodySkin.SetFloat("_Smoothness", 0.38f);
+                s_BodySkin.SetFloat("_Metallic", 0f);
+                s_BodySkin.SetTexture("_EmissionMap", Tex.White);
+                var lin = SkinColor.linear;
+                s_BodySkin.SetVector("_EmissionColor", new Vector4(lin.r * 0.06f, lin.g * 0.06f, lin.b * 0.06f, 1f));
+                return s_BodySkin;
             }
         }
 
-        /// <summary>Nails, watch and cuff button share one small generated atlas (the watch's markers and hands glow faintly).</summary>
+        /// <summary>Nails and watch share one small generated atlas (the watch's markers and hands glow faintly).</summary>
         public static Material TrimMaterial
         {
             get
@@ -340,7 +344,7 @@ namespace TwelfthStamp
             smr.sharedMesh = mesh;
             smr.bones = bones;
             smr.rootBone = bones[0];
-            smr.sharedMaterials = new[] { SkinMaterial, JacketMaterial, ShirtMaterial, TrimMaterial };
+            smr.sharedMaterials = new[] { SkinMaterial, KanduraMaterial, TrimMaterial };
             smr.quality = SkinQuality.Bone2;
             smr.updateWhenOffscreen = false;
             smr.localBounds = new Bounds(new Vector3(0f, 0f, 0.02f), new Vector3(0.8f, 0.8f, 0.8f)); // the sleeve can swing to any side
@@ -390,21 +394,12 @@ namespace TwelfthStamp
                     if (j == 2) mb.Nail(rest[bone], bone, len, r0, r1, cap1, 1.06f, 0.92f, 0.62f);
                 }
 
-            // Shirt cuff (with a button on its outer side) and jacket sleeve with rolled hems, on the forearm bone.
+            // The kandura sleeve with its folded cuff and rolled hem, on the forearm bone.
             var forearm = rest[BoneForearm];
             var fw = Weight(BoneForearm, BoneForearm, 0f);
-            var shirt = new Ring[Shirt.Length];
-            for (int i = 0; i < Shirt.Length; i++) shirt[i] = new Ring(Shirt[i].x, 0f, 0f, Shirt[i].y * 1.08f, Shirt[i].y * 0.92f);
-            mb.Loft(forearm, shirt, 20, SubShirt, i => fw, 0f, 0f, 2f, UvMap.World(0.1f));
-            var jacket = new Ring[Jacket.Length];
-            for (int i = 0; i < Jacket.Length; i++) jacket[i] = new Ring(Jacket[i].x, 0f, 0f, Jacket[i].y * 1.06f, Jacket[i].y * 0.94f);
-            mb.Loft(forearm, jacket, 22, SubJacket, i => fw, 0f, 0.004f, 2f, UvMap.World(0.12f));
-
-            float bt = Mathf.PI - 0.62f, bz = 0.0205f, ba = 0.0358f * 1.08f, bb = 0.0358f * 0.92f;
-            var bp = new Vector3(ba * Mathf.Cos(bt), bb * Mathf.Sin(bt), bz);
-            var bn = SkinBuilder.Unit(new Vector3(Mathf.Cos(bt) / ba, Mathf.Sin(bt) / bb, 0f), Vector3.up);
-            mb.Disc(forearm, bp - bn * 0.0002f, bn, Vector3.forward, Vector3.Cross(bn, Vector3.forward), 0.0042f, 0.0013f, 0.0004f, 12, SubTrim, fw,
-                HandTrim.ButtonCentre, HandTrim.ButtonRadius, HandTrim.ButtonCentre, HandTrim.ButtonRadius * 1.05f);
+            var sleeve = new Ring[Kandura.Length];
+            for (int i = 0; i < Kandura.Length; i++) sleeve[i] = new Ring(Kandura[i].x, 0f, 0f, Kandura[i].y * 1.07f, Kandura[i].y * 0.93f);
+            mb.Loft(forearm, sleeve, 22, SubSleeve, i => fw, 0f, 0.004f, 2f, UvMap.World(0.12f));
         }
 
         /// <summary>The watch on the left wrist, partly under the cuff: leather strap, steel case and crown, dial, and two hands.</summary>
@@ -462,7 +457,7 @@ namespace TwelfthStamp
 
         /// <summary>Skinned-mesh lists with lofting and small-part helpers. Normals come from the surface itself (dU x dV), so
         /// profiles that fold back on themselves (a rolled hem) light correctly inside and out.</summary>
-        class SkinBuilder
+        internal class SkinBuilder
         {
             readonly List<Vector3> m_V = new List<Vector3>();
             readonly List<Vector3> m_N = new List<Vector3>();
@@ -740,6 +735,99 @@ namespace TwelfthStamp
                 Tri(sub, a, b, c, nw); Tri(sub, a, c, d, nw);
             }
 
+            /// <summary>An ellipsoid (latitude-longitude grid round +Y) with optional displacement (curls); normals from the
+            /// displaced surface itself, poles from the frame.</summary>
+            public void Ellipsoid(Matrix4x4 frame, Vector3 radii, int lon, int lat, int sub, float uvScale, System.Func<Vector3, Vector3> displace = null)
+            {
+                var w = new BoneWeight { boneIndex0 = 0, weight0 = 1f };
+                int rows = lat - 1;
+                var p = new Vector3[rows * lon];
+                for (int i = 0; i < rows; i++)
+                {
+                    float ph = -Mathf.PI * 0.5f + Mathf.PI * (i + 1) / lat;
+                    for (int j = 0; j < lon; j++)
+                    {
+                        float th = 2f * Mathf.PI * j / lon;
+                        var q = new Vector3(radii.x * Mathf.Cos(ph) * Mathf.Cos(th), radii.y * Mathf.Sin(ph), radii.z * Mathf.Cos(ph) * Mathf.Sin(th));
+                        p[i * lon + j] = displace != null ? displace(q) : q;
+                    }
+                }
+                var south = new Vector3(0f, -radii.y, 0f);
+                var north = new Vector3(0f, radii.y, 0f);
+                if (displace != null) { south = displace(south); north = displace(north); }
+                int cols = lon + 1;
+                var idx = new int[rows * cols];
+                float girth = Mathf.PI * (radii.x + radii.z);
+                for (int i = 0; i < rows; i++)
+                    for (int j = 0; j <= lon; j++)
+                    {
+                        int jj = j % lon;
+                        var dt = p[i * lon + (jj + 1) % lon] - p[i * lon + (jj + lon - 1) % lon];
+                        var du = (i + 1 < rows ? p[(i + 1) * lon + jj] : north) - (i > 0 ? p[(i - 1) * lon + jj] : south);
+                        var q = p[i * lon + jj];
+                        var analytic = Unit(new Vector3(q.x / (radii.x * radii.x), q.y / (radii.y * radii.y), q.z / (radii.z * radii.z)), Vector3.up);
+                        var n = Unit(Vector3.Cross(du, dt), analytic);
+                        if (Vector3.Dot(n, analytic) < 0f) n = -n;
+                        idx[i * cols + j] = Add(frame.MultiplyPoint3x4(q), Unit(frame.MultiplyVector(n), Vector3.up),
+                            new Vector2(j / (float)lon * girth / uvScale, (i + 1) / (float)lat * radii.y * 2f / uvScale), w);
+                    }
+                for (int i = 0; i < rows - 1; i++)
+                    for (int j = 0; j < lon; j++)
+                    {
+                        int a = idx[i * cols + j], b = idx[i * cols + j + 1], c = idx[(i + 1) * cols + j + 1], d = idx[(i + 1) * cols + j];
+                        var outward = m_N[a] + m_N[c];
+                        Tri(sub, a, b, c, outward); Tri(sub, a, c, d, outward);
+                    }
+                int sp = Add(frame.MultiplyPoint3x4(south), Unit(frame.MultiplyVector(Vector3.down), Vector3.down), new Vector2(0f, 0f), w);
+                int np = Add(frame.MultiplyPoint3x4(north), Unit(frame.MultiplyVector(Vector3.up), Vector3.up), new Vector2(0f, radii.y * 2f / uvScale), w);
+                for (int j = 0; j < lon; j++)
+                {
+                    Tri(sub, sp, idx[j], idx[j + 1], m_N[sp]);
+                    Tri(sub, np, idx[(rows - 1) * cols + j + 1], idx[(rows - 1) * cols + j], m_N[np]);
+                }
+            }
+
+            /// <summary>A flat strap (top face and two edges) along a path over a body; outward points away from the body.</summary>
+            public void Band(Matrix4x4 frame, IList<Vector3> path, IList<Vector3> outward, float width, float thickness, bool closed, int sub)
+            {
+                var w = new BoneWeight { boneIndex0 = 0, weight0 = 1f };
+                int n = path.Count;
+                var tl = new int[n]; var tr = new int[n]; var el = new int[n]; var etl = new int[n]; var er = new int[n]; var etr = new int[n];
+                var outs = new Vector3[n]; var sides = new Vector3[n];
+                float run = 0f;
+                for (int k = 0; k < n; k++)
+                {
+                    int k0 = closed ? (k + n - 1) % n : Mathf.Max(k - 1, 0), k1 = closed ? (k + 1) % n : Mathf.Min(k + 1, n - 1);
+                    var t = Unit(path[k1] - path[k0], Vector3.forward);
+                    var o = outward[k] - Vector3.Dot(outward[k], t) * t;
+                    o = Unit(o, Vector3.up);
+                    var side = Unit(Vector3.Cross(t, o), Vector3.right) * (width * 0.5f);
+                    outs[k] = o; sides[k] = side;
+                    if (k > 0) run += Vector3.Distance(path[k], path[k - 1]);
+                    var top = path[k] + o * thickness;
+                    var nTop = Unit(frame.MultiplyVector(o), Vector3.up);
+                    var nL = Unit(frame.MultiplyVector(-side), Vector3.left);
+                    var nR = Unit(frame.MultiplyVector(side), Vector3.right);
+                    tl[k] = Add(frame.MultiplyPoint3x4(top - side), nTop, new Vector2(0f, run * 10f), w);
+                    tr[k] = Add(frame.MultiplyPoint3x4(top + side), nTop, new Vector2(1f, run * 10f), w);
+                    etl[k] = Add(frame.MultiplyPoint3x4(top - side), nL, new Vector2(0f, run * 10f), w);
+                    el[k] = Add(frame.MultiplyPoint3x4(path[k] - side), nL, new Vector2(0f, run * 10f), w);
+                    etr[k] = Add(frame.MultiplyPoint3x4(top + side), nR, new Vector2(1f, run * 10f), w);
+                    er[k] = Add(frame.MultiplyPoint3x4(path[k] + side), nR, new Vector2(1f, run * 10f), w);
+                }
+                int segs = closed ? n : n - 1;
+                for (int k = 0; k < segs; k++)
+                {
+                    int k1 = (k + 1) % n;
+                    var o = frame.MultiplyVector(outs[k]);
+                    var sl = frame.MultiplyVector(-sides[k]);
+                    var sr = frame.MultiplyVector(sides[k]);
+                    Tri(sub, tl[k], tr[k], tr[k1], o); Tri(sub, tl[k], tr[k1], tl[k1], o);
+                    Tri(sub, el[k], etl[k], etl[k1], sl); Tri(sub, el[k], etl[k1], el[k1], sl);
+                    Tri(sub, er[k], etr[k], etr[k1], sr); Tri(sub, er[k], etr[k1], er[k1], sr);
+                }
+            }
+
             /// <summary>Turns the right hand into the left: mirror X, keep normals outward, flip the winding.</summary>
             public void MirrorX()
             {
@@ -752,15 +840,17 @@ namespace TwelfthStamp
                     for (int i = 0; i < t.Count; i += 3) { int k = t[i + 1]; t[i + 1] = t[i + 2]; t[i + 2] = k; }
             }
 
-            public Mesh ToMesh(string name)
+            public Mesh ToMesh(string name, bool skinned = true)
             {
                 var mesh = new Mesh { name = name };
                 mesh.SetVertices(m_V);
                 mesh.SetNormals(m_N);
                 mesh.SetUVs(0, m_UV);
-                mesh.subMeshCount = m_T.Length;
-                for (int k = 0; k < m_T.Length; k++) mesh.SetTriangles(m_T[k], k);
-                mesh.boneWeights = m_W.ToArray();
+                int subs = m_T.Length;
+                while (subs > 1 && m_T[subs - 1].Count == 0) subs--; // no empty trailing submeshes
+                mesh.subMeshCount = subs;
+                for (int k = 0; k < subs; k++) mesh.SetTriangles(m_T[k], k);
+                if (skinned) mesh.boneWeights = m_W.ToArray();
                 mesh.RecalculateBounds();
                 mesh.RecalculateTangents();
                 return mesh;
@@ -778,7 +868,7 @@ namespace TwelfthStamp
         public const int Width = 1024, Height = 256;
         public static Texture2D Albedo, Normal;
 
-        static readonly Color Dorsal = new Color(0.66f, 0.47f, 0.35f), Volar = new Color(0.79f, 0.6f, 0.5f);
+        static readonly Color Dorsal = new Color(0.7f, 0.52f, 0.4f), Volar = new Color(0.82f, 0.66f, 0.56f);
         static readonly float[] TendonWrist = { -0.011f, -0.004f, 0.004f, 0.011f };
         static readonly Vector2[][] Veins =
         {

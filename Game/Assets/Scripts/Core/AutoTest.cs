@@ -331,6 +331,7 @@ namespace TwelfthStamp
             yield return new WaitForSeconds(1.5f);
             yield return Shot("20_home_bag");
             var apt = (ApartmentCell)Game.Cells.Active;
+            yield return MirrorCheck(apt);
             var hand = Game.Rig.MainHand;
             Interactable bag = null;
             yield return WaitUntil(() => (bag = apt.Suitcase.GetComponent<Interactable>()) != null, 20f, "voicemail plays by itself, then the bag can be gone through");

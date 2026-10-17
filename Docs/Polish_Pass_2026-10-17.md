@@ -109,3 +109,33 @@ All runs used a desktop build at 1600×900 on an RTX 5080 laptop GPU, built from
   - 0 errors logged.
 
   The screenshots show the passport fully visible with the hand on its edge, and the arms in view while running and walking.
+
+## 18 October, early: a real mirror, Saeed's body, and the VR hands
+
+Awaiz's VR playtest found no reflection in the bathroom mirror and crooked hands. He then shared a turnaround of how Saeed should look: a young Emirati man in a white kandura, a brown leather satchel strap over his right shoulder, brown suede shoes, dark curly hair and a short beard.
+
+- **A real mirror** (`Rendering/PlanarMirror.cs`, `Shaders/TS_PlanarMirror.shader`). The bathroom glass at home used to be a shiny material that only showed the reflection probe.
+  - While the glass is roughly in view, a reflection camera renders the room mirrored across the glass just before the player camera draws. VR uses one camera per eye, from the XR display's own eye matrices, so the reflection has real stereo depth. The glass samples that image at its own screen position.
+  - The near plane is made oblique so it lies on the glass, and x is mirrored in the projection so culling stays normal. Screen-space AO is paused while a reflection draws, because it assumes a standard depth mapping. URP's fog is per pixel from the view matrix, so it stays correct.
+  - The reflection is linear HDR, so the player camera grades the mirror and the room together.
+  - It stops drawing when you turn away, walk out, or a wall is in the way.
+  - The Margin's copy of home runs cold and slightly dim.
+- **What a mirror shows.** New layers: `MirrorOnly` (13) is the player's full body, drawn only by mirrors; `MirrorGlass` (14) is the glass, never drawn into a reflection or a probe.
+  - The first-person arms (`PlayerBody`) and the 3D UI never appear in a reflection.
+  - The passport and carried items do appear, and the body's hands meet them.
+- **Saeed's body for mirrors** (`Player/MirrorAvatar.cs`).
+  - Stands at the player's feet, with the body turning after the head on a spring (never more than 40 degrees behind) and the head looking where the camera looks.
+  - Walks and runs with the same gait as the first-person arms. Desktop hands go where the first-person hands are; VR arms reach the tracked controllers by two-bone IK.
+  - Uses `Resources/Models/Saeed.fbx` when it is present. The Blender session is building it from the turnaround, with bones found by name. Until then it uses a procedural stand-in: the kandura and furakha, the strap to a pouch at the left hip, suede shoes, hair and beard.
+  - In the Margin the reflection runs 0.35 s late. Once per visit, after you turn away and back, it is still staring into the glass, then it snaps back.
+- **First-person sleeves** are the white kandura now, with a folded cuff and the watch under it, on desktop and in VR. The skin is a warmer light brown.
+- **VR hands:** `VRHands.GripToModel` lacked a 180 degree roll about the handle. Unity's OpenXR grip pose points +Y forward and down out of the hand, so the hands and controller models pointed backwards. Fixed in code; still needs a headset check.
+- **Desktop shortcuts ran an old build.** The Claude desktop app runs our shells, and every build, inside its MSIX package. Writes under `%LOCALAPPDATA%` land in the package's private `LocalCache`, while Explorer sees only the real AppData folder. So "The Twelfth Stamp - Desktop" opened a stale copy.
+  - The game is now installed to `C:\Users\awaiz\Games\TheTwelfthStamp`, outside AppData, and both shortcuts point there.
+- **Evidence** (`QA-archive\mirror1_011720`, `mirror2_012152`):
+  - story 46 / 46, which includes ten new mirror checks: in the glass's screen area, 16.7 % of what the mirror shows changes when the body is left out;
+  - demo 32 / 32;
+  - 0 errors logged.
+
+  Screenshots `20b_bathroom_mirror` and `20c_bathroom_mirror_angle` show the reflection of the room and of the stand-in body.
+- **Not verified:** VR rendering of the mirror and the VR hand fix need the headset. Both are untested in VR.

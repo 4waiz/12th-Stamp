@@ -63,6 +63,7 @@ namespace TwelfthStamp
             cam.farClipPlane = 600f;
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = new Color(0.05f, 0.05f, 0.06f);
+            cam.cullingMask &= ~(1 << Layers.MirrorOnly); // the player's reflection body is for mirrors only
             cam.allowMSAA = true;
             cam.allowHDR = true;
             var data = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();

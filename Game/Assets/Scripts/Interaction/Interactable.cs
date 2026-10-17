@@ -66,6 +66,10 @@ namespace TwelfthStamp
         public const int Floor = 10;
         public const int UI3D = 11;
         public const int Seam = 12;
+        /// <summary>Seen only by mirror cameras (the player's own full body in a reflection), never by the player camera.</summary>
+        public const int MirrorOnly = 13;
+        /// <summary>Live mirror glass (PlanarMirror): drawn by the player camera, never into a reflection or a probe.</summary>
+        public const int MirrorGlass = 14;
 
         public static int WorldMask => (1 << Default) | (1 << Interactable) | (1 << Floor) | (1 << Passenger);
         public static int FloorMask => (1 << Floor);

@@ -24,12 +24,19 @@ namespace TwelfthStamp
         readonly List<Vector3> m_ArcPoints = new List<Vector3>();
         bool m_Aiming, m_ArcValid, m_TurnArmed = true, m_Pointer;
         float m_RunHold; // seconds the move stick has been pushed fully forward (VR run)
+        VRHands m_HandVisuals;
+        int m_StepParity;
+        float m_LastStepDistance;
         Vector3 m_ArcTarget;
         float m_DestinationRepeat;
         bool m_HeadBlocked;
 
         public override IReadOnlyList<Interactor> Hands => m_Hands;
         public override Interactor MainHand => Game.Input.DominantHand == HandSide.Left ? m_Left : m_Right;
+        /// <summary>The drawn hands (finger poses and tracked wrists).</summary>
+        public VRHands HandVisuals => m_HandVisuals;
+        /// <summary>Gait cycle, 0..2π over two strides; a footfall lands at 0 and at π (the mirror body's legs follow it).</summary>
+        public float GaitPhase { get; private set; }
         public Interactor PassportHandInteractor => Game.Input.PassportHand == HandSide.Left ? m_Left : m_Right;
         public override Transform PassportMount => Game.Input.PassportHand == HandSide.Left ? m_PassportMountL : m_PassportMountR;
         public Transform GripOf(HandSide h) => h == HandSide.Left ? m_LeftGrip : m_RightGrip;
@@ -91,7 +98,7 @@ namespace TwelfthStamp
             // Hands are drawn at the grips; the controller models sit in the same hand frame and show (ghosted) only with their labels.
             m_LeftModel.transform.localRotation = VRHands.GripToModel;
             m_RightModel.transform.localRotation = VRHands.GripToModel;
-            VRHands.Create(this);
+            m_HandVisuals = VRHands.Create(this);
 
             m_PassportMountL = Mount(m_LeftGrip, false);
             m_PassportMountR = Mount(m_RightGrip, true);
@@ -107,6 +114,7 @@ namespace TwelfthStamp
             m_Reticle.gameObject.SetActive(false);
             m_LastFeet = Feet;
             ApplySettings();
+            MirrorAvatar.Create(this); // Saeed's whole body, drawn only in mirrors
         }
 
         Transform TrackedChild(string name, InputAction pos, InputAction rot)
@@ -202,7 +210,11 @@ namespace TwelfthStamp
             UpdateHeadBlock();
             UpdateLocomotion(canAct);
             // Longer strides as the stick run builds (2.0 m/s walk, 3.3 m/s run), so running steps don't patter.
-            UpdateFootsteps(Mathf.Lerp(0.75f, 1.15f, Mathf.InverseLerp(2f, 3.3f, MoveSpeed)));
+            float stride = Mathf.Lerp(0.75f, 1.15f, Mathf.InverseLerp(2f, 3.3f, MoveSpeed));
+            UpdateFootsteps(stride);
+            if (m_StepDistance < m_LastStepDistance - 1e-4f) m_StepParity ^= 1; // a footfall reset the stride counter
+            m_LastStepDistance = m_StepDistance;
+            GaitPhase = (m_StepParity + Mathf.Clamp01(m_StepDistance / stride)) * Mathf.PI;
 
             foreach (var h in m_Hands) h.UpdateFocus(canAct && !(Game.Passport != null && Game.Passport.IsHeldBy(h.Side)));
             UpdateLasers(canAct);

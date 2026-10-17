@@ -74,7 +74,7 @@ namespace TwelfthStamp
             m_Probe.size = new Vector3(60, 30, 60);
             m_Probe.boxProjection = false;
             m_Probe.importance = 1;
-            m_Probe.cullingMask = ~((1 << Layers.Pocket) | (1 << Layers.PlayerBody) | (1 << Layers.UI3D));
+            m_Probe.cullingMask = ~((1 << Layers.Pocket) | (1 << Layers.PlayerBody) | (1 << Layers.UI3D) | (1 << Layers.MirrorOnly) | (1 << Layers.MirrorGlass));
         }
 
         UnityEngine.Rendering.ShadowCastingMode[] m_ShadowModes;

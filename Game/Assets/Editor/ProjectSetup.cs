@@ -420,6 +420,7 @@ namespace TwelfthStamp.EditorTools
             });
             MakeSimple("TS_Beam", Shader.Find("TwelfthStamp/Beam"), null);
             MakeSimple("TS_Rim", Shader.Find("TwelfthStamp/Rim"), null);
+            MakeSimple("TS_PlanarMirror", Shader.Find("TwelfthStamp/PlanarMirror"), null);
             MakeSimple("TS_Unlit", Shader.Find("TwelfthStamp/Unlit"), null);
             MakeSimple("TS_UnlitTransparent", Shader.Find("TwelfthStamp/Unlit"), m =>
             {

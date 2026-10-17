@@ -60,7 +60,6 @@ namespace TwelfthStamp
             var white = Mats.Lit(new Color(0.88f, 0.88f, 0.86f), 0.55f);
             var black = Mats.Lit(new Color(0.05f, 0.05f, 0.055f), 0.6f);
             var fabricDark = Mats.Lit(Corrupted ? new Color(0.22f, 0.23f, 0.25f) : new Color(0.34f, 0.27f, 0.21f), 0.15f, 0f, "fabric_linen");
-            var mirror = Mats.Lit(new Color(0.7f, 0.75f, 0.78f), 0.98f, 1f);
 
             var g = Group("Apartment");
             // Shell: 9 x 8 m room, 2.9 m ceiling; window wall to the east (+X).
@@ -169,12 +168,18 @@ namespace TwelfthStamp
             // The vanity's origin is on the wall plane (the bathroom's south wall face, z = -6.575); it faces into the room.
             var vanity = Models.Spawn("BathroomSink", bath, Models.Slots(("TS_Wood", wood), ("TS_Metal", metal)), new Vector3(2.75f, 0f, -6.575f), 0f);
             var mirrorGlass = Models.Child(vanity, "MirrorGlass")?.GetComponent<Renderer>();
+            // A real mirror (PlanarMirror): the room and the player's own body, which is seen only in reflections.
+            // The Margin's copy runs a little cold and wrong.
             if (vanity != null)
             {
                 Models.StripVisual(sink);
-                if (mirrorGlass != null) mirrorGlass.sharedMaterial = mirror;
+                if (mirrorGlass != null) PlanarMirror.Attach(mirrorGlass, vanity.transform.forward, Corrupted ? 1f : 0f);
             }
-            else MeshFactory.Box("Mirror", bath, new Vector3(2.75f, 1.6f, -6.56f), new Vector3(0.7f, 0.9f, 0.02f), mirror, false);
+            else
+            {
+                var mirrorBox = MeshFactory.Box("Mirror", bath, new Vector3(2.75f, 1.6f, -6.56f), new Vector3(0.7f, 0.9f, 0.02f), white, false);
+                PlanarMirror.Attach(mirrorBox.GetComponent<Renderer>(), bath.forward, Corrupted ? 1f : 0f);
+            }
             AddPointLight(bath, new Vector3(2.75f, 2.5f, -5.4f), Corrupted ? new Color(0.7f, 0.8f, 0.9f) : new Color(1f, 0.9f, 0.75f), 1.6f, 3.5f);
             BathroomInside = new GameObject("BathroomInside").transform;
             BathroomInside.SetParent(bath, false);

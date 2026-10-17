@@ -100,6 +100,7 @@ namespace TwelfthStamp
             m_PassportMount.localPosition = new Vector3(-0.19f, -0.155f, 0.37f); // lower left: keeps the reticle and the right-hand card clear
             m_PassportMount.localRotation = Quaternion.Euler(21f, -26f, 0f); // page faces the eyes
             m_Arms = FirstPersonArms.Create(this);
+            MirrorAvatar.Create(this); // Saeed's whole body, drawn only in mirrors
             m_LastFeet = transform.position;
             SetPointerMode(false);
         }

@@ -63,6 +63,7 @@ namespace TwelfthStamp
         float m_ReachT = 10f;              // seconds since Interact
         Vector3 m_ReachDir = Vector3.forward;
         float m_Breath, m_Clock;
+        HandPose m_FingersL = HandPose.Relaxed, m_FingersR = HandPose.Relaxed; // as last applied (for the mirror body)
 
         // Spring-damper lag shared by both arms: offset (m) and rotation (deg) in camera space.
         Vector3 m_SwayPos, m_SwayPosVel, m_SwayRot, m_SwayRotVel;
@@ -120,6 +121,21 @@ namespace TwelfthStamp
             m_SwayPos = m_SwayPosVel = m_SwayRot = m_SwayRotVel = Vector3.zero;
             m_Primed = false;
             m_ReachT = 10f;
+        }
+
+        /// <summary>
+        /// For the mirror body: this frame's first-person hand (wrist and rotation in world space, fingers) and how strongly a
+        /// held pose (passport on the left; carried item, reach or tear on the right) should override the body's own arm
+        /// swing. False while that arm is lowered out of view.
+        /// </summary>
+        public bool GetHand(bool left, out Vector3 wrist, out Quaternion rotation, out HandPose fingers, out float hold)
+        {
+            var arm = left ? m_Left : m_Right;
+            wrist = arm.Root.position;
+            rotation = arm.Root.rotation;
+            fingers = left ? m_FingersL : m_FingersR;
+            hold = left ? m_PassW : Mathf.Max(m_HoldW, Mathf.Max(ReachWeight(m_ReachT), m_TearW));
+            return arm.Visible && (left ? m_ShowL : m_ShowR) > 0.5f;
         }
 
         void OnFootstep(string surface, bool running)
@@ -298,6 +314,7 @@ namespace TwelfthStamp
             arm.Root.localPosition = pos;
             arm.Root.localRotation = rot;
             arm.SetPose(fingers);
+            if (left) m_FingersL = fingers; else m_FingersR = fingers;
             var shoulder = new Vector3(left ? -ShoulderX : ShoulderX, ShoulderY, ShoulderZ);
             var pole = new Vector3(left ? -0.6f : 0.6f, -1f, -0.35f);
             arm.AimForearm(transform.TransformPoint(Elbow(shoulder, pos, pole)));

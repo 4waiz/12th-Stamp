@@ -15,11 +15,14 @@ namespace TwelfthStamp
     public class VRHands : MonoBehaviour
     {
         /// <summary>
-        /// The controller model's frame under the OpenXR grip pose. The grip's +Z runs through the curled fingers along the
-        /// handle (OpenXR grip definition); the model's handle leans 22° forward of its +Y, so the model turns 68° about X to
-        /// sit in the hand. The hands are placed through the same constant: if a headset shows both off, adjust it here.
+        /// The controller model's frame under the OpenXR grip pose. In Unity the grip's +Z runs up the handle through the curled
+        /// fingers (little finger to thumb), its +Y points forward and down out of the hand, and its +X is the same world side
+        /// (towards the left) for both hands. The model points along +Z with its handle 22° forward of +Y: tilting 68° about X
+        /// lines the handles up, and a 180° roll about the handle turns the head to point forward and the sticks outward.
+        /// (Playtest, Quest 3: the 68° tilt alone left both controllers and hands pointing backwards, "crooked".) The hands,
+        /// the hold point and the passport mount are placed through the same constant.
         /// </summary>
-        public static readonly Quaternion GripToModel = Quaternion.Euler(68f, 0f, 0f);
+        public static readonly Quaternion GripToModel = Quaternion.AngleAxis(180f, Vector3.forward) * Quaternion.Euler(68f, 0f, 0f);
 
         // The hand in the controller model's frame: knuckles forward round the handle, thumb on the face plate, index at the trigger.
         static readonly Vector3 HandForwardInModel = new Vector3(0f, 0.052f, 0.9986f);
@@ -35,6 +38,7 @@ namespace TwelfthStamp
             public ControllerModel Model;
             public InputAction GripAxis, TriggerAxis, TriggerTouch, ThumbTouch;
             public float Grip, Trigger, IndexRest = 1f, ThumbDown = 1f;
+            public HandPose Pose = HandPose.Relaxed;
             public Vector3 Lag, LagVel;                       // elbow-end spring offset (world, m)
             public Vector3 PrevRigVel, PrevWristLocal, PrevWristVel;
             public bool Primed;
@@ -210,7 +214,18 @@ namespace TwelfthStamp
             float wrap = Mathf.Lerp(0.45f, 1f, h.Grip);                                     // grip: a fist round the handle
             float index = Mathf.Lerp(Mathf.Lerp(0f, 0.45f, h.IndexRest), 0.9f, h.Trigger);    // trigger curls it; off it, a point
             var thumb = HandPose.Lerp(ThumbUp, new HandPose(0f, 0f, 0f, 0f, 0.12f + 0.08f * h.Grip, 0.05f * h.Grip, 0.15f * h.Grip), h.ThumbDown);
-            h.Rig.SetPose(new HandPose(index, wrap, wrap + 0.03f, wrap + 0.06f, thumb.ThumbCurl, thumb.ThumbOppose, thumb.ThumbTuck));
+            h.Pose = new HandPose(index, wrap, wrap + 0.03f, wrap + 0.06f, thumb.ThumbCurl, thumb.ThumbOppose, thumb.ThumbTuck);
+            h.Rig.SetPose(h.Pose);
+        }
+
+        /// <summary>For the mirror body: a tracked hand's wrist and rotation (world) and its finger pose. False when not tracked.</summary>
+        public bool GetHand(HandSide side, out Vector3 wrist, out Quaternion rotation, out HandPose fingers)
+        {
+            var h = m_Hands[side == HandSide.Left ? 0 : 1];
+            wrist = h.Rig.Root.position;
+            rotation = h.Rig.Root.rotation;
+            fingers = h.Pose;
+            return h.Rig.Visible;
         }
 
         static bool IsTracked(Hand h, GameInput input)
