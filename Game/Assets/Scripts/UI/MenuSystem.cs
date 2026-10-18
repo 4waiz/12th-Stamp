@@ -410,6 +410,8 @@ namespace TwelfthStamp
                     if (Game.IsDemo) { StoryDirector.I.StopAllCoroutines(); StoryDirector.I.StartDemo(); }
                     else StoryDirector.I.RetryCheckpoint();
                 });
+                if (!Game.IsDemo && StoryDirector.I.InCampaign)
+                    m_Panel.Button(RestartLabel, RestartLevel, true, 1.5f);
                 m_Panel.Button("Main menu", () => { ResumeGame(); StoryDirector.I.ReturnToMenu(); });
                 m_Panel.Button("Quit", Quit);
                 m_Panel.Text("<size=80%>Progress is saved at each checkpoint and verified seal.</size>", 0.0026f);
@@ -434,8 +436,35 @@ namespace TwelfthStamp
             {
                 m_Panel.Text("Your verified seals are safe. The encounter will reset.", 0.003f);
                 m_Panel.Button("Retry from checkpoint", () => { HideAll(); StartCoroutine(RetryRoutine()); });
+                if (!Game.IsDemo) m_Panel.Button(RestartLabel, RestartLevel, true, 1.5f);
                 m_Panel.Button("Main menu", () => { HideAll(); StoryDirector.I.ReturnToMenu(); });
             });
+        }
+
+        // ------------------------------------------------------------------ restart the whole level
+        /// <summary>"Restart level" in a level run (from its very start, story opening included); in the full story it
+        /// starts the story again. Held to confirm: it throws away the run.</summary>
+        static string RestartLabel => Levels.Current != null ? "Restart level (hold)" : "Restart the story (hold)";
+
+        void RestartLevel()
+        {
+            var def = Levels.Current;
+            StartCoroutine(RestartLevelRoutine(def));
+        }
+
+        /// <summary>Leaves through the welcome room (the same clean slate as Main menu), then starts the level again.</summary>
+        IEnumerator RestartLevelRoutine(LevelDef def)
+        {
+            HideAll();
+            m_PauseOpen = false;
+            Game.Paused = false;
+            StoryDirector.I.ReturnToMenu();
+            for (float t = 0f; t < 20f && !(Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu && Branding.I != null && Branding.I.WelcomeShowing); t += Time.unscaledDeltaTime)
+                yield return null;
+            yield return new WaitForSecondsRealtime(0.2f);
+            HideAll();
+            if (def == null || def.IsStory) StoryDirector.I.StartNewGame();
+            else StoryDirector.I.StartLevel(def.Id);
         }
 
         IEnumerator RetryRoutine()

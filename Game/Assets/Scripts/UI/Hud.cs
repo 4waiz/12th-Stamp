@@ -198,6 +198,7 @@ namespace TwelfthStamp
                 rt.sizeDelta = new Vector2(1400, 900);
                 rt.localScale = Vector3.one * 0.00085f;
                 rt.localPosition = new Vector3(0, -0.18f, 1.45f);
+                UiOnTop.Register(canvasGo.transform); // the VR HUD never sinks into walls or props (UI/UiOnTop.cs)
             }
             else
             {

@@ -13,6 +13,7 @@ namespace TwelfthStamp
         IEnumerator LevelsFlow()
         {
             Note("--- Levels: welcome tiles ---");
+            Levels.SkipStoryIntro = true; // the story opening (homecoming, glasses) is covered by the story test; these check the runs
             if (Game.Cells.Active == null || Game.Cells.Active.Id != CellId.Menu || !Branding.I.WelcomeShowing)
             {
                 Game.Story.ReturnToMenu();
@@ -134,6 +135,19 @@ namespace TwelfthStamp
             yield return Shot("72_level_hard_card");
             yield return Press("Back");
             Check(MenuSystem.I.CurrentPage == "", "Back returns to the welcome card");
+
+            Note("--- Every level opens with the story ---");
+            Levels.SkipStoryIntro = false;
+            yield return new WaitForSecondsRealtime(0.5f);
+            yield return Press(Levels.Get(LevelId.Easy).Label);
+            yield return Press("Play");
+            yield return WaitUntil(() => Game.Cells.Active != null && (Game.Cells.Active.Id == CellId.ApartmentNormal || Game.Cells.Active.Id == CellId.ShopNormal), 25f, "Easy opens with the homecoming in Abu Dhabi");
+            Check(Levels.Current != null && Levels.Current.Id == LevelId.Easy && Game.Campaign.IsLevelRun && !Game.Campaign.HasFlag(StoryFlags.GlassesWorn), "the level run keeps its countries while the story plays (glasses not yet on)");
+            Check(Game.Campaign.IsDestinationAvailable(CountryId.Japan) && !Game.Campaign.IsDestinationAvailable(CountryId.Egypt), "the apartment's tear can only open on the level's countries");
+            yield return new WaitForSeconds(1.5f);
+            yield return Shot("73_level_easy_homecoming");
+            Game.Story.ReturnToMenu();
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu && Branding.I.WelcomeShowing, 12f, "back to the welcome screen");
         }
 
         void LookAt(Vector3 target, float distance)

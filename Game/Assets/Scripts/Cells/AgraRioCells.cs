@@ -3,16 +3,14 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>India / Agra — The Reflection That Stayed. A garden checkpoint at dusk; the pool reflects one person too
-    /// many. Set the lamp where its reflection exposes the genuine trace. (No sacred objects are used as tools.)</summary>
+    /// <summary>India / Agra — The Taj Mahal Puzzle. In the garden, with the Taj Mahal standing at the end of the axis, a
+    /// picture puzzle of it lies on a table. Put the picture right while the figure from the pool hunts you (run, lose
+    /// it, come back) and the way on opens.</summary>
     public partial class AgraCell : Cell
     {
-        public readonly List<Socket> Pedestals = new List<Socket>();
-        public Grabbable Lamp;
+        public TajJigsaw Puzzle;
+        public GhostHunt Hunt;
         public TraceMark Trace;
-        public Material ExtraPersonMat;
-        public Transform ExtraPerson;
-        public int CorrectPedestal = 1;
 
         protected override void Build()
         {
@@ -56,47 +54,27 @@ namespace TwelfthStamp
             }
             BuildGardenDetail(g, marble, redStone, brass);
             Landmarks.DomedPavilion(g, new Vector3(0, -2f, 230f), 0f, Mats.Backdrop(new Color(0.93f, 0.9f, 0.9f), Lighting));
-            // The extra reflected person: a figure that exists only below the water surface.
-            ExtraPersonMat = Mats.UnlitInstance(new Color(0.05f, 0.06f, 0.07f, 0.45f), Tex.SoftDot, true, 1f);
-            var ep = MeshFactory.Quad("ExtraReflection", g, 0.5f, 1.8f, ExtraPersonMat, new Vector3(0.3f, 0.105f, 8.5f), Quaternion.Euler(90, 0, 180));
-            ep.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            ExtraPerson = ep.transform;
             // Suspended petals (frozen in the air).
             var petals = Kit.Weather(g, new Vector3(0, 1.6f, 4f), new Vector3(9f, 2.5f, 18f), false, new Color(0.98f, 0.72f, 0.75f, 0.9f), 0f, 0f);
             var em = petals.emission; em.rateOverTime = 0f; em.SetBursts(new[] { new ParticleSystem.Burst(0f, 350) });
             var main = petals.main; main.startLifetime = 9999f; main.loop = false;
-            Trace = TraceMark.Create(transform, CountryId.India, new Vector3(1.55f, 0.17f, 8.5f), Quaternion.identity, 0.5f, true);
+            Trace = TraceMark.Create(transform, CountryId.India, new Vector3(2.4f, 0.02f, 0.9f), Quaternion.identity, 0.5f, true);
 
-            for (int i = 0; i < 3; i++)
-            {
-                var p = new Vector3(2.4f, 0, 2f + i * 3.2f);
-                MeshFactory.Box("Pedestal", g, p + Vector3.up * 0.45f, new Vector3(0.45f, 0.9f, 0.45f), marble, true);
-                var sock = new GameObject("PedestalTop" + i);
-                sock.transform.SetParent(g, false);
-                sock.transform.localPosition = p + Vector3.up * 0.92f;
-                var col = sock.AddComponent<BoxCollider>(); col.isTrigger = true; col.size = new Vector3(0.45f, 0.3f, 0.45f); col.center = new Vector3(0, 0.12f, 0);
-                var s = sock.AddComponent<Socket>();
-                s.Accepts.Add("garden_lamp");
-                s.Prompt = "Set the lamp down";
-                Pedestals.Add(s);
-            }
-            var lamp = new GameObject("GardenLamp");
-            lamp.transform.SetParent(g, false);
-            lamp.transform.localPosition = new Vector3(-1.9f, 0.02f, -1.2f);
-            var flame = Mats.Emissive(new Color(1f, 0.8f, 0.5f), new Color(3f, 1.6f, 0.6f));
-            // The modelled brass oil lamp: its flame burns inside a clear glass chimney, under the existing lamp light.
-            var chimney = Mats.Glass(new Color(0.85f, 0.9f, 0.88f, 0.16f));
-            if (Models.Spawn("GardenLamp", lamp.transform, Models.Slots(("TS_Brass", brass), ("TS_EmissiveWarm", flame), ("TS_Glass", chimney))) == null)
-            {
-                MeshFactory.Cylinder("Base", lamp.transform, Vector3.zero, 0.09f, 0.04f, brass, 14, false);
-                MeshFactory.Frustum("Bowl", lamp.transform, new Vector3(0, 0.04f, 0), 0.05f, 0.11f, 0.08f, brass, 14);
-                MeshFactory.Sphere("Flame", lamp.transform, new Vector3(0, 0.15f, 0), 0.03f, flame);
-            }
-            var ll = new GameObject("LampLight").AddComponent<Light>();
-            ll.transform.SetParent(lamp.transform, false); ll.transform.localPosition = new Vector3(0, 0.2f, 0);
-            ll.type = LightType.Point; ll.color = new Color(1f, 0.7f, 0.4f); ll.intensity = 1.4f; ll.range = 4f; ll.shadows = LightShadows.None;
-            lamp.AddComponent<BoxCollider>().size = new Vector3(0.24f, 0.22f, 0.24f);
-            Lamp = PropLibrary.MakeGrabbable(lamp, "garden_lamp", "Take the lamp");
+            // The Taj Mahal picture puzzle on a table beside the pool, the domed mausoleum straight ahead down the axis
+            // (Cells/CountryGames.cs; the picture is rendered in Blender: Art/taj_puzzle.png).
+            Puzzle = TajJigsaw.Build(g, new Vector3(2.4f, 0f, 2.0f), 0f);
+            // The figure rises out of the pool and hunts the garden while the puzzle is worked.
+            Hunt = gameObject.AddComponent<GhostHunt>();
+            Hunt.Cell = this;
+            Hunt.SpawnLocal = new Vector3(-0.6f, 0f, 11.5f);
+            Hunt.RetreatLocal = new Vector3(0f, 0f, 16f);
+            Hunt.SpawnState = PassengerState.Rise;
+            Hunt.StalkSpeed = 0.6f;
+            Hunt.RushEvery = 14f;
+            Hunt.RushSeconds = 2.4f;
+            Hunt.LoseDistance = 14f;
+            Hunt.RestSeconds = 9f;
+            Hunt.Arrives = "water drips onto marble: something climbs out of the pool";
 
             AddSeam("arrival", new Vector3(0f, 0f, -5.6f), 0f);
             AddSeam("lawn", new Vector3(-4.4f, 0f, 6f), 90f);
@@ -117,61 +95,45 @@ namespace TwelfthStamp
     {
         AgraCell A => (AgraCell)Cell;
         bool m_Solved;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public bool Solved => m_Solved;
 
-        public override string Objective => "Set the lamp on the pedestal where its reflection shows what the extra person is standing on.";
+        public override string Objective => m_Solved ? "The picture is whole. Run to your stamp at the Taj Mahal."
+            : "Solve the Taj Mahal picture puzzle on the table: pick a piece, then another to swap them (the postcard shows the finished picture). When the figure comes, run, lose it, then come back.";
 
         public override void OnEnter(bool firstVisit)
         {
             m_Solved = Game.Campaign.IsVerified(CountryId.India);
-            foreach (var p in A.Pedestals) { p.Filled -= OnPlaced; p.Filled += OnPlaced; }
-            Game.Passenger?.Despawn();
-            if (m_Solved) { A.Trace.Reveal(false); A.ExtraPerson.gameObject.SetActive(false); return; }
+            A.Puzzle.Completed -= OnCompleted; A.Puzzle.Completed += OnCompleted;
             A.Trace.Hide();
-            A.ExtraPerson.gameObject.SetActive(true);
-            Narration.I?.Say("ind_01", null, false, null, false, true);
+            Game.Passenger?.Despawn();
+            if (m_Solved) { A.Puzzle.ShowSolved(); A.Hunt.Stop(); return; }
+            if (!A.Puzzle.Scrambled || A.Puzzle.Solved) A.Puzzle.Scramble();
+            Hud.I?.ShowToast("A picture puzzle of the Taj Mahal lies on the table by the pool. Put it right to go on.", 4.5f);
+            A.Hunt.Begin(firstVisit ? 10f : 6f);
             Hud.I?.SetObjective(Objective, false);
         }
 
         public override void OnExit()
         {
-            foreach (var p in A.Pedestals) p.Filled -= OnPlaced;
+            A.Puzzle.Completed -= OnCompleted;
+            A.Hunt.Stop();
         }
 
-        void OnPlaced(Socket s, Grabbable g)
+        void OnCompleted(TajJigsaw j)
         {
             if (!IsLive || m_Solved) return;
-            if (A.Pedestals.IndexOf(s) == A.CorrectPedestal)
-            {
-                m_Solved = true;
-                A.Trace.Reveal();
-                Hud.I?.ShowToast("In the lamp's reflection, a mark glows where the extra person stood.", 3.5f);
-                StartCoroutine(StepOut());
-            }
-            else
-            {
-                Hud.I?.ShowCaption("the reflected figure turns its head toward the lamp", 3f);
-                AudioDirector.I?.Play("pass_creak_2", A.ExtraPerson.position, 0.6f);
-            }
-        }
-
-        System.Collections.IEnumerator StepOut()
-        {
-            // The reflection stays... then it is no longer only a reflection.
-            float t = 0f;
-            while (t < 1f) { t += Time.deltaTime / 2f; A.ExtraPersonMat.SetColor("_Color", new Color(0.05f, 0.06f, 0.07f, 0.45f * (1f - t))); yield return null; }
-            A.ExtraPerson.gameObject.SetActive(false);
-            var pc = Game.Passenger;
-            pc.RetreatPoint = A.transform.TransformPoint(new Vector3(0f, 0f, 15f));
-            pc.Spawn(Cell, new Vector3(-1.6f, 0f, 9.4f), 180f, PassengerState.Rise, Disguise.PetalWet);
-            pc.Threatening = true;
-            pc.WalkSpeed = 0.55f;
-            AudioDirector.I?.Play("pass_breath", pc.ChestPosition, 0.8f);
-            Hud.I?.ShowCaption("water drips onto marble", 2.5f);
+            m_Solved = true;
+            A.Hunt.Stop();
+            AudioDirector.I?.Play("seal_verify", j.BoardPosition, 0.8f);
+            PostFx.I?.Flash(0.3f);
+            Hud.I?.ShowToast("The picture is whole, and the Taj Mahal glows at the end of the garden.", 3.5f);
+            Game.Story.VerifyCountry(CountryId.India, null);
         }
 
         public override void ResetLocal()
         {
-            A.Lamp.ReturnHome();
+            A.Hunt.Stop();
             Game.Passenger?.Despawn();
         }
     }

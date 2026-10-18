@@ -3,16 +3,14 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>Japan — The Empty Procession. Lanterns cast the shadows of people who aren't there. Hang the hand
-    /// lantern where only the genuine route mark still holds a shadow.</summary>
+    /// <summary>Japan — The Claw Machine. In the lantern street a claw machine holds a golden lucky cat; win it while the
+    /// lantern figure hunts you (run, lose it, come back), and the gate out of Japan opens.</summary>
     public partial class JapanCell : Cell
     {
-        public readonly List<Socket> Hooks = new List<Socket>();
-        public readonly List<GameObject> Marks = new List<GameObject>();
         public readonly List<Transform> ProcessionShadows = new List<Transform>();
-        public Grabbable HandLantern;
+        public ClawMachine Claw;
+        public GhostHunt Hunt;
         public TraceMark Trace;
-        public int CorrectHook = 1;
 
         protected override void Build()
         {
@@ -62,43 +60,21 @@ namespace TwelfthStamp
                 ProcessionShadows.Add(s.transform);
             }
 
-            // Three route marks near the end gate; only one is real.
-            var markMat = Mats.Unlit(new Color(0.95f, 0.92f, 0.85f, 0.5f), Tex.Ring, true);
-            for (int i = 0; i < 3; i++)
-                Marks.Add(MeshFactory.Quad("RouteMark", g, 0.7f, 0.7f, markMat, new Vector3(-1.8f + i * 1.8f, 0.014f, 10.5f), Quaternion.Euler(90, 0, 0)));
-            Trace = TraceMark.Create(transform, CountryId.Japan, new Vector3(-1.8f + 1.8f * CorrectHook, 0.02f, 10.5f), Quaternion.identity, 0.6f, true);
-
-            // Three lantern hooks on posts and the hand lantern.
-            for (int i = 0; i < 3; i++)
-            {
-                var post = MeshFactory.Box("HookPost", g, new Vector3(-2.2f + i * 2.2f, 1.1f, 7.6f), new Vector3(0.12f, 2.2f, 0.12f), postWood, true);
-                var hook = new GameObject("Hook" + i);
-                hook.transform.SetParent(g, false);
-                hook.transform.localPosition = new Vector3(-2.2f + i * 2.2f, 2.0f, 7.45f);
-                var col = hook.AddComponent<BoxCollider>(); col.isTrigger = true; col.size = new Vector3(0.4f, 0.5f, 0.4f);
-                var sock = hook.AddComponent<Socket>();
-                sock.Accepts.Add("hand_lantern");
-                sock.Prompt = "Hang the lantern";
-                Hooks.Add(sock);
-            }
-            var hl = new GameObject("HandLantern");
-            hl.transform.SetParent(g, false);
-            hl.transform.localPosition = new Vector3(1.6f, 0.02f, 1.5f);
-            // The modelled chochin hangs 0.51 m below its grip (its origin): lifted so it stands on the root like the
-            // procedural lantern. Its paper glows like the street lanterns; the glow inside sits around the light.
-            var glow = Mats.Emissive(new Color(1f, 0.78f, 0.5f), new Color(2.2f, 1.2f, 0.5f));
-            if (Models.Spawn("HandLantern", hl.transform, Models.Slots(("TS_Paper", lanternMat), ("TS_WoodDark", wood), ("TS_EmissiveWarm", glow)), new Vector3(0f, 0.51f, 0f)) == null)
-            {
-                MeshFactory.Frustum("Body", hl.transform, Vector3.zero, 0.14f, 0.14f, 0.32f, lanternMat, 12);
-                MeshFactory.Box("Handle", hl.transform, new Vector3(0, 0.38f, 0), new Vector3(0.02f, 0.12f, 0.02f), wood, false);
-            }
-            hl.AddComponent<BoxCollider>().size = new Vector3(0.3f, 0.45f, 0.3f);
-            var lightGo = new GameObject("LanternLight");
-            lightGo.transform.SetParent(hl.transform, false);
-            lightGo.transform.localPosition = new Vector3(0, 0.18f, 0);
-            var ll = lightGo.AddComponent<Light>(); ll.type = LightType.Point; ll.color = new Color(1f, 0.62f, 0.3f); ll.intensity = 1.6f; ll.range = 5f; ll.shadows = LightShadows.None;
-            HandLantern = PropLibrary.MakeGrabbable(hl, "hand_lantern", "Take the hand lantern");
-            HandLantern.HoldLocalPosition = new Vector3(0, -0.25f, 0);
+            // The claw machine on the left of the street, facing the arrival (Cells/CountryGames.cs). The golden lucky cat
+            // inside it is the way out of Japan. The trace stays hidden: winning the cat verifies the seal.
+            Claw = ClawMachine.Build(g, new Vector3(-2.0f, 0f, 8.2f), 0f);
+            Trace = TraceMark.Create(transform, CountryId.Japan, new Vector3(-2.0f, 0.02f, 6.6f), Quaternion.identity, 0.6f, true);
+            // The lantern figure hunts the street while the machine is played: it comes in through the end gate.
+            Hunt = gameObject.AddComponent<GhostHunt>();
+            Hunt.Cell = this;
+            Hunt.SpawnLocal = new Vector3(0.4f, 0f, 12.4f);
+            Hunt.RetreatLocal = new Vector3(0.4f, 0f, 12.6f);
+            Hunt.StalkSpeed = 0.55f;
+            Hunt.RushEvery = 13f;
+            Hunt.RushSeconds = 2.2f;
+            Hunt.LoseDistance = 12f;
+            Hunt.RestSeconds = 9f;
+            Hunt.Arrives = "the lantern figure steps through the gate";
 
             BuildStreetDetail(g, postWood);
             Expand_Japan.Build(this, g); // the tea garden off the lantern approach, street crows, lane lamps (Cells/Expand_Japan.cs)
@@ -119,7 +95,12 @@ namespace TwelfthStamp
         JapanCell J => (JapanCell)Cell;
         bool m_Solved;
 
-        public override string Objective => "Hang the hand lantern on the hook where only the genuine route mark still casts a shadow.";
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public bool Solved => m_Solved;
+
+        public override string Objective => m_Solved ? "The gate is open. Run to your stamp at the pagoda."
+            : J.Claw.GoldenOut ? "Take the golden lucky cat from the prize tray."
+            : "Win the golden lucky cat from the claw machine: arrows to line the claw up, then DROP. When the lantern figure comes, run, lose it, then come back.";
 
         public override void OnEnter(bool firstVisit)
         {
@@ -128,57 +109,55 @@ namespace TwelfthStamp
             // whole way there (lane, precinct gate, approach) is actually walkable.
             J.Gate?.SetOpen(m_Solved, true);
             Landmarks.MarkReachable(J, J.RouteOpen());
-            foreach (var h in J.Hooks) { h.Filled -= OnHung; h.Filled += OnHung; }
-            if (m_Solved) { J.Trace.Reveal(false); return; }
+            J.Claw.Delivered -= OnDelivered; J.Claw.Delivered += OnDelivered;
+            J.Claw.GoldenTaken -= OnTaken; J.Claw.GoldenTaken += OnTaken;
             J.Trace.Hide();
-            Narration.I?.Say("jpn_01", null, false, null, false, true);
             Game.Passenger?.Despawn();
-            var pc = Game.Passenger;
-            pc.RetreatPoint = J.transform.TransformPoint(new Vector3(0, 0, 12.5f));
-            pc.Spawn(Cell, new Vector3(0.4f, 0f, 12.2f), 180f, PassengerState.Observe, Disguise.LanternPaper);
-            pc.Threatening = true;
-            pc.WalkSpeed = 0.5f;
+            if (m_Solved) { J.Claw.SetSolved(); J.Hunt.Stop(); return; }
+            if (!J.Claw.GoldenOut) J.Claw.ResetGame();
+            else J.Claw.ReturnGolden(); // won earlier but never counted: back on the tray, not left where it was dropped
+            Hud.I?.ShowToast("A claw machine glows in the lantern street. The golden lucky cat inside is your way out of Japan.", 4.5f);
+            J.Hunt.Begin(firstVisit ? 9f : 6f);
             Hud.I?.SetObjective(Objective, false);
         }
 
         public override void OnExit()
         {
-            foreach (var h in J.Hooks) h.Filled -= OnHung;
+            J.Claw.Delivered -= OnDelivered;
+            J.Claw.GoldenTaken -= OnTaken;
+            J.Hunt.Stop();
         }
 
-        void OnHung(Socket s, Grabbable g)
+        void OnDelivered(ClawMachine m, bool golden)
         {
             if (!IsLive || m_Solved) return;
-            int idx = J.Hooks.IndexOf(s);
-            if (idx == J.CorrectHook)
+            if (golden) Hud.I?.ShowToast("The golden lucky cat drops into the prize tray. Grab it!", 3f);
+            Hud.I?.SetObjective(Objective, false);
+        }
+
+        void OnTaken(Grabbable g)
+        {
+            if (!IsLive || m_Solved) return;
+            m_Solved = true;
+            J.Hunt.Stop();
+            AudioDirector.I?.Play("seal_verify", g.transform.position, 0.7f);
+            Hud.I?.ShowToast("The lucky cat beckons, and the gate at the end of the street answers.", 3.5f);
+            if (J.Gate != null && !J.Gate.IsOpen)
             {
-                m_Solved = true;
-                for (int i = 0; i < J.Marks.Count; i++) if (i != J.CorrectHook) J.Marks[i].SetActive(false);
-                J.Trace.Reveal();
-                Hud.I?.ShowToast("Two marks vanish with the change of light. They were only shadows.", 3.5f);
-                Narration.I?.Say("tut_verify", null, true, null, false, true);
-                if (J.Gate != null && !J.Gate.IsOpen)
-                {
-                    // The way on opens: the end gate swings out onto the lane toward the pagoda.
-                    J.Gate.SetOpen(true, false);
-                    AudioDirector.I?.Play("door_open", J.Gate.Blocker.transform.position, 0.8f);
-                    Hud.I?.ShowCaption("the gate at the end of the street swings open", 3f);
-                }
-                if (Game.Passenger != null && Game.Passenger.Visible) Game.Passenger.SetState(PassengerState.Stalk);
+                // The way on opens: the end gate swings out onto the lane toward the pagoda.
+                J.Gate.SetOpen(true, false);
+                AudioDirector.I?.Play("door_open", J.Gate.Blocker.transform.position, 0.8f);
+                Hud.I?.ShowCaption("the gate at the end of the street swings open", 3f);
             }
-            else
-            {
-                // Wrong hook: the procession turns toward the light; take the lantern down and try another.
-                AudioDirector.I?.Play("pass_whisper", s.transform.position, 0.7f);
-                Hud.I?.ShowCaption("the procession of shadows turns toward the lantern", 3f);
-                s.LockWhenFilled = false;
-                g.Usable = true;
-            }
+            Landmarks.MarkReachable(J, true);
+            Game.Story.VerifyCountry(CountryId.Japan, null);
         }
 
         void Update()
         {
             if (!IsLive) return;
+            // Holding the cat is what counts, however it got into the hand.
+            if (!m_Solved && J.Claw.GoldenHeld) OnTaken(J.Claw.Golden);
             // The absent procession walks slowly toward the gate.
             foreach (var s in J.ProcessionShadows)
             {
@@ -192,21 +171,20 @@ namespace TwelfthStamp
 
         public override void ResetLocal()
         {
-            J.HandLantern.ReturnHome();
+            J.Hunt.Stop();
             Game.Passenger?.Despawn();
+            if (!m_Solved) J.Claw.ReturnGolden();
         }
     }
 
-    /// <summary>Saudi Arabia / Riyadh — The False Horizon. Three arches with contradictory reflections; match the
-    /// optical panel to the registration mark and walk through the honest arch. A wrong arch resets only this puzzle.</summary>
+    /// <summary>Saudi Arabia / Riyadh — The Maze. A walled mud-brick maze at dusk: the heat drains your energy, water
+    /// glasses keep you going, the figure follows you through the walls, and a portal past the far end carries you on.</summary>
     public partial class RiyadhCell : Cell
     {
-        public StepRotator Panel;
-        public readonly List<Transform> Arches = new List<Transform>();
-        public readonly List<Material> Reflections = new List<Material>();
+        public SandMaze Maze;
+        public GhostHunt Hunt;
         public TraceMark Trace;
-        public int HonestArch = 2;
-        public int TargetIndex = 3;
+        public const float DrainPerSecond = 1f / 42f;
 
         protected override void Build()
         {
@@ -232,72 +210,28 @@ namespace TwelfthStamp
             MeshFactory.Floor("Plaza", g, new Vector3(0, 0, 3f), new Vector2(16f, 16f), plaza, "stone", 0.3f, 1.6f);
             Landmarks.ArchTower(g, TowerPos, 0f, Mats.Backdrop(new Color(0.2f, 0.2f, 0.28f), Lighting), Mats.Backdrop(new Color(0.6f, 0.7f, 1f), Lighting, new Color(0.6f, 0.8f, 1.6f)));
             Landmarks.Skyline(g, new Vector3(0, -3f, 0), 230f, 60f, 0f, 12, Mats.Backdrop(new Color(0.25f, 0.22f, 0.3f), Lighting), null, 41);
-            var skyTints = new[] { new Color(0.35f, 0.5f, 0.95f, 0.75f), new Color(0.95f, 0.35f, 0.25f, 0.75f), new Color(0.95f, 0.6f, 0.45f, 0.75f) };
-            for (int i = 0; i < 3; i++)
-            {
-                var arch = new GameObject("Arch" + i).transform;
-                arch.SetParent(g, false);
-                arch.localPosition = new Vector3(-4f + i * 4f, 0, 6f);
-                // Dressed sandstone at a block size that reads as masonry, not brick; BuildPlazaDetail plasters the rest.
-                MeshFactory.Box("PierL", arch, new Vector3(-1.15f, 1.5f, 0), new Vector3(0.5f, 3f, 0.8f), stone, true, 2.5f);
-                MeshFactory.Box("PierR", arch, new Vector3(1.15f, 1.5f, 0), new Vector3(0.5f, 3f, 0.8f), stone, true, 2.5f);
-                var mb = new MeshBuilder();
-                mb.AddArch(new Vector3(0, 3f, 0), 0.9f, 1.4f, 0.8f, 12, Quaternion.identity, 2.5f);
-                MeshFactory.FromBuilder("Arc", mb, stone, arch);
-                var refl = Mats.UnlitInstance(skyTints[i], Tex.Albedo("glass_smudge"), true, 1f);
-                MeshFactory.Quad("Reflection", arch, 1.8f, 3.6f, refl, new Vector3(0, 1.8f, 0.05f));
-                Reflections.Add(refl);
-                Arches.Add(arch);
-            }
-            Trace = TraceMark.Create(transform, CountryId.SaudiArabia, new Vector3(-4f + 4f * HonestArch, 0.02f, 7.6f), Quaternion.identity, 0.6f, true);
-
-            // Optical panel on a stand, with the registration mark plaque beside it.
-            var stand = new GameObject("PanelStand").transform;
-            stand.SetParent(g, false);
-            stand.localPosition = new Vector3(0, 0, 1.5f);
-            var post = MeshFactory.Cylinder("Post", stand, Vector3.zero, 0.05f, 1.1f, metal, 10);
-            var pivot = new GameObject("Pivot").transform;
-            pivot.SetParent(stand, false);
-            pivot.localPosition = new Vector3(0, 1.35f, 0);
-            pivot.localRotation = Quaternion.Euler(-90, 0, 0);
-            var disc = new MeshBuilder();
-            disc.AddDisc(Vector3.zero, Vector3.up, 0.32f, 40);
-            disc.AddDisc(Vector3.zero, Vector3.down, 0.32f, 40);
-            var calib = Tex.Art("calibration_insert");
-            var optic = MeshFactory.FromBuilder("Optic", disc, Mats.Unlit(new Color(0.75f, 0.95f, 0.9f, 0.9f), calib, true, 1.1f), pivot);
-            // The modelled stand and lens, scaled so the disc centre (1.255 m) meets the pivot. The model turns about its
-            // vertical axis but this puzzle spins the pattern about the disc's axis, so the model stays still and only the
-            // calibration pattern turns, now just in front of the lens glass.
-            var lensGlass = Mats.Glass(new Color(0.75f, 0.92f, 0.9f, 0.12f));
-            if (Models.Spawn("OpticalPanel", stand, Models.Slots(("TS_Metal", metal), ("TS_Glass", lensGlass)), Vector3.zero, 180f, 1.35f / 1.255f) != null)
-            {
-                Models.StripVisual(post);
-                optic.transform.localPosition = new Vector3(0f, 0.022f, 0f);
-            }
-            else
-            {
-                var ring = new MeshBuilder();
-                ring.AddTorus(Vector3.zero, 0.33f, 0.02f, 32, 6, Quaternion.identity);
-                MeshFactory.FromBuilder("Ring", ring, metal, pivot);
-            }
-            pivot.gameObject.AddComponent<BoxCollider>().size = new Vector3(0.7f, 0.08f, 0.7f);
-            Panel = pivot.gameObject.AddComponent<StepRotator>();
-            Panel.Target = pivot;
-            Panel.Axis = Vector3.up;
-            Panel.StepDegrees = 45f;
-            Panel.Steps = 8;
-            Panel.Prompt = "Rotate the optical panel";
-            var plaque = MeshFactory.Box("Plaque", g, new Vector3(0.85f, 1.1f, 1.5f), new Vector3(0.36f, 0.36f, 0.04f), metal, true);
-            var arrow = TextFactory.World(plaque.transform, "↖", 0.25f, new Color(0.5f, 0.1f, 0.08f), TMPro.TextAlignmentOptions.Center, false, 0.3f);
-            arrow.transform.localPosition = new Vector3(0, 0, -0.025f);
-            var label = TextFactory.World(plaque.transform, "registration mark", 0.025f, new Color(0.25f, 0.2f, 0.18f), TMPro.TextAlignmentOptions.Center, false, 0.34f);
-            label.transform.localPosition = new Vector3(0, -0.14f, -0.025f);
-
             BuildPlazaDetail(g);
             Expand_Riyadh.Build(this, g); // the coffee court outside the north gatehouse, plaza doves (Cells/Expand_Riyadh.cs)
-            AddSeam("arrival", new Vector3(0f, 0f, -4.6f), 0f);
-            AddSeam("plaza", new Vector3(-7.4f, 0f, 2f), 90f);
-            SetArrival(new Vector3(0f, 0f, -3.6f), 0f);
+
+            // The game here is the maze (Cells/CountryGames.cs), built well south of the old plaza: the player arrives in it,
+            // crosses it with their energy draining (water glasses on the way) while the figure follows through the walls,
+            // and the portal past its north end carries them on. The stamp waits in the portal ring, so it is the only
+            // stamp spot in this cell.
+            Maze = SandMaze.Build(transform, new Vector3(-10.4f, 0f, -110f), Lighting);
+            foreach (var v in GetComponentsInChildren<VistaInfo>(true)) if (v != Maze.StampSpot) v.HasStampSpot = false;
+            Trace = TraceMark.Create(transform, CountryId.SaudiArabia, Maze.PortalLocal + new Vector3(0f, 0.02f, -1.5f), Quaternion.identity, 0.6f, true);
+            var start = Maze.CellCenter(Maze.Start);
+            Hunt = gameObject.AddComponent<GhostHunt>();
+            Hunt.Cell = this;
+            Hunt.SpawnLocal = start + new Vector3(0f, 0f, -7f);
+            Hunt.RetreatLocal = start + new Vector3(6f, 0f, -7f);
+            Hunt.StalkSpeed = 0.5f;
+            Hunt.RushEvery = 0f;           // slow, relentless, straight through the walls
+            Hunt.LoseDistance = 9999f;
+            Hunt.Arrives = "something walks through the maze walls behind you";
+            AddSeam("arrival", start + new Vector3(0f, 0f, -1.1f), 0f);
+            AddSeam("plaza", Maze.PortalLocal + new Vector3(-2.4f, 0f, -2.5f), 90f);
+            SetArrival(start, 0f);
             // Open world: one box round the plaza and the run north up the tower's sight line to just past the stamp spot.
             // The plaza keeps its south and west edges; the east parapet, the north wall and the gatehouse doors (shut until
             // the honest arch is walked through) have colliders of their own (RouteColliders, NorthGate).
@@ -310,102 +244,62 @@ namespace TwelfthStamp
     public class RiyadhEncounter : Encounter
     {
         RiyadhCell R => (RiyadhCell)Cell;
-        bool m_Aligned, m_Solved;
+        bool m_Solved;
+        float m_DrinkCooldown;
         // Read-only state for the guide (Guide/GuideBook.cs).
-        public bool Aligned => m_Aligned;
         public bool Solved => m_Solved;
-        int m_LastArchCheck = -1;
 
-        public override string Objective => !m_Aligned ? "Turn the optical panel to match the registration mark." : "Walk through the arch whose reflection tells the truth.";
+        public override string Objective => m_Solved ? "Step into the portal: your stamp is waiting in the ring."
+            : "Cross the maze to the portal at its far end. The heat drains your energy: drink the glowing water glasses to stay alive. Something follows you through the walls.";
 
         public override void OnEnter(bool firstVisit)
         {
             m_Solved = Game.Campaign.IsVerified(CountryId.SaudiArabia);
-            // The north gate stands open once the seal is verified; the stamp is only offered out at the tower while the
-            // way there is actually walkable.
             R.Gate?.SetOpen(m_Solved, true);
-            Landmarks.MarkReachable(R, R.RouteOpen());
-            R.Panel.Changed -= OnTurn; R.Panel.Changed += OnTurn;
-            if (m_Solved) { R.Trace.Reveal(false); return; }
+            foreach (var v in R.GetComponentsInChildren<VistaInfo>(true)) if (v != R.Maze.StampSpot) v.HasStampSpot = false;
+            Landmarks.MarkReachable(R, true);
             R.Trace.Hide();
-            R.Panel.SetIndex(0);
-            m_Aligned = false;
-            UpdateReflections();
-            Narration.I?.Say("sau_01", null, false, null, false, true);
             Game.Passenger?.Despawn();
+            if (m_Solved) { R.Hunt.Stop(); return; }
+            R.Maze.Refill();
+            Game.Story?.RestoreVitality(1f);
+            Hud.I?.ShowToast("A maze of mud-brick walls. Your energy drains in the heat: find the water, find the portal.", 4.5f);
+            R.Hunt.Begin(firstVisit ? 7f : 5f);
             Hud.I?.SetObjective(Objective, false);
         }
 
-        public override void OnExit() => R.Panel.Changed -= OnTurn;
-
-        void OnTurn(StepRotator r, int i)
-        {
-            if (!IsLive || m_Solved) return;
-            m_Aligned = i == R.TargetIndex;
-            UpdateReflections();
-            Hud.I?.SetObjective(Objective, false);
-            if (m_Aligned) { AudioDirector.I?.Play("seal_verify", r.transform.position, 0.5f); Hud.I?.ShowToast("The reflections settle. One arch now shows the plaza as it is.", 3f); }
-        }
-
-        void UpdateReflections()
-        {
-            for (int i = 0; i < R.Reflections.Count; i++)
-            {
-                bool honest = m_Aligned && i == R.HonestArch;
-                var c = honest ? new Color(0.9f, 0.75f, 0.6f, 0.35f) : m_Aligned ? new Color(0.15f, 0.12f, 0.2f, 0.85f) : R.Reflections[i].GetColor("_Color");
-                R.Reflections[i].SetColor("_Color", c);
-            }
-        }
+        public override void OnExit() => R.Hunt.Stop();
 
         void Update()
         {
-            if (!IsLive || m_Solved || Game.Rig == null) return;
+            if (!IsLive || m_Solved || Game.Rig == null || Game.Story == null || Game.Story.Busy || Game.Story.Failing) return;
             var feet = R.transform.InverseTransformPoint(Game.Rig.Feet);
-            for (int i = 0; i < R.Arches.Count; i++)
+            if (R.Maze.Escaped(feet)) { Solve(); return; }
+            Game.Story.DrainVitality(RiyadhCell.DrainPerSecond * Time.deltaTime);
+            m_DrinkCooldown -= Time.deltaTime;
+            if (m_DrinkCooldown <= 0f && R.Maze.TryDrink(feet))
             {
-                var a = R.Arches[i].localPosition;
-                bool inside = Mathf.Abs(feet.x - a.x) < 0.9f && Mathf.Abs(feet.z - a.z) < 0.5f;
-                if (!inside) { if (m_LastArchCheck == i) m_LastArchCheck = -1; continue; }
-                if (m_LastArchCheck == i) continue;
-                m_LastArchCheck = i;
-                if (m_Aligned && i == R.HonestArch)
-                {
-                    m_Solved = true;
-                    R.Trace.Reveal();
-                    Narration.I?.Say("tut_verify", null, true, null, false, true);
-                    if (R.Gate != null && !R.Gate.IsOpen)
-                    {
-                        // The way on opens: the painted doors behind the honest arch swing out onto the city.
-                        R.Gate.SetOpen(true, false);
-                        AudioDirector.I?.Play("door_open", R.Gate.Blocker.transform.position, 0.8f);
-                        Hud.I?.ShowCaption("the gate behind the arch swings open", 3f);
-                    }
-                }
-                else WrongArch();
+                m_DrinkCooldown = 0.5f;
+                Game.Story.RestoreVitality(0.45f);
+                AudioDirector.I?.Play("breath_relief_1", Game.Rig.Head.position, 0.8f);
+                AudioDirector.I?.Play("drop_soft", Game.Rig.Feet, 0.5f, 1.4f);
+                Hud.I?.ShowToast("You drink the water. Energy restored.", 2f);
             }
         }
 
-        void WrongArch()
+        void Solve()
         {
-            // A mistake resets the local puzzle only. Campaign progress is untouched.
-            Game.Campaign.falseExits++;
-            AudioDirector.I?.Play("pass_sting", Game.Rig.Head.position, 0.6f, 1f, Bus.SFX, true);
-            PostFx.I?.Flash(0.5f);
-            Hud.I?.ShowToast("A false horizon. The plaza folds back to the start.", 3f);
-            StartCoroutine(Reset());
+            m_Solved = true;
+            R.Hunt.Stop();
+            AudioDirector.I?.Play("seal_verify", R.Maze.Portal.position, 0.8f);
+            Hud.I?.ShowToast("Out of the maze! The portal is open: step into it.", 3.5f);
+            Game.Story.VerifyCountry(CountryId.SaudiArabia, null);
         }
 
-        System.Collections.IEnumerator Reset()
+        public override void ResetLocal()
         {
-            Game.InputLocks++;
-            yield return Fader.I.FadeOut(0.3f);
-            R.Panel.SetIndex(Random.Range(1, 8));
-            m_Aligned = R.Panel.Index == R.TargetIndex;
-            UpdateReflections();
-            Game.Rig.PlaceAt(R.Arrival.position, R.Arrival.eulerAngles.y);
-            Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
-            yield return Fader.I.FadeIn(0.4f);
-            Hud.I?.SetObjective(Objective, false);
+            R.Hunt.Stop();
+            Game.Passenger?.Despawn();
         }
     }
 }

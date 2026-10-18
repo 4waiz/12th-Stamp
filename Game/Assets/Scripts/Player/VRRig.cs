@@ -265,9 +265,12 @@ namespace TwelfthStamp
 
             if (Game.Tears != null)
             {
-                // One-handed alternative: hold the dominant trigger while aiming at a seam (passport open).
+                // One-handed alternative: hold the dominant trigger while aiming at a seam (passport open), and keep holding to
+                // widen the tear it opened. Targeting stops once a tear is open, so widening must not need a target (playtest,
+                // 18 Oct, Quest 3: holding the trigger opened a slit that never grew).
                 var dominantTrigger = input.TriggerOf(input.DominantHand);
-                if (passportOpen && dominantTrigger.IsPressed() && Game.Tears.HasTarget) Game.Tears.HoldWiden(Time.deltaTime, input.DominantHand);
+                bool tearOpen = Game.Tears.Active != null && !Game.Tears.Active.Closing;
+                if (passportOpen && dominantTrigger.IsPressed() && (Game.Tears.HasTarget || tearOpen)) Game.Tears.HoldWiden(Time.deltaTime, input.DominantHand);
                 else if (!Game.Tears.IsPulling) Game.Tears.ReleaseWiden();
                 if (input.SealButton.IsPressed()) Game.Tears.HoldSeal(Time.deltaTime, input.DominantHand);
                 else Game.Tears.ReleaseSeal();
@@ -291,7 +294,7 @@ namespace TwelfthStamp
             }
             if (trigger.WasPressedThisFrame() && !passportHolder)
             {
-                bool tearUse = Game.Passport != null && Game.Passport.IsOpen && Game.Tears != null && Game.Tears.HasTarget && hand.Side == Game.Input.DominantHand;
+                bool tearUse = Game.Passport != null && Game.Passport.IsOpen && Game.Tears != null && (Game.Tears.HasTarget || Game.Tears.Active != null) && hand.Side == Game.Input.DominantHand;
                 if (!tearUse) hand.PressUse();
             }
         }

@@ -348,32 +348,32 @@ namespace TwelfthStamp
         static PlaceGuide Japan(JapanCell j)
         {
             const CountryId id = CountryId.Japan;
+            var enc = j.Encounter as JapanEncounter;
             var g = new PlaceGuide
             {
-                Title = "Japan · The Empty Procession",
-                Briefing = "Three route marks lie on the street, and a procession of shadows walks with no one casting it. Only the genuine mark keeps its shadow in the right light.",
-                Danger = "A paper-lantern figure watches from the end of the street. Once the marks change it starts to stalk you: verify quickly, then run.",
+                Title = "Japan · The Claw Machine",
+                Briefing = "A claw machine glows in the lantern street. The golden lucky cat inside it is your way out of Japan: win it and the gate at the end of the street opens.",
+                Danger = "The lantern figure comes in through the gate while you play, and now and then it rushes. Run down the street until it loses you, then come back to the machine.",
             };
-            Func<bool> solved = () => Verified(id) || (j.Trace != null && j.Trace.Revealed);
+            Func<bool> solved = () => Verified(id) || (enc != null && enc.Solved);
             g.Steps.Add(new GuideStep
             {
-                Text = "Take the hand lantern  " + Grab,
-                Done = () => solved() || Holding(j.HandLantern) || (j.Hooks.Count > j.CorrectHook && j.Hooks[j.CorrectHook].Current != null),
-                Target = () => Pos(j.HandLantern),
-                Label = "Lantern",
+                Text = "Line the claw up over the <b>golden lucky cat</b> with the arrow buttons, then press <b>DROP</b>  " + Use,
+                Hint = "Each arrow moves the claw one place. Under the cat, press DROP: the claw grabs it and carries it to the chute. A plush toy is the wrong prize; try again.",
+                Done = () => solved() || (j.Claw != null && j.Claw.GoldenOut),
+                Target = () => j.Claw != null ? j.Claw.ControlsPosition : (Vector3?)null,
+                Label = "Claw machine",
             });
             g.Steps.Add(new GuideStep
             {
-                Text = "Hang it on the <b>middle hook</b>, where only the genuine route mark still casts a shadow  " + Use,
-                Hint = "Hold the lantern up to a hook and press " + Use + ". Under the right hook two of the marks vanish; a wrong hook turns the shadows toward you, so take it down and try again.",
+                Text = "Take the golden lucky cat from the prize tray  " + Grab,
                 Done = solved,
-                Target = () => j.Hooks.Count > j.CorrectHook ? j.Hooks[j.CorrectHook].transform.position : (Vector3?)null,
-                Label = "Middle hook",
+                Target = () => j.Claw != null ? j.Claw.GoldenPosition : (Vector3?)null,
+                Label = "Lucky cat",
             });
-            g.Steps.Add(TraceStep(id, () => j.Trace, "on the genuine route mark (come at it from the south)"));
             g.Steps.Add(StampStep(id, "the lantern figure"));
             g.Steps.Add(TravelStep(j));
-            g.Alert = () => PassengerAlert(7f, "The lantern figure is close. Keep moving.");
+            g.Alert = () => PassengerAlert(7f, "The lantern figure is close. Run, lose it, come back.");
             return g;
         }
 
@@ -384,64 +384,71 @@ namespace TwelfthStamp
             var enc = r.Encounter as RiyadhEncounter;
             var g = new PlaceGuide
             {
-                Title = "Saudi Arabia · The False Horizon",
-                Briefing = "Three arches reflect the plaza, and two of them lie. The optical panel, set to your passport's registration mark, shows which one tells the truth.",
-                Danger = "Nothing hunts you here until your stamp appears. A wrong arch folds the plaza back to the start and scrambles the panel.",
+                Title = "Saudi Arabia · The Maze",
+                Briefing = "A maze of mud-brick walls. A portal waits past its far (north) end and carries you on to the next country.",
+                Danger = "The heat drains your energy all the time: drink the glowing water glasses on the way. The figure walks straight through the walls after you.",
             };
-            Func<bool> solved = () => Verified(id) || (enc != null && enc.Solved) || (r.Trace != null && r.Trace.Revealed);
+            Func<bool> solved = () => Verified(id) || (enc != null && enc.Solved);
             g.Steps.Add(new GuideStep
             {
-                Text = "Turn the optical panel  " + Use + "  until it matches the registration mark on its plaque (the arrow)",
-                Hint = "Each press turns it 45 degrees. From the start, three presses line it up; the reflections settle when it is right.",
-                Done = () => solved() || (enc != null && enc.Aligned),
-                Target = () => Pos(r.Panel),
-                Label = "Optical panel",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Walk through the arch whose reflection shows the plaza as it is: the <b>right-hand arch</b>",
-                Hint = "Only walk through an arch after the panel is set. The honest one shows the plaza without the false horizon.",
+                Text = "Find your way through the maze to the portal. Drink the water glasses to keep your energy up",
+                Hint = "Keep heading north. Dead ends often hold a glass of water: walk up to it to drink. Do not stand still, it is always coming.",
                 Done = solved,
-                Target = () => r.Arches.Count > r.HonestArch ? r.Arches[r.HonestArch].position : (Vector3?)null,
-                Label = "Honest arch",
+                Target = () => MazeWaypoint(r),
+                Label = "This way",
             });
-            g.Steps.Add(TraceStep(id, () => r.Trace, "just beyond the arch"));
             g.Steps.Add(StampStep(id));
             g.Steps.Add(TravelStep(r));
-            g.Alert = () => PassengerAlert(8f, "It is here now. Run for the stamp.");
+            g.Alert = () => PassengerAlert(6f, "It is right behind you. Keep moving.");
             return g;
+        }
+
+        /// <summary>A few cells further along the maze's way out from where the player is.</summary>
+        static Vector3? MazeWaypoint(RiyadhCell r)
+        {
+            var m = r.Maze;
+            if (m == null || Game.Rig == null) return null;
+            var here = m.CellAt(r.transform.InverseTransformPoint(Game.Rig.Feet));
+            int i = m.Solution.IndexOf(here);
+            if (i < 0)
+            {
+                // Off the way out: point back to the nearest cell on it.
+                float best = float.MaxValue;
+                for (int k = 0; k < m.Solution.Count; k++)
+                {
+                    float d = (m.Solution[k] - here).sqrMagnitude;
+                    if (d < best) { best = d; i = k; }
+                }
+                return r.transform.TransformPoint(m.CellCenter(m.Solution[i]) + Vector3.up);
+            }
+            int next = Mathf.Min(i + 2, m.Solution.Count - 1);
+            if (i == m.Solution.Count - 1) return r.transform.TransformPoint(m.PortalLocal + Vector3.up);
+            return r.transform.TransformPoint(m.CellCenter(m.Solution[next]) + Vector3.up);
         }
 
         // ------------------------------------------------------------------ India: Agra
         static PlaceGuide Agra(AgraCell a)
         {
             const CountryId id = CountryId.India;
+            var enc = a.Encounter as AgraEncounter;
             var g = new PlaceGuide
             {
-                Title = "India · The Reflection That Stayed",
-                Briefing = "The garden pool reflects one person too many. Lamplight from the right pedestal shows what that extra reflection is standing on.",
-                Danger = "When the reflection steps out of the pool it comes after you, and the lamp does not stop it. Verify fast, then run.",
+                Title = "India · The Taj Mahal Puzzle",
+                Briefing = "On a table by the pool lies a picture puzzle of the Taj Mahal, the real one standing at the end of the garden. Put the picture right to go on.",
+                Danger = "A figure climbs out of the pool and hunts the garden while you work. Run until it loses you, then come back to the table.",
             };
-            Func<bool> solved = () => Verified(id) || (a.Trace != null && a.Trace.Revealed);
+            Func<bool> solved = () => Verified(id) || (enc != null && enc.Solved);
             g.Steps.Add(new GuideStep
             {
-                Text = "Take the garden lamp  " + Grab,
-                Done = () => solved() || Holding(a.Lamp) || (a.Pedestals.Count > a.CorrectPedestal && a.Pedestals[a.CorrectPedestal].Current != null),
-                Target = () => Pos(a.Lamp),
-                Label = "Lamp",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Set it on the <b>middle pedestal</b> by the pool, where its reflection shows what the extra person stands on  " + Use,
-                Hint = "Hold the lamp over a pedestal and press " + Use + ". A wrong pedestal makes the reflected figure turn toward the light: take the lamp back and try the middle one.",
+                Text = "Solve the Taj Mahal puzzle: pick a piece, then another to swap them  " + Use,
+                Hint = "The postcard on the table shows the finished picture: sky and minarets at the top, the dome in the middle, the pool and cypress trees at the bottom.",
                 Done = solved,
-                Target = () => a.Pedestals.Count > a.CorrectPedestal ? a.Pedestals[a.CorrectPedestal].transform.position : (Vector3?)null,
-                Label = "Middle pedestal",
+                Target = () => a.Puzzle != null ? a.Puzzle.BoardPosition : (Vector3?)null,
+                Label = "Puzzle",
             });
-            g.Steps.Add(TraceStep(id, () => a.Trace, "on the pool's east kerb"));
             g.Steps.Add(StampStep(id, "the figure from the pool"));
             g.Steps.Add(TravelStep(a));
-            g.Alert = () => PassengerAlert(8f, "The figure from the pool is coming. Verify and run.");
+            g.Alert = () => PassengerAlert(8f, "The figure from the pool is coming. Run, lose it, come back.");
             return g;
         }
 

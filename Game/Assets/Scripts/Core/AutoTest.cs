@@ -96,6 +96,8 @@ namespace TwelfthStamp
             if (m_Name == "shift") yield return ShiftFlow();   // art review of the glasses moment (AutoTestShift.cs); not part of "all"
             if (m_Name == "guide") yield return GuideFlow();   // walkthroughs, markers, maps (AutoTestGuide.cs); not part of "all"
             if (m_Name == "explore") yield return ExploreFlow(); // the expanded countries (AutoTestExplore.cs)
+            if (m_Name == "vrgames") yield return VRGamesFlow(); // the claw machine, maze and Taj puzzle with VR hands (AutoTestVRGames.cs)
+            if (m_Name == "deskclaw") yield return DeskClawFlow(); // the claw machine with desktop aim and E (AutoTestVRGames.cs)
             if (m_Name == "all" || m_Name == "lifecycle") yield return LifecycleFlow(); // AutoTestLifecycle.cs
             if (m_Name == "all" || m_Name == "levels") yield return LevelsFlow();       // AutoTestLevels.cs
             if (m_Name == "persist1") yield return Persist1Flow();
@@ -546,39 +548,47 @@ namespace TwelfthStamp
             yield return UseTrace(ny.Trace, CountryId.USA);
             Check(Game.Campaign.HasResource(ResourceId.Noisemaker), "noisemaker becomes a carried resource");
 
-            // Japan: the lantern on the right hook leaves only the genuine mark.
+            // Japan: win the golden lucky cat from the claw machine.
             yield return Enter(CellId.Japan);
             var jp = (JapanCell)Game.Cells.Active;
             yield return Shot("32_japan");
-            hand.Grab(jp.HandLantern);
-            hand.PlaceInto(jp.Hooks[jp.CorrectHook]);
-            yield return WaitUntil(() => jp.Trace.Revealed, 3f, "lantern on the correct hook reveals the genuine trace");
-            yield return new WaitForSeconds(0.8f);
+            Game.Rig.PlaceAt(jp.Claw.transform.TransformPoint(new Vector3(0f, 0f, -1.5f)), jp.Claw.transform.eulerAngles.y);
+            yield return new WaitForSeconds(0.4f);
+            for (int i = 0; i < jp.Claw.GoldCol; i++) { jp.Claw.Right.Use(hand); yield return new WaitForSeconds(0.45f); }
+            for (int i = 0; i < jp.Claw.GoldRow; i++) { jp.Claw.Back.Use(hand); yield return new WaitForSeconds(0.45f); }
+            Check(jp.Claw.ClawCol == jp.Claw.GoldCol && jp.Claw.ClawRow == jp.Claw.GoldRow, "claw lined up over the golden cat");
+            jp.Claw.Drop.Use(hand);
+            yield return WaitUntil(() => jp.Claw.GoldenOut, 10f, "the claw delivers the golden lucky cat to the tray");
             yield return Shot("33_japan_solved");
-            yield return UseTrace(jp.Trace, CountryId.Japan);
+            hand.Grab(jp.Claw.Golden);
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.Japan), 6f, "taking the lucky cat verifies Japan");
 
-            // Saudi Arabia: align the optical panel, walk through the honest arch.
+            // Saudi Arabia: cross the maze (energy drains; water restores), out to the portal.
             yield return Enter(CellId.Riyadh);
             var ry = (RiyadhCell)Game.Cells.Active;
             yield return Shot("34_riyadh");
-            for (int i = 0; i < ry.TargetIndex; i++) { ry.Panel.Use(hand); yield return new WaitForSeconds(0.35f); }
-            Check(ry.Panel.Index == ry.TargetIndex, "optical panel aligned");
-            var arch = ry.Arches[ry.HonestArch];
-            Game.Rig.PlaceAt(new Vector3(arch.position.x, ry.transform.position.y, arch.position.z), 0f);
-            yield return WaitUntil(() => ry.Trace.Revealed, 3f, "walking through the honest arch reveals the trace");
+            float before = Game.Campaign.vitality;
+            yield return new WaitForSeconds(1.5f);
+            Check(Game.Campaign.vitality < before, "the maze drains energy");
+            var glass = ry.Maze.Waters[0];
+            Game.Rig.PlaceAt(ry.transform.TransformPoint(glass.localPosition), 0f);
+            yield return WaitUntil(() => !SandMaze.IsFull(glass), 2f, "walking up to a water glass drinks it");
+            Game.Rig.PlaceAt(ry.transform.TransformPoint(ry.Maze.PortalLocal + new Vector3(0f, 0f, -3f)), 0f);
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.SaudiArabia), 6f, "out of the maze verifies Saudi Arabia");
             yield return Shot("35_riyadh_solved");
-            yield return UseTrace(ry.Trace, CountryId.SaudiArabia);
 
-            // India: the lamp's reflection shows what the extra person stands on.
+            // India: put the Taj Mahal picture right.
             yield return Enter(CellId.Agra);
             var ag = (AgraCell)Game.Cells.Active;
             yield return Shot("36_agra");
-            hand.Grab(ag.Lamp);
-            hand.PlaceInto(ag.Pedestals[ag.CorrectPedestal]);
-            yield return WaitUntil(() => ag.Trace.Revealed, 3f, "lamp on the correct pedestal reveals the trace");
-            yield return new WaitForSeconds(2.5f);
-            yield return Shot("37_agra_stepout");
-            yield return UseTrace(ag.Trace, CountryId.India);
+            Check(ag.Puzzle.Misplaced > 0, "the Taj Mahal puzzle starts scrambled");
+            for (int s = 0; s < TajJigsaw.N * TajJigsaw.N; s++)
+            {
+                int from = ag.Puzzle.SlotHolding(s);
+                if (from != s) { ag.Puzzle.Swap(s, from); yield return new WaitForSeconds(0.4f); }
+            }
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.India), 6f, "the finished picture verifies India");
+            yield return Shot("37_agra_solved");
 
             // Brazil: three stamps masked by the drum beat.
             yield return Enter(CellId.Rio);

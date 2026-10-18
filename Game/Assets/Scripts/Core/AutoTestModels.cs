@@ -86,9 +86,9 @@ namespace TwelfthStamp
             yield return Landmark(ny, "LibertySilhouette", 93f, 110f, "m18_newyork_liberty");
 
             var japan = (JapanCell)Game.Cells.Activate(CellId.Japan);
-            ExpectModels(japan, ("HandLantern", 1), ("Landmark_Pagoda", 1));
-            var lantern = japan.HandLantern.transform.position;
-            yield return Frame(japan, lantern + new Vector3(-0.5f, 1.1f, -0.95f), lantern + new Vector3(0f, 0.28f, 0f), "m19_japan_lantern");
+            ExpectModels(japan, ("Landmark_Pagoda", 1));
+            var claw = japan.transform.InverseTransformPoint(japan.Claw.transform.position);
+            yield return Frame(japan, claw + new Vector3(0.6f, 1.6f, -2.2f), claw + new Vector3(0f, 1.3f, 0f), "m19_japan_clawmachine");
             yield return Landmark(japan, "PagodaSilhouette", 39f, 50f, "m20_japan_pagoda");
             // The precinct gate seen from the street's lane: an open passage on the pagoda's sight line.
             var pagoda = japan.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == "PagodaSilhouette");
@@ -102,17 +102,17 @@ namespace TwelfthStamp
             }
 
             var riyadh = (RiyadhCell)Game.Cells.Activate(CellId.Riyadh);
-            ExpectModels(riyadh, ("OpticalPanel", 1), ("Landmark_ArchTower", 1));
-            yield return Frame(riyadh, new Vector3(0.5f, 1.6f, -0.7f), new Vector3(0f, 1.3f, 1.5f), "m21_riyadh_panel");
-            riyadh.Panel.SetIndex(riyadh.TargetIndex);
-            yield return Frame(riyadh, new Vector3(0.5f, 1.6f, -0.7f), new Vector3(0f, 1.3f, 1.5f), "m22_riyadh_panel_turned");
-            riyadh.Panel.SetIndex(0);
+            ExpectModels(riyadh, ("Landmark_ArchTower", 1));
+            var mazeStart = riyadh.Maze.CellCenter(riyadh.Maze.Start);
+            yield return Frame(riyadh, mazeStart + new Vector3(0f, 1.6f, -0.6f), mazeStart + new Vector3(0f, 1.4f, 4f), "m21_riyadh_maze");
+            yield return Frame(riyadh, riyadh.Maze.PortalLocal + new Vector3(0f, 1.6f, -4.5f), riyadh.Maze.PortalLocal + new Vector3(0f, 1.6f, 0f), "m22_riyadh_portal");
             yield return Landmark(riyadh, "ArchTowerSilhouette", 150f, 130f, "m23_riyadh_archtower");
 
             var agra = (AgraCell)Game.Cells.Activate(CellId.Agra);
-            ExpectModels(agra, ("GardenLamp", 1), ("Landmark_DomedPavilion", 1));
-            var lamp = agra.Lamp.transform.position;
-            yield return Frame(agra, lamp + new Vector3(0.3f, 0.75f, -0.75f), lamp + new Vector3(0f, 0.15f, 0f), "m24_agra_lamp");
+            ExpectModels(agra, ("Landmark_DomedPavilion", 1));
+            agra.Puzzle.Scramble();
+            var puzzleTable = agra.transform.InverseTransformPoint(agra.Puzzle.transform.position);
+            yield return Frame(agra, puzzleTable + new Vector3(0f, 1.65f, -0.9f), puzzleTable + new Vector3(0f, 0.85f, 0.05f), "m24_agra_tajpuzzle");
             yield return Landmark(agra, "DomedPavilion", 65f, 120f, "m25_agra_pavilion");
             // The open garden: the raised tank on the axis, with its steps and the sandstone paths round it.
             yield return Frame(agra, new Vector3(6.5f, 1.6f, 80f), new Vector3(0f, 0.4f, 96f), "m25b_agra_tank");

@@ -67,6 +67,13 @@ namespace TwelfthStamp
         /// <summary>The level being played, or null in the story (Hard), the demo and the menu.</summary>
         public static LevelDef Current;
 
+        /// <summary>
+        /// Every level opens with the story (playtest, 18 Oct: "no matter which level I enter I want the story mode to be
+        /// there"): home in Abu Dhabi, the glasses, the seam waking in the apartment; the apartment's first tear then leads
+        /// into the level's own countries. The levels test switches it off to check the runs themselves.
+        /// </summary>
+        public static bool SkipStoryIntro;
+
         public static bool CurrentIsHarmless => Current != null && Current.Harmless;
 
         // Completion is remembered with the settings (levels never touch the story save).

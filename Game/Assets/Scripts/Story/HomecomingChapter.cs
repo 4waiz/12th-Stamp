@@ -141,8 +141,8 @@ namespace TwelfthStamp
 
         /// <summary>
         /// The glasses go on, and the room stops being the room. They rise from the case to the eyes as an object (the camera
-        /// stays where the player has it); the fridge dies and the voicemail starts repeating; the room goes dark and comes
-        /// back as the Margin's copy of itself, and the seam in the kitchen wakes: it splits open on Egypt by itself, sunlight
+        /// stays where the player has it); the fridge dies and the voicemail starts repeating; the dimension shift tears the
+        /// room apart in Egypt's light and it reassembles as the Margin's copy of itself; the seam in the kitchen wakes: it splits open on Egypt by itself, sunlight
         /// and the desert through the gap, then pulls shut to a glowing scar, the way on that the tutorial then teaches.
         /// (Playtest, 18 Oct: the Between's causeway run and the red shift into it were cut; "when I put on the glasses the
         /// seam should start to Egypt with animation".)
@@ -165,18 +165,19 @@ namespace TwelfthStamp
             Hud.I?.ShowCaption("the voicemail repeats: \"unpacked... unpacked...\"", 3.5f);
             yield return new WaitForSeconds(Game.IsAutoTest ? 0.5f : 2.4f);
 
-            // The room goes dark and comes back as the Margin's copy, the player facing the kitchen seam (placed while dark).
-            Fader.I.SetColor(Color.black);
-            Fader.I.FadeTo(1f, Game.IsAutoTest ? 0.3f : 1.2f);
-            yield return new WaitForSeconds(Game.IsAutoTest ? 0.35f : 1.3f);
-            var corrupt = (ApartmentCell)Game.Cells.Activate(CellId.ApartmentCorrupt);
-            corrupt.RefreshProbe();
-            Game.Cells.Prepare(CellId.Egypt); // the seam opens on it next: build it while the screen is dark
-            var seam = KitchenSeam(corrupt);
-            FaceSeam(seam, 1.3f);
-            c.SetFlag(StoryFlags.SeamRevealed);
-            yield return null;
-            Fader.I.FadeTo(0f, Game.IsAutoTest ? 0.3f : 1.4f);
+            // The room tears apart (the dimension shift travel uses, in Egypt's light: playtest, 18 Oct, "add the animation
+            // that was there when I was teleporting") and reassembles as the Margin's copy, the player facing the kitchen seam.
+            ApartmentCell corrupt = null;
+            SeamAnchor seam = null;
+            yield return DimensionShift.Run(() =>
+            {
+                corrupt = (ApartmentCell)Game.Cells.Activate(CellId.ApartmentCorrupt);
+                corrupt.RefreshProbe();
+                Game.Cells.Prepare(CellId.Egypt); // the seam opens on it next: build it behind the slam
+                seam = KitchenSeam(corrupt);
+                FaceSeam(seam, 1.3f);
+                c.SetFlag(StoryFlags.SeamRevealed);
+            }, Game.IsAutoTest ? 2f : 4.5f, CellId.Egypt);
             yield return SeamWakes(seam);
             Game.InputLocks--;
 
@@ -277,9 +278,11 @@ namespace TwelfthStamp
         public bool ThreatStarted => m_ThreatStarted;
         public bool Escaping => m_Escaping;
         float m_ReflectionAlpha;
+        // Where the apartment's first tear leads: Egypt in the story, the level's first country in a level run.
+        static string FirstStop => Game.Campaign != null && Game.Campaign.IsLevelRun && Game.Campaign.NextRecommended() != null ? Game.Campaign.NextRecommended().DisplayName : "Egypt";
 
         public override string Objective => Game.Campaign.IsVerified(CountryId.UAE)
-            ? "Open a tear to Egypt, widen it to a doorway and step through."
+            ? "Open a tear to " + FirstStop + ", widen it to a doorway and step through."
             : "Open your passport and look through the seam. Find the one thing in this room the copy got right.";
 
         public override void OnEnter(bool firstVisit)

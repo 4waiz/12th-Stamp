@@ -212,6 +212,7 @@ namespace TwelfthStamp
             go.layer = Layers.UI3D;
             var p = go.AddComponent<Panel3D>();
             p.Build();
+            UiOnTop.Register(go.transform); // cards always draw in front of the world (UI/UiOnTop.cs)
             return p;
         }
 

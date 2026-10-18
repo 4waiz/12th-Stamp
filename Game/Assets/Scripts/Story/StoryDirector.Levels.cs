@@ -22,13 +22,17 @@ namespace TwelfthStamp
             Game.IsDemo = false;
             SaveSystem.WritesSuspended = true; // a level run is self-contained: the story save is never touched
             var c = CampaignState.NewGame();
-            foreach (var f in new[] { StoryFlags.PrologueDone, StoryFlags.ShopPurchased, StoryFlags.HomeArrived, StoryFlags.Unpacked, StoryFlags.GlassesWorn, StoryFlags.SeamRevealed, StoryFlags.TutorialDone, StoryFlags.FirstTearDone })
-                c.SetFlag(f);
+            bool story = !Levels.SkipStoryIntro && CellManager.Factory.ContainsKey(CellId.ApartmentNormal);
+            if (!story)
+                foreach (var f in new[] { StoryFlags.PrologueDone, StoryFlags.ShopPurchased, StoryFlags.HomeArrived, StoryFlags.Unpacked, StoryFlags.GlassesWorn, StoryFlags.SeamRevealed, StoryFlags.TutorialDone, StoryFlags.FirstTearDone })
+                    c.SetFlag(f);
             c.levelCountries = def.Countries.Select(x => CountryDatabase.Get(x).StableId).ToList();
             var first = CountryDatabase.Get(def.Start ?? def.Countries[0]);
-            c.CheckpointCell = first.Cell;
+            if (!story) c.CheckpointCell = first.Cell;
             Game.Campaign = c;
-            StartCoroutine(LevelIntro(def, first));
+            // With the story: the homecoming in Abu Dhabi and the glasses first (the same opening as the full story); the
+            // apartment's tear can only open on this level's countries (CampaignState.IsDestinationAvailable).
+            StartCoroutine(story ? RunCampaign() : LevelIntro(def, first));
         }
 
         IEnumerator LevelIntro(LevelDef def, CountryDef first)
