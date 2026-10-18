@@ -25,6 +25,10 @@ namespace TwelfthStamp
         public static Texture2D MenuArt => s_Menu != null ? s_Menu : (s_Menu = Load("keyart_menu"));
         /// <summary>True when every branding texture shipped with the build (checked by AutoTest).</summary>
         public static bool AllPresent => Cover != null && Thumb != null && Logo != null && MenuArt != null;
+        static Texture2D s_TitleLogo;
+        /// <summary>The bloodied metallic title logo, shown on the intro and the welcome screen only.</summary>
+        public static Texture2D TitleLogo => s_TitleLogo != null ? s_TitleLogo : (s_TitleLogo = Load("keyart_titlelogo"));
+        public static float TitleLogoAspect => TitleLogo != null ? TitleLogo.width / (float)TitleLogo.height : 3f;
         public static float LogoAspect => Logo != null ? Logo.width / (float)Logo.height : 3f;
         public static float MenuArtAspect => MenuArt != null ? MenuArt.width / (float)MenuArt.height : 1.37f;
 
@@ -66,6 +70,7 @@ namespace TwelfthStamp
             back.raycastTarget = false;
             Stretch(back.rectTransform);
             m_IntroCover = MakeRaw(m_IntroCanvas.transform, "Cover", Cover);
+            m_IntroCover.gameObject.SetActive(false); // the intro and welcome screen show the text logo only
             m_IntroLogo = MakeRaw(m_IntroCanvas.transform, "Logo", Logo);
             m_IntroTagline = TextFactory.Ui(m_IntroCanvas.transform, Tagline, 30f, new Color(0.78f, 0.75f, 0.7f, 0f), TextAlignmentOptions.Center, true);
             m_IntroTagline.fontStyle = FontStyles.Italic;
@@ -79,7 +84,8 @@ namespace TwelfthStamp
 
             m_WelcomeCanvas = MakeCanvas("BrandWelcomeCanvas", 900); // below the fade overlay (1000), above the HUD
             m_WelcomeArt = MakeRaw(m_WelcomeCanvas.transform, "MenuArt", MenuArt);
-            m_WelcomeLogo = MakeRaw(m_WelcomeCanvas.transform, "Logo", Logo);
+            m_WelcomeArt.gameObject.SetActive(false);
+            m_WelcomeLogo = MakeRaw(m_WelcomeCanvas.transform, "Logo", TitleLogo);
             m_WelcomeCanvas.gameObject.SetActive(false);
         }
 
@@ -125,8 +131,9 @@ namespace TwelfthStamp
         /// </summary>
         public IEnumerator Intro()
         {
-            if (Cover == null || Logo == null) yield break;
+            if (TitleLogo == null) yield break;
             IntroShowing = true;
+            m_IntroLogo.texture = TitleLogo;
             bool vr = Game.Mode == GameMode.VR;
             Debug.Log("[TS-Brand] Intro shown (" + (vr ? "VR panels" : "desktop overlay") + ")");
 
@@ -139,17 +146,15 @@ namespace TwelfthStamp
             if (vr && Game.Rig != null)
             {
                 vrRoot = VrCardRoot(2.4f);
-                coverMat = OverlayMat(Cover);
-                MeshFactory.Quad("IntroCover", vrRoot.transform, 1.1f, 1.1f, coverMat, Vector3.zero);
-                logoMat = OverlayMat(Logo);
-                MeshFactory.Quad("IntroLogo", vrRoot.transform, 1.5f, 1.5f / LogoAspect, logoMat, new Vector3(0f, 0.12f, 0f));
+                logoMat = OverlayMat(TitleLogo);
+                MeshFactory.Quad("IntroLogo", vrRoot.transform, 1.5f, 1.5f / TitleLogoAspect, logoMat, new Vector3(0f, 0.12f, 0f));
                 vrTag = VrText(vrRoot.transform, Tagline, new Vector3(0f, -0.3f, 0f));
                 if (camData != null) { postWas = camData.renderPostProcessing; camData.renderPostProcessing = false; } // exact colours
             }
             else m_IntroCanvas.gameObject.SetActive(true);
 
-            // Timeline (seconds): cover in 0-0.5, hold to 2.1, crossfade to the logo by 2.6, hold to 3.8, out by 4.3.
-            const float coverIn = 0.5f, coverHold = 2.1f, cross = 0.5f, logoHold = 3.8f, outEnd = 4.3f;
+            // Timeline (seconds): the text logo in 0-0.6, hold to 2.6, out by 3.1. No cover picture.
+            const float logoIn = 0.6f, logoHold = 2.6f, outEnd = 3.1f;
             float t = 0f;
             bool skipped = false;
             while (t < outEnd)
@@ -160,8 +165,8 @@ namespace TwelfthStamp
                     skipped = true;
                     t = Mathf.Max(t, outEnd - 0.25f); // quick fade from wherever it is
                 }
-                float coverA = t < coverIn ? t / coverIn : t < coverHold ? 1f : Mathf.Clamp01(1f - (t - coverHold) / cross);
-                float logoA = t < coverHold ? 0f : t < coverHold + cross ? (t - coverHold) / cross : t < logoHold ? 1f : Mathf.Clamp01(1f - (t - logoHold) / (outEnd - logoHold));
+                float coverA = 0f;
+                float logoA = t < logoIn ? t / logoIn : t < logoHold ? 1f : Mathf.Clamp01(1f - (t - logoHold) / (outEnd - logoHold));
                 if (skipped) { float k = Mathf.Clamp01((outEnd - t) / 0.25f); coverA = Mathf.Min(coverA, k); logoA = Mathf.Min(logoA, k); }
                 if (vr)
                 {
@@ -192,10 +197,11 @@ namespace TwelfthStamp
             Place(m_IntroCover, W * 0.5f, H * 0.52f, side, side);
             m_IntroCover.color = new Color(1f, 1f, 1f, coverA);
             float lw = Mathf.Min(W * 0.64f, H * 1.75f);
-            Place(m_IntroLogo, W * 0.5f, H * 0.56f, lw, lw / LogoAspect);
+            float aspect = m_IntroLogo.texture != null ? m_IntroLogo.texture.width / (float)m_IntroLogo.texture.height : LogoAspect;
+            Place(m_IntroLogo, W * 0.5f, H * 0.56f, lw, lw / aspect);
             m_IntroLogo.color = new Color(1f, 1f, 1f, logoA);
             m_IntroTagline.fontSize = Mathf.Round(H * 0.03f);
-            Place(m_IntroTagline, W * 0.5f, H * 0.56f - lw / LogoAspect * 0.5f - H * 0.06f, W * 0.8f, H * 0.06f);
+            Place(m_IntroTagline, W * 0.5f, H * 0.56f - lw / aspect * 0.5f - H * 0.06f, W * 0.8f, H * 0.06f);
             m_IntroTagline.alpha = logoA * 0.9f;
             m_IntroHint.fontSize = Mathf.Round(H * 0.018f);
             Place(m_IntroHint, W * 0.5f, H * 0.04f, W * 0.6f, H * 0.03f);
@@ -259,6 +265,7 @@ namespace TwelfthStamp
             else
             {
                 m_IntroCanvas.gameObject.SetActive(true);
+                m_IntroLogo.texture = Logo; // end cards keep the original logo
                 m_IntroCover.color = new Color(1f, 1f, 1f, 0f);
             }
             string saved = m_IntroTagline.text;
@@ -298,23 +305,19 @@ namespace TwelfthStamp
         /// </summary>
         public void ShowWelcome(Transform card, float cardW, float cardH)
         {
-            if (card == null || !AllPresent) return;
+            if (card == null || TitleLogo == null) return;
             m_Card = card;
             m_CardW = cardW;
             m_CardH = cardH;
             if (Game.Mode == GameMode.VR)
             {
-                if (m_VrArt == null)
+                if (m_VrLogo == null)
                 {
-                    m_VrArt = MeshFactory.Quad("WelcomeArt", card, 1f, 1f, Mats.UnlitInstance(Color.white, MenuArt, true, 1.08f), Vector3.zero);
-                    m_VrLogo = MeshFactory.Quad("WelcomeLogo", card, 1f, 1f, Mats.UnlitInstance(Color.white, Logo, true, 1.08f), Vector3.zero);
-                    m_VrArt.layer = m_VrLogo.layer = Layers.UI3D;
+                    m_VrLogo = MeshFactory.Quad("WelcomeLogo", card, 1f, 1f, Mats.UnlitInstance(Color.white, TitleLogo, true, 1.08f), Vector3.zero);
+                    m_VrLogo.layer = Layers.UI3D;
                 }
-                float artH = cardH * 0.92f, artW = artH * MenuArtAspect;
-                SetLocal(m_VrArt, card, new Vector3(-cardW * 0.5f - 0.06f - artW * 0.5f, 0f, 0.003f), new Vector3(artW, artH, 1f));
                 float logoW = cardW * 1.35f;
-                SetLocal(m_VrLogo, card, new Vector3(0f, cardH * 0.5f + 0.03f + logoW / LogoAspect * 0.5f, 0.003f), new Vector3(logoW, logoW / LogoAspect, 1f));
-                m_VrArt.SetActive(true);
+                SetLocal(m_VrLogo, card, new Vector3(0f, cardH * 0.5f + 0.03f + logoW / TitleLogoAspect * 0.5f, 0.003f), new Vector3(logoW, logoW / TitleLogoAspect, 1f));
                 m_VrLogo.SetActive(true);
             }
             else
@@ -354,16 +357,11 @@ namespace TwelfthStamp
             if (rig == null || rig.Cam == null) return;
             var cam = rig.Cam;
             float W = Screen.width, H = Screen.height;
-            // Left: the picture, as large as the width allows, vertically centred.
-            float artW = Mathf.Min(W * 0.46f, H * 0.66f * MenuArtAspect);
-            float artH = artW / MenuArtAspect;
-            float artLeft = W * 0.05f;
-            Place(m_WelcomeArt, artLeft + artW * 0.5f, H * 0.5f, artW, artH);
-            // Right column: the logo at the top, the card under it.
-            float colLeft = artLeft + artW + W * 0.04f, colRight = W * 0.95f;
+            // One centred column: the text logo at the top, the card under it (no cover picture).
+            float colLeft = W * 0.2f, colRight = W * 0.8f;
             float colW = colRight - colLeft, colCx = (colLeft + colRight) * 0.5f;
-            float logoW = Mathf.Min(colW * 0.96f, H * 0.62f * LogoAspect * 0.5f);
-            float logoH = logoW / LogoAspect;
+            float logoW = Mathf.Min(colW * 0.96f, H * 0.62f * TitleLogoAspect * 0.5f);
+            float logoH = logoW / TitleLogoAspect;
             float logoTop = H * 0.92f;
             Place(m_WelcomeLogo, colCx, logoTop - logoH * 0.5f, logoW, logoH);
             float areaTop = logoTop - logoH - H * 0.025f, areaBottom = H * 0.05f;

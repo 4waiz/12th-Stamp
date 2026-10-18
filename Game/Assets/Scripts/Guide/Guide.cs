@@ -65,6 +65,7 @@ namespace TwelfthStamp
         readonly HashSet<CellId> m_Briefed = new HashSet<CellId>();
 
         RectTransform m_Root, m_Banner, m_Marker, m_Brief, m_Meter;
+        CanvasGroup m_BannerFade;
         Image m_MeterFill, m_MarkerIcon, m_MarkerArrow;
         TextMeshProUGUI m_Header, m_Text, m_Hint, m_Alert, m_Footer, m_MarkerLabel, m_BriefText;
         Transform m_Beacon;
@@ -95,6 +96,7 @@ namespace TwelfthStamp
                 m_Guide = cell != null ? GuideBook.For(cell) : null;
                 m_Step = -1;
                 m_LastChecklist = null;
+                m_BriefingUntil = 0f;   // a briefing never carries over to the next place
             }
             Cinematic = Game.InMenu || DimensionShift.Running || BetweenRun.Current != null || (Game.Story != null && Game.Story.Busy);
             bool live = m_Guide != null && !Cinematic && cell != null && (cell.Encounter == null || cell.Encounter.IsLive) && Game.Rig != null;
@@ -126,8 +128,9 @@ namespace TwelfthStamp
             }
             var s = step < m_Guide.Steps.Count ? m_Guide.Steps[step] : null;
 
-            // Briefing the first time the player is here.
-            if (!m_Briefed.Contains(cell.Id))
+            // Briefing the first time the player is here. In VR it waits for the title card: the small HUD there has no room
+            // for both (on desktop the title card moves aside for it).
+            if (!m_Briefed.Contains(cell.Id) && !(Game.Mode == GameMode.VR && Hud.I.TitleShowing))
             {
                 m_Briefed.Add(cell.Id);
                 m_BriefingUntil = Time.unscaledTime + BriefingSeconds;
@@ -139,10 +142,12 @@ namespace TwelfthStamp
                 m_BriefingUntil = 0f;
                 briefing = false;
             }
-            m_Brief.gameObject.SetActive(briefing);
+            m_Brief.gameObject.SetActive(briefing && (MapView.I == null || !MapView.I.FullOpen));
 
-            // Banner.
-            m_Banner.gameObject.SetActive(s != null && !briefing && (MapView.I == null || !MapView.I.FullOpen));
+            // Banner (not while a briefing is still to come).
+            m_Banner.gameObject.SetActive(s != null && !briefing && m_Briefed.Contains(cell.Id) && (MapView.I == null || !MapView.I.FullOpen));
+            PlaceBanner();
+            m_BannerFade.alpha = Mathf.MoveTowards(m_BannerFade.alpha, 1f, Time.unscaledDeltaTime * 6f);
             Vector3? target = null;
             if (s != null)
             {
@@ -313,10 +318,8 @@ namespace TwelfthStamp
             m_Root = canvas.GetComponent<RectTransform>();
 
             m_Banner = Panel("GuideBanner", m_Root, new Color(0.02f, 0.024f, 0.03f, 0.78f));
-            var a = vr ? new Vector2(1f, 1f) : new Vector2(0f, 0f);
-            m_Banner.anchorMin = m_Banner.anchorMax = a;
-            m_Banner.pivot = vr ? new Vector2(1f, 1f) : new Vector2(0f, 0f);
-            m_Banner.anchoredPosition = vr ? new Vector2(-110f, -110f) : new Vector2(36f, 128f);   // above the subtitle band
+            m_BannerFade = m_Banner.gameObject.AddComponent<CanvasGroup>();
+            PlaceBanner();
             m_Header = Label(m_Banner, 14, Hud.Amber, true);
             m_Header.characterSpacing = 6f;
             m_Text = Label(m_Banner, 23, Hud.Ivory, false);
@@ -336,11 +339,11 @@ namespace TwelfthStamp
             m_Footer = Label(m_Banner, 13, new Color(0.6f, 0.6f, 0.58f), false);
             m_Footer.text = vr ? "" : Hud.KeyTag(Intent.Objectives) + "  all steps     " + Hud.KeyTag(Intent.Map) + "  map";
 
-            // Briefing card: centre left, over the view for a few seconds on arrival.
+            // Briefing card, over the view for a few seconds on arrival. Desktop: 150 from the left edge at any aspect ratio,
+            // and the title card moves aside for it. VR: centred, once the title card has gone.
             m_Brief = Panel("GuideBriefing", m_Root, new Color(0.02f, 0.024f, 0.03f, 0.86f));
-            m_Brief.anchorMin = m_Brief.anchorMax = new Vector2(0.5f, 0.5f);
-            m_Brief.pivot = new Vector2(0.5f, 0.5f);
-            m_Brief.anchoredPosition = vr ? new Vector2(0f, 40f) : new Vector2(-480f, 40f);   // clear of the title card
+            m_Brief.anchorMin = m_Brief.anchorMax = m_Brief.pivot = vr ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+            m_Brief.anchoredPosition = vr ? new Vector2(0f, 40f) : new Vector2(150f, 40f);
             m_Brief.sizeDelta = new Vector2(660f, 600f);
             m_BriefText = Label(m_Brief, 30, Hud.Ivory, false);
             m_BriefText.rectTransform.anchorMin = Vector2.zero;
@@ -370,7 +373,31 @@ namespace TwelfthStamp
             m_Banner.gameObject.SetActive(false);
             m_Brief.gameObject.SetActive(false);
             m_Marker.gameObject.SetActive(false);
+            Hud.I.KeepTitleClearOf(m_Brief);
+            Hud.I.KeepTitleClearOf(m_Banner);
             return true;
+        }
+
+        /// <summary>
+        /// Desktop: bottom left, above the subtitle band, except while the passport is in view. The passport is held in the
+        /// lower left at every aspect ratio, so then the banner waits at the top left under the toast line (beside the
+        /// objectives panel while Tab has it open), and fades in there instead of jumping. VR: top right of the view.
+        /// </summary>
+        void PlaceBanner()
+        {
+            Vector2 corner, pos;
+            if (Game.Mode == GameMode.VR) { corner = Vector2.one; pos = new Vector2(-110f, -110f); }
+            else if (Game.Passport != null && Game.Passport.InView)
+            {
+                var tab = Hud.I.ObjectivesPanel;
+                corner = new Vector2(0f, 1f);
+                pos = new Vector2(tab != null ? Hud.I.CanvasRect(tab).xMax + m_Root.rect.width / 2f + 16f : 36f, -120f);
+            }
+            else { corner = Vector2.zero; pos = new Vector2(36f, 128f); }
+            if (m_Banner.anchorMin == corner && m_Banner.anchoredPosition == pos) return;
+            m_Banner.anchorMin = m_Banner.anchorMax = m_Banner.pivot = corner;
+            m_Banner.anchoredPosition = pos;
+            m_BannerFade.alpha = 0f;
         }
 
         /// <summary>Stacks the banner's lines and sizes the panel to them.</summary>

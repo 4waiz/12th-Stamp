@@ -16,6 +16,8 @@ namespace TwelfthStamp
         public static PassportController I { get; private set; }
 
         public bool IsOpen { get; private set; }
+        /// <summary>True while the booklet is on screen: open, or still being lowered after Close.</summary>
+        public bool InView => IsOpen || m_Show > 0f;
         public bool Available = true;
         public CountryId? Selected { get; private set; }
         public CountryDef SelectedDef => Selected.HasValue ? CountryDatabase.Get(Selected.Value) : null;

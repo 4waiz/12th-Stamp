@@ -89,6 +89,7 @@ namespace TwelfthStamp
             else if (!vr && Game.Input != null && Game.Input.Map != null && Game.Input.Map.WasPressedThisFrame()) m_FullOpen = !m_FullOpen;
             m_Mini.gameObject.SetActive(show && !m_FullOpen);
             m_Full.gameObject.SetActive(show && m_FullOpen);
+            if (show && m_FullOpen) Hud.I.HideTitleCard();   // an arrival title would show through the map's panels
             if (!show) return;
 
             var feet = Game.Rig.Feet;
@@ -116,10 +117,15 @@ namespace TwelfthStamp
                 m_FullPlayer.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -yaw);
                 PlaceIcons(m_FullIcons, m_FullMap, markers, k, 0f, false, px);
                 var c = m_Cell != null ? m_Cell.Country : null;
-                m_FullTitle.text = c != null ? "<b>" + c.DisplayName.ToUpperInvariant() + "</b>  <color=#A8A8A4>" + c.Place + "</color>" +
+                m_FullTitle.text = c != null ? "<b>" + c.DisplayName.ToUpperInvariant() + "</b>  <color=#A8A8A4><nobr>" + c.Place + "</nobr></color>" +
                     "\n<size=60%><color=#F2E4C0>Postcards found here " + Postcard.CollectedIn(c.Id) + " / 3     all " + Postcard.CollectedTotal() + " / " + PostcardsTotal + "</color></size>" : "";
                 m_FullSteps.text = (Guide.I != null ? Guide.I.ChecklistText : "") +
                     "\n\n<size=80%><color=#8E8E8A>" + Legend() + "\nM  close map</color></size>";
+                // The steps start under the title, however many lines a long place name takes (the place moves down whole).
+                float th = m_FullTitle.GetPreferredValues(m_FullTitle.text, 520f, 0f).y;
+                m_FullTitle.rectTransform.sizeDelta = new Vector2(520f, th);
+                m_FullSteps.rectTransform.anchoredPosition = new Vector2(230f, FullSize / 2f - 32f - th);
+                m_FullSteps.rectTransform.sizeDelta = new Vector2(520f, FullSize - 42f - th);
             }
         }
 
@@ -467,13 +473,20 @@ namespace TwelfthStamp
             m_MiniNorth.rectTransform.sizeDelta = Vector2.one * 9f;
             m_MiniLabel = Label(m_Mini, 15, new Color(0.85f, 0.83f, 0.78f), TextAlignmentOptions.Center);
             m_MiniLabel.rectTransform.anchoredPosition = new Vector2(0f, -MiniRadius - 18f);
-            m_MiniLabel.rectTransform.sizeDelta = new Vector2(300f, 22f);
+            m_MiniLabel.rectTransform.sizeDelta = new Vector2(270f, 22f);
+            m_MiniLabel.textWrappingMode = TextWrappingModes.NoWrap;   // one line, a little smaller for a long place name, so it
+            m_MiniLabel.enableAutoSizing = true;                       // never wraps onto the hint below or reaches the screen edge
+            m_MiniLabel.fontSizeMin = 11f;
+            m_MiniLabel.fontSizeMax = 15f;
+            Hud.I.KeepTitleClearOf(m_Mini);   // with its label and hint below: on wide screens they reach the title card's line
+            Hud.I.KeepTitleClearOf(m_MiniLabel.rectTransform);
             if (!vr)
             {
                 var hint = Label(m_Mini, 13, new Color(0.62f, 0.62f, 0.6f), TextAlignmentOptions.Center);
                 hint.text = "M  map";
                 hint.rectTransform.anchoredPosition = new Vector2(0f, -MiniRadius - 36f);
                 hint.rectTransform.sizeDelta = new Vector2(200f, 18f);
+                Hud.I.KeepTitleClearOf(hint.rectTransform);
             }
 
             // Full map (desktop): centre of the screen, steps beside it.

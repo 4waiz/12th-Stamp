@@ -83,7 +83,7 @@ namespace TwelfthStamp
             yield return new WaitForSeconds(1.5f);
             Check(Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu, "main menu cell active");
             Check(MenuSystem.I.IsOpen, "main menu panel open");
-            Check(Branding.I != null && Branding.I.WelcomeShowing, "welcome screen shows the key art and the logo beside the menu card");
+            Check(Branding.I != null && Branding.I.WelcomeShowing, "welcome screen shows the title logo beside the menu card");
             yield return Shot("01_menu");
             if (m_Name != "models") yield return WelcomeRoundTrip();
 
@@ -134,12 +134,13 @@ namespace TwelfthStamp
         {
             Note("--- Branding: intro ---");
             Check(Branding.AllPresent, "branding textures in the build (cover, thumbnail, logo, menu art)");
+            Check(Branding.TitleLogo != null, "the approved title logo is in the build (intro and welcome screen)");
             if (Branding.I == null) yield break;
             StartCoroutine(Branding.I.Intro());
             // Poll rather than sample once (a slow first frame or a stray startup input made the single sample flaky).
             bool seen = false;
             for (float t = 0f; t < 1.4f; t += Time.unscaledDeltaTime) { seen |= Branding.I.IntroShowing; yield return null; }
-            Check(seen || Branding.I.IntroShowing, "intro shows the approved cover");
+            Check(seen || Branding.I.IntroShowing, "intro shows the approved title logo");
             yield return Shot("00a_intro_cover");
             yield return new WaitForSecondsRealtime(1.7f);
             yield return Shot("00b_intro_logo");
