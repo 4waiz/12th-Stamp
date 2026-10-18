@@ -180,11 +180,25 @@ namespace TwelfthStamp
                     UnityEngine.XR.XRSettings.eyeTextureResolutionScale = new[] { 0.85f, 1f, 1.15f, 1.3f }[p];
                 }
                 else urp.renderScale = new[] { 0.8f, 1f, 1f, 1.25f }[p];
+#if UNITY_WEBGL && !UNITY_EDITOR
+                // Browser build: WebGL2 can't run the FSR upscaler (shader target 4.5; URP skips only that pass), and
+                // supersampling or 8x MSAA costs more than a browser tab can spare.
+                urp.upscalingFilter = UpscalingFilterSelection.Linear;
+                urp.renderScale = Mathf.Min(urp.renderScale, 1f);
+                urp.msaaSampleCount = Mathf.Min(urp.msaaSampleCount, 4);
+#endif
+#if UNITY_WEBGL
+                // Browser VR (WebXR): MSAA blacks out the Quest browser's view and HDR costs a mobile GPU too much; the
+                // WebXR settings' framebuffer scale sets the resolution. Desktop play in the browser keeps the preset.
+                urp.supportsHDR = !vr;
+                if (vr) urp.msaaSampleCount = 1;
+#endif
             }
-            // Ambient occlusion: desktop High/Ultra, VR Ultra only (it is costly in stereo).
-            bool ao = vr ? p >= 3 : p >= 2;
+            // Ambient occlusion: desktop High/Ultra, VR Ultra only (it is costly in stereo); never in browser VR.
+            bool ao = vr ? p >= 3 && Application.platform != RuntimePlatform.WebGLPlayer : p >= 2;
             foreach (var f in Resources.FindObjectsOfTypeAll<ScreenSpaceAmbientOcclusion>()) f.SetActive(ao);
-            if (Game.Mode == GameMode.Desktop && !Game.IsAutoTest)
+            // The browser owns the page size and fullscreen (which it only grants on a click), so the web build never sets them.
+            if (Game.Mode == GameMode.Desktop && !Game.IsAutoTest && Application.platform != RuntimePlatform.WebGLPlayer)
             {
                 QualitySettings.vSyncCount = 1;
                 var mode = s.fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed;

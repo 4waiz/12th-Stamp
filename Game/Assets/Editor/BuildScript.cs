@@ -12,6 +12,7 @@ namespace TwelfthStamp.EditorTools
     /// Headless builds:
     /// Unity.exe -batchmode -quit -projectPath Game -executeMethod TwelfthStamp.EditorTools.BuildScript.BuildWindows -buildPath "C:\...\TheTwelfthStamp.exe" [-devBuild]
     /// Unity.exe -batchmode -quit -projectPath Game -executeMethod TwelfthStamp.EditorTools.BuildScript.BuildWeb -buildPath "C:\...\Web" [-devBuild]
+    /// Unity.exe -batchmode -quit -projectPath Game -executeMethod TwelfthStamp.EditorTools.BuildScript.BuildWebXR -buildPath "C:\...\WebXR" [-devBuild]
     /// </summary>
     public static class BuildScript
     {
@@ -56,6 +57,19 @@ namespace TwelfthStamp.EditorTools
             if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
         }
 
+        /// <summary>
+        /// Browser build with WebXR (WebXRSetup): plays flat in desktop mode like BuildWeb, and switches to the VR rig when a
+        /// headset browser's player presses the page's VR button.
+        /// Unity.exe -batchmode -quit -projectPath Game -executeMethod TwelfthStamp.EditorTools.BuildScript.BuildWebXR -buildPath "C:\...\WebXR"
+        /// </summary>
+        [MenuItem("Twelfth Stamp/Build Web (WebXR)")]
+        public static void BuildWebXR()
+        {
+            string path = GetArg("-buildPath");
+            bool ok = WebXRSetup.Apply() && BuildWebTo(string.IsNullOrEmpty(path) ? Path.Combine(DefaultBuildsRoot(), "WebXR") : path);
+            if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
+        }
+
         public static bool BuildWebTo(string path)
         {
             Directory.CreateDirectory(path);
@@ -65,7 +79,7 @@ namespace TwelfthStamp.EditorTools
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
 
-            return Build(new BuildPlayerOptions
+            bool ok = Build(new BuildPlayerOptions
             {
                 scenes = EnabledScenes(),
                 locationPathName = path,
@@ -73,6 +87,57 @@ namespace TwelfthStamp.EditorTools
                 targetGroup = BuildTargetGroup.WebGL,
                 options = HasArg("-devBuild") ? BuildOptions.Development : BuildOptions.None
             });
+            return ok && PatchWebPage(Path.Combine(path, "index.html"));
+        }
+
+        /// <summary>
+        /// Adapts Unity's default web page for an embed (itch.io): the canvas fills the frame instead of a fixed 960x600 box
+        /// with a footer, saves persist across visits, and a pointer-lock or fullscreen request the browser refuses (a click
+        /// right after Esc) no longer reaches Unity's loader, which would show it as a blocking "An error occurred" alert.
+        /// The project's WebXR template (WebXRSetup.Template) has all of this built in, so its page is left as it is.
+        /// </summary>
+        static bool PatchWebPage(string indexPath)
+        {
+            if (PlayerSettings.WebGL.template == "PROJECT:" + WebXRSetup.Template)
+            {
+                Debug.Log("[TS-Build] Web page from the " + WebXRSetup.Template + " template (fills the frame, persistent saves, refused pointer lock handled)");
+                return true;
+            }
+            string html = File.ReadAllText(indexPath);
+            var edits = new (string from, string to)[]
+            {
+                ("<link rel=\"stylesheet\" href=\"TemplateData/style.css\">",
+                 "<link rel=\"stylesheet\" href=\"TemplateData/style.css\">\n" +
+                 "    <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}" +
+                 "#unity-container.unity-desktop{position:fixed;inset:0;transform:none}#unity-footer{display:none}" +
+                 "#unity-canvas{background:#000}</style>\n" +
+                 "    <script>\n" +
+                 "      ['requestPointerLock', 'requestFullscreen'].forEach(function (n) {\n" +
+                 "        var f = Element.prototype[n];\n" +
+                 "        if (!f) return;\n" +
+                 "        Element.prototype[n] = function () {\n" +
+                 "          var r = f.apply(this, arguments);\n" +
+                 "          if (r && r.catch) r.catch(function (e) { console.warn(n + ' refused: ' + e); });\n" +
+                 "          return r;\n" +
+                 "        };\n" +
+                 "      });\n" +
+                 "    </script>"),
+                ("fullscreenContainer.style.width = \"960px\";", "fullscreenContainer.style.width = \"100vw\";"),
+                ("fullscreenContainer.style.height = \"600px\";", "fullscreenContainer.style.height = \"100vh\";"),
+                ("// config.autoSyncPersistentDataPath = true;", "config.autoSyncPersistentDataPath = true;"),
+            };
+            foreach (var (from, to) in edits)
+            {
+                if (!html.Contains(from))
+                {
+                    Debug.Log("[TS-Build] ERROR: web page patch: '" + from + "' not found in " + indexPath);
+                    return false;
+                }
+                html = html.Replace(from, to);
+            }
+            File.WriteAllText(indexPath, html);
+            Debug.Log("[TS-Build] Web page patched (fills the frame, persistent saves, refused pointer lock handled)");
+            return true;
         }
 
         /// <summary>

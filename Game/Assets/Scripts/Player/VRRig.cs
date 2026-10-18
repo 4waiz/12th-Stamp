@@ -93,6 +93,15 @@ namespace TwelfthStamp
             head.transform.localPosition = new Vector3(0, 1.6f, 0);
             Cam = head.AddComponent<Camera>();
             ConfigureCamera(Cam);
+#if UNITY_WEBGL
+            // Browser VR draws each eye in its own pass on the headset's mobile GPU: no MSAA (it blacks out the Quest
+            // browser's view), HDR, post-processing or shadows.
+            Cam.allowMSAA = false;
+            Cam.allowHDR = false;
+            var camData = Cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            camData.renderPostProcessing = false;
+            camData.renderShadows = false;
+#endif
             head.AddComponent<AudioListener>();
             head.tag = "MainCamera";
             var tpd = head.AddComponent<TrackedPoseDriver>();

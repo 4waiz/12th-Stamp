@@ -482,6 +482,12 @@ namespace TwelfthStamp
             var canvas = Hud.I.GetComponentInChildren<Canvas>(true);
             if (canvas == null) return false;
             MakeSprites();
+            // Built again when the HUD is rebuilt (the rig switched modes): the old icons went with the old canvas, and the
+            // new map images need the current cell's map.
+            m_MiniIcons.Clear();
+            m_FullIcons.Clear();
+            m_MiniEdge.Clear();
+            m_Cell = null;
             bool vr = Game.Mode == GameMode.VR;
             m_Root = new GameObject("Maps", typeof(RectTransform)).GetComponent<RectTransform>();
             m_Root.SetParent(canvas.transform, false);

@@ -73,7 +73,12 @@ namespace TwelfthStamp
             Y = XRMap.AddAction("Y", InputActionType.Button, "<XRController>{LeftHand}/{SecondaryButton}");
             A = XRMap.AddAction("A", InputActionType.Button, "<XRController>{RightHand}/{PrimaryButton}");
             B = XRMap.AddAction("B", InputActionType.Button, "<XRController>{RightHand}/{SecondaryButton}");
+#if UNITY_WEBGL
+            // Browser VR: the headset's browser keeps the menu buttons for itself, so pause is a left thumbstick press.
+            Menu = XRMap.AddAction("Menu", InputActionType.Button, "<XRController>{LeftHand}/{Primary2DAxisClick}");
+#else
             Menu = XRMap.AddAction("Menu", InputActionType.Button, "<XRController>{LeftHand}/{MenuButton}");
+#endif
 
             HeadPos = XRMap.AddAction("HeadPosition", InputActionType.Value, "<XRHMD>/centerEyePosition");
             HeadRot = XRMap.AddAction("HeadRotation", InputActionType.Value, "<XRHMD>/centerEyeRotation");
@@ -156,6 +161,7 @@ namespace TwelfthStamp
             else if (path.Contains("{GripButton}")) { control = "grip"; label = "Grip"; }
             else if (path.Contains("{TriggerButton}")) { control = "trigger"; label = "Trigger"; }
             else if (path.Contains("{Primary2DAxis}")) { control = "thumbstick"; label = "Thumbstick"; }
+            else if (path.Contains("{Primary2DAxisClick}")) { control = "thumbstick"; label = "Thumbstick press"; }
             else if (path.Contains("{MenuButton}")) { control = "menu"; label = "Menu"; }
             return new ControlRef { Hand = hand, Control = control, Label = label };
         }

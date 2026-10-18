@@ -309,6 +309,13 @@ namespace TwelfthStamp
             Game.Story?.OnDestinationSelected(id);
         }
 
+        /// <summary>Carries the selection over to a rebuilt passport (the rig switched modes) without the story hook.</summary>
+        public void RestoreSelection(CountryId? id)
+        {
+            Selected = id;
+            Refresh();
+        }
+
         public void Refresh()
         {
             var c = Game.Campaign;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TwelfthStamp
@@ -7,10 +8,13 @@ namespace TwelfthStamp
     /// <summary>
     /// Entry point. The scene is empty; everything is created here. Parses OUR arguments (--mode=vr|desktop),
     /// starts XR only for VR mode, shows Retry / Desktop Mode / Quit if VR cannot start, then the welcome menu.
+    /// In the browser build the game starts in desktop mode and follows the page's WebXR session instead (see Update).
     /// </summary>
     public class GameBootstrap : MonoBehaviour
     {
         GameObject m_Presentation;
+        /// <summary>The welcome menu (or the requested start) is up: from here a browser VR session may swap the rig.</summary>
+        public bool Started { get; private set; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -23,6 +27,10 @@ namespace TwelfthStamp
 
         IEnumerator Start()
         {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            // The headset's browser takes focus away from the page while presenting: keep reading the XR devices.
+            UnityEngine.InputSystem.InputSystem.settings.backgroundBehavior = UnityEngine.InputSystem.InputSettings.BackgroundBehavior.IgnoreFocus;
+#endif
             AppArgs.Parse();
             Game.IsAutoTest = AppArgs.AutoTest != null;
             if (!string.IsNullOrEmpty(AppArgs.SaveDir)) SaveSystem.OverrideDirectory(AppArgs.SaveDir);
@@ -95,14 +103,67 @@ namespace TwelfthStamp
             }
             // The branded intro after the initial load (skippable; Art/Branding/BRANDING.md).
             if (!AppArgs.NoIntro) yield return Branding.I.Intro();
-            if (AppArgs.Demo) { Fader.I.FadeTo(1f, 0f); Game.Story.StartDemo(); yield break; }
+            if (AppArgs.Demo) { Fader.I.FadeTo(1f, 0f); Game.Story.StartDemo(); Started = true; yield break; }
             if (!string.IsNullOrEmpty(AppArgs.StartCell) && Enum.TryParse(AppArgs.StartCell, true, out CellId start))
             {
                 Game.Story.StartAt(start);
+                Started = true;
                 yield break;
             }
             yield return MenuSystem.I.ShowMainMenuRoutine();
             if (!Game.Settings.comfortSetupDone) MenuSystem.I.ShowFirstRun();
+            Started = true;
+        }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // ------------------------------------------------------------------ browser VR (WebXR Export)
+        // The page's VR button starts an immersive WebXR session, which creates and runs an XR display subsystem; ending the
+        // session (or taking the headset off) destroys it. The game follows it with the matching rig. A session that starts
+        // during the intro is picked up as soon as the welcome menu is up.
+        readonly List<UnityEngine.XR.XRDisplaySubsystem> m_Displays = new List<UnityEngine.XR.XRDisplaySubsystem>();
+
+        void Update()
+        {
+            if (!Started || Game.IsAutoTest || m_Presentation == null) return;
+            SubsystemManager.GetSubsystems(m_Displays);
+            bool presenting = false;
+            foreach (var d in m_Displays) if (d.running) presenting = true;
+            var want = presenting ? GameMode.VR : GameMode.Desktop;
+            if (want != Game.Mode) SwitchPresentation(want);
+        }
+#endif
+
+        /// <summary>
+        /// Rebuilds the rig, HUD, fader and passport for <paramref name="mode"/> where the player stands, keeping the
+        /// passport's selection, and reopens any open menu for the new rig. Story, cells and tears are untouched.
+        /// </summary>
+        void SwitchPresentation(GameMode mode)
+        {
+            var rig = Game.Rig;
+            bool placed = rig != null;
+            var feet = placed ? rig.Feet : Vector3.zero;
+            float yaw = placed ? Quaternion.LookRotation(rig.Forward, Vector3.up).eulerAngles.y : 0f;
+            var passport = Game.Passport;
+            bool passportAvailable = passport == null || passport.Available;
+            CountryId? selected = passport != null ? passport.Selected : null;
+            Debug.Log("[TS-Boot] Switching to " + mode + " mode" + (mode == GameMode.VR ? " (browser VR session started)" : " (browser VR session ended)"));
+
+            // Deactivate first so only one rig, one camera and one AudioListener are live this frame.
+            if (m_Presentation != null) m_Presentation.SetActive(false);
+            TearDownPresentation();
+            BuildPresentation(mode);
+            if (placed) Game.Rig.PlaceAt(feet, yaw);
+            Game.Passport.Available = passportAvailable;
+            Game.Passport.RestoreSelection(selected);
+            StartCoroutine(AfterSwitch());
+        }
+
+        IEnumerator AfterSwitch()
+        {
+            yield return null; // the old presentation is gone at the end of the frame
+            bool menu = MenuSystem.I != null && MenuSystem.I.IsOpen;
+            if (menu) yield return MenuSystem.I.ReopenForRig();
+            if (Fader.I != null && Fader.I.Alpha > 0.99f) Fader.I.FadeTo(0f, 0.5f);
         }
 
         void BuildPresentation(GameMode mode)
@@ -134,7 +195,9 @@ namespace TwelfthStamp
             // hold the demo's throwaway run or a blank one, which must never overwrite the player's story.
             if (Game.Story != null && Game.Story.InCampaign) Game.SaveNow();
             SaveSystem.SaveSettings(Game.Settings);
-            XRBoot.Shutdown();
+#if !UNITY_WEBGL || UNITY_EDITOR
+            XRBoot.Shutdown(); // OpenXR only; the browser owns the WebXR session
+#endif
         }
     }
 }

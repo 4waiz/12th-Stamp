@@ -353,6 +353,9 @@ namespace TwelfthStamp
             var canvas = Hud.I.GetComponentInChildren<Canvas>(true);
             if (canvas == null) return false;
             MakeSprites();
+            // Built again when the HUD is rebuilt (the rig switched modes): show the current step and checklist again.
+            m_Step = -1;
+            m_LastChecklist = null;
             bool vr = Game.Mode == GameMode.VR;
             m_Root = canvas.GetComponent<RectTransform>();
 

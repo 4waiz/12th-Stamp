@@ -135,6 +135,21 @@ namespace TwelfthStamp
             yield return Fader.I.FadeIn(1.2f);
         }
 
+        /// <summary>
+        /// The rig was rebuilt for the other mode (a browser VR session started or ended, GameBootstrap.SwitchPresentation).
+        /// Cards and the welcome art are laid out per mode, so the open menu is shown again for the new rig: the welcome
+        /// screen and the pause menu from their first page, any other card where it is.
+        /// </summary>
+        public IEnumerator ReopenForRig()
+        {
+            if (!IsOpen) yield break;
+            bool atWelcome = Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu && (StoryDirector.I == null || !StoryDirector.I.InCampaign);
+            if (m_PauseOpen) { HideAll(); OpenPause(); }
+            else if (atWelcome) { HideAll(); Show(true); MainPage(); }
+            else Show(m_AtDesk);
+            yield return null;
+        }
+
         void MainPage()
         {
             m_Back.Clear();
@@ -151,7 +166,7 @@ namespace TwelfthStamp
                 m_Panel.Button("Settings", () => Push(MainPage, SettingsPage));
                 m_Panel.Button("Credits", () => Push(MainPage, CreditsPage));
                 m_Panel.Button("Quit", Quit);
-                m_Panel.Text("<size=80%>" + (Game.Mode == GameMode.VR ? "Quest 3 (PC VR)" : "Desktop") + " mode · v" + Application.version + "</size>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.4f, 0.38f, 0.38f));
+                m_Panel.Text("<size=80%>" + (Game.Mode == GameMode.VR ? (Application.platform == RuntimePlatform.WebGLPlayer ? "Browser VR" : "Quest 3 (PC VR)") : "Desktop") + " mode · v" + Application.version + "</size>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.4f, 0.38f, 0.38f));
             }, false);
             Branding.I?.ShowWelcome(m_Panel.transform, Panel3D.CardWidth, m_Panel.CardHeight);
             m_Panel.AnimateIn();
