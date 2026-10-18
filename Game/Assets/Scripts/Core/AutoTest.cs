@@ -433,10 +433,15 @@ namespace TwelfthStamp
             }, 8f, "the case opens and the glasses are ready");
             yield return new WaitForSeconds(0.6f);
             yield return Shot("23_home_glasses");
+            int tearsBefore = Game.Campaign.tearsOpened;
             if (wear != null) wear.Use(hand);
             yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.GlassesWorn), 4f, "glasses put on (the one action at home)");
-            yield return new WaitForSeconds(9f);
-            yield return Shot("24_reflection_wrong");
+            // Playtest, 18 Oct: no Between run; the room turns into the Margin copy and its kitchen seam opens on Egypt by itself.
+            yield return WaitUntil(() => Game.Tears.Active != null && Game.Tears.StoryTear && Game.Tears.Active.Destination.Id == CountryId.Egypt, 12f,
+                "the glasses wake the kitchen seam: it opens on Egypt by itself");
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("24_seam_wakes_egypt");
+            Check(!Game.Campaign.IsVisited(CountryId.Egypt) && Game.Campaign.tearsOpened == tearsBefore, "the waking seam counts for nothing (no visit, no tear)");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentCorrupt && Game.Cells.Active.Encounter.Entered, 20f, "the apartment becomes the Margin copy in place");
             yield return new WaitForSeconds(2f);
             yield return Shot("25_margin_apartment");

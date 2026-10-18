@@ -264,7 +264,7 @@ namespace TwelfthStamp
                     m_Panel.Slider("Mouse sensitivity", Mathf.InverseLerp(0.2f, 3f, s.mouseSensitivity), v => { s.mouseSensitivity = Mathf.Lerp(0.2f, 3f, v); Save(); }, v => Mathf.Lerp(0.2f, 3f, v).ToString("0.0") + "×");
                     m_Panel.Toggle("Invert vertical look", s.invertY, v => { s.invertY = v; Save(); });
                 }
-                m_Panel.Choice("Movement", new[] { "Teleport", "Smooth (opt-in)" }, s.smoothLocomotion ? 1 : 0, i => { s.smoothLocomotion = i == 1; Save(); });
+                m_Panel.Choice("Movement", new[] { "Smooth", "Teleport" }, s.smoothLocomotion ? 0 : 1, i => { s.smoothLocomotion = i == 0; Save(); });
                 m_Panel.Choice("Turning", new[] { "Snap", "Smooth (opt-in)" }, s.smoothTurn ? 1 : 0, i => { s.smoothTurn = i == 1; Save(); });
                 m_Panel.Choice("Snap angle", new[] { "30°", "45°", "60°" }, s.snapAngle <= 30 ? 0 : s.snapAngle <= 45 ? 1 : 2, i => { s.snapAngle = i == 0 ? 30 : i == 1 ? 45 : 60; Save(); });
                 m_Panel.Toggle("Left-handed (passport in right hand)", s.leftHanded, v => { s.leftHanded = v; Save(); });
@@ -458,7 +458,7 @@ namespace TwelfthStamp
                 m_Panel.Toggle("Subtitles", s.subtitles, v => { s.subtitles = v; Save(); });
                 if (Game.Mode == GameMode.VR)
                 {
-                    m_Panel.Choice("Movement", new[] { "Teleport", "Smooth (opt-in)" }, s.smoothLocomotion ? 1 : 0, i => { s.smoothLocomotion = i == 1; Save(); });
+                    m_Panel.Choice("Movement", new[] { "Smooth", "Teleport" }, s.smoothLocomotion ? 0 : 1, i => { s.smoothLocomotion = i == 0; Save(); });
                     m_Panel.Toggle("Seated play", s.seated, v => { s.seated = v; Save(); });
                     m_Panel.Toggle("Left-handed", s.leftHanded, v => { s.leftHanded = v; Save(); });
                 }

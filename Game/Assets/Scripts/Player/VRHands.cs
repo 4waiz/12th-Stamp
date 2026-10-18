@@ -68,13 +68,13 @@ namespace TwelfthStamp
         {
             bool left = side == HandSide.Left;
             var grip = m_Rig.GripOf(side);
-            var rig = HandMesh.Build(left ? "LeftHand" : "RightHand", grip, side);
+            var rig = HandMesh.Build(left ? "LeftHand" : "RightHand", m_Rig.FrameOf(side), side); // turned with the real controller
             // A fixed offset so the palm wraps the controller handle at the tracked grip pose (nothing animates it).
             var rot = Quaternion.LookRotation(HandForwardInModel, left ? Vector3.left : Vector3.right);
             var g = left ? new Vector3(-GripInHand.x, GripInHand.y, GripInHand.z) : GripInHand;
             rig.Root.localRotation = GripToModel * rot;
             rig.Root.localPosition = GripToModel * -(rot * g);
-            rig.SetPose(new HandPose(0.45f, 0.45f, 0.48f, 0.51f, 0.12f, 0f, 0f));
+            rig.SetPose(new HandPose(0.55f, 0.9f, 0.93f, 0.96f, 0.12f, 0f, 0f));
             rig.Visible = false;
             string hand = "<XRController>" + (left ? "{LeftHand}" : "{RightHand}");
             return new Hand
@@ -211,8 +211,10 @@ namespace TwelfthStamp
             h.Trigger += (Mathf.Clamp01(trigger) - h.Trigger) * k;
             h.IndexRest += ((indexOn ? 1f : 0f) - h.IndexRest) * k2;
             h.ThumbDown += ((thumbOn ? 1f : 0f) - h.ThumbDown) * k2;
-            float wrap = Mathf.Lerp(0.45f, 1f, h.Grip);                                     // grip: a fist round the handle
-            float index = Mathf.Lerp(Mathf.Lerp(0f, 0.45f, h.IndexRest), 0.9f, h.Trigger);    // trigger curls it; off it, a point
+            // Holding the controller the fingers stay round the handle (playtest, 18 Oct: open, splayed hands while the real
+            // ones held the controllers); squeezing the grip closes them tight.
+            float wrap = Mathf.Lerp(0.9f, 1.1f, h.Grip);
+            float index = Mathf.Lerp(Mathf.Lerp(0.2f, 0.55f, h.IndexRest), 0.95f, h.Trigger); // on the trigger it rests bent; off it, a loose point
             var thumb = HandPose.Lerp(ThumbUp, new HandPose(0f, 0f, 0f, 0f, 0.12f + 0.08f * h.Grip, 0.05f * h.Grip, 0.15f * h.Grip), h.ThumbDown);
             h.Pose = new HandPose(index, wrap, wrap + 0.03f, wrap + 0.06f, thumb.ThumbCurl, thumb.ThumbOppose, thumb.ThumbTuck);
             h.Rig.SetPose(h.Pose);

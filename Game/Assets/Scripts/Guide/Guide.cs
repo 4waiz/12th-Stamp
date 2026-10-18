@@ -43,7 +43,7 @@ namespace TwelfthStamp
         public Vector3? Target { get; private set; }
         /// <summary>The checklist (rich text) for the objectives panel and the full map.</summary>
         public string ChecklistText { get; private set; } = "";
-        /// <summary>True while the game shows something the guide must not cover (menus, shifts, the Between).</summary>
+        /// <summary>True while the game shows something the guide must not cover (menus, shifts).</summary>
         public bool Cinematic { get; private set; }
         /// <summary>The current step's index in the active place's guide (tests), -1 when there is none.</summary>
         public int StepIndex => m_Step;
@@ -102,7 +102,7 @@ namespace TwelfthStamp
                 m_LastChecklist = null;
                 m_BriefingUntil = 0f;   // a briefing never carries over to the next place
             }
-            Cinematic = Game.InMenu || DimensionShift.Running || BetweenRun.Current != null || (Game.Story != null && Game.Story.Busy);
+            Cinematic = Game.InMenu || DimensionShift.Running || (Game.Story != null && Game.Story.Busy);
             bool live = m_Guide != null && !Cinematic && cell != null && (cell.Encounter == null || cell.Encounter.IsLive) && Game.Rig != null;
             if (!live)
             {

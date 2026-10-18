@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 
 namespace TwelfthStamp
@@ -139,16 +140,16 @@ namespace TwelfthStamp
         }
 
         /// <summary>
-        /// The glasses go on, and the world comes apart. They rise from the case to the eyes as an object (the camera stays
-        /// where the player has it); the fridge dies and the voicemail starts repeating; then a dimension shift throws him
-        /// into the Between (BetweenRun), where something is already running after him. With the three pieces of his home
-        /// stamp, the seal at the far end shifts him into the Margin: the same apartment, copied, where the tutorial begins.
+        /// The glasses go on, and the room stops being the room. They rise from the case to the eyes as an object (the camera
+        /// stays where the player has it); the fridge dies and the voicemail starts repeating; the room goes dark and comes
+        /// back as the Margin's copy of itself, and the seam in the kitchen wakes: it splits open on Egypt by itself, sunlight
+        /// and the desert through the gap, then pulls shut to a glowing scar, the way on that the tutorial then teaches.
+        /// (Playtest, 18 Oct: the Between's causeway run and the red shift into it were cut; "when I put on the glasses the
+        /// seam should start to Egypt with animation".)
         /// </summary>
         static IEnumerator WearAndCorrupt(ApartmentCell apt, GameObject glasses)
         {
             var c = Game.Campaign;
-            var homeFeet = Game.Rig.Feet;
-            float homeYaw = Game.Rig.Head.eulerAngles.y;
             Game.InputLocks++;
             yield return GlassesOn(glasses.transform);
             c.SetFlag(StoryFlags.GlassesWorn);
@@ -162,21 +163,23 @@ namespace TwelfthStamp
             yield return new WaitForSeconds(Game.IsAutoTest ? 0.4f : 1.6f);
             AudioDirector.I?.Play("mom_01_glitch", apt.PhoneRoot.position, 0.9f, 1f, Bus.Voice);
             Hud.I?.ShowCaption("the voicemail repeats: \"unpacked... unpacked...\"", 3.5f);
+            yield return new WaitForSeconds(Game.IsAutoTest ? 0.5f : 2.4f);
+
+            // The room goes dark and comes back as the Margin's copy, the player facing the kitchen seam (placed while dark).
+            Fader.I.SetColor(Color.black);
+            Fader.I.FadeTo(1f, Game.IsAutoTest ? 0.3f : 1.2f);
+            yield return new WaitForSeconds(Game.IsAutoTest ? 0.35f : 1.3f);
+            var corrupt = (ApartmentCell)Game.Cells.Activate(CellId.ApartmentCorrupt);
+            corrupt.RefreshProbe();
+            Game.Cells.Prepare(CellId.Egypt); // the seam opens on it next: build it while the screen is dark
+            var seam = KitchenSeam(corrupt);
+            FaceSeam(seam, 1.3f);
+            c.SetFlag(StoryFlags.SeamRevealed);
+            yield return null;
+            Fader.I.FadeTo(0f, Game.IsAutoTest ? 0.3f : 1.4f);
+            yield return SeamWakes(seam);
             Game.InputLocks--;
 
-            // Then the room comes apart and throws him into the Between.
-            yield return DimensionShift.Run(() =>
-            {
-                var margin = Game.Cells.Activate(CellId.ApartmentCorrupt);
-                margin.RefreshProbe();
-                BetweenRun.Enter(margin);
-            }, Game.IsAutoTest ? 2f : 4.5f, CellId.None, BetweenRun.Glimpse);
-            yield return BetweenRun.Play();
-
-            // The seal throws him into the Margin copy of the apartment, where he stood.
-            yield return DimensionShift.Run(() => BetweenRun.Leave(homeFeet, homeYaw), Game.IsAutoTest ? 1f : 2f, CellId.ApartmentCorrupt);
-            var corrupt = (ApartmentCell)Game.Cells.Active;
-            c.SetFlag(StoryFlags.SeamRevealed);
             Game.Passport.Available = true;
             c.MarkVisited(CountryId.UAE); // UAE is verified later, by the encounter
             Game.Passport.Refresh();
@@ -185,6 +188,49 @@ namespace TwelfthStamp
             StoryDirector.I.ThreatAllowed = true;
             StoryDirector.I.ShowVitality = true;
             if (corrupt.Encounter != null) { corrupt.Encounter.Entered = true; corrupt.Encounter.OnEnter(true); }
+        }
+
+        /// <summary>The Margin apartment's kitchen seam, where the first tear opens.</summary>
+        public static SeamAnchor KitchenSeam(ApartmentCell cell) =>
+            cell.Seams.FirstOrDefault(s => s != null && s.Id == "kitchen") ?? cell.Seams.FirstOrDefault(s => s != null);
+
+        /// <summary>Stands the player <paramref name="distance"/> in front of a seam, facing it. Only ever behind a dark fade
+        /// (in VR it turns the rig, like a snap turn).</summary>
+        public static void FaceSeam(SeamAnchor seam, float distance)
+        {
+            var stand = seam.FloorPoint + seam.Forward * distance;
+            var look = seam.Center - stand;
+            look.y = 0f;
+            Game.Rig.PlaceAt(stand, Quaternion.LookRotation(look).eulerAngles.y);
+            if (Game.Rig is DesktopRig desk) desk.SetPitch(Mathf.Atan2(DesktopRig.EyeHeight - seam.CenterHeight, distance) * Mathf.Rad2Deg);
+        }
+
+        /// <summary>
+        /// The seam wakes: the scar flares in Egypt's light, splits open on Egypt by itself (a real tear held by the story:
+        /// the sunlight and the desert through the gap, a wide slit, never wide enough for anything to reach through), stays a
+        /// few breaths, and pulls shut to a glowing scar. It counts for nothing: no visit, no tutorial step, no readout.
+        /// </summary>
+        public static IEnumerator SeamWakes(SeamAnchor seam)
+        {
+            float pace = Game.IsAutoTest ? 0.35f : 1f; // tests run the beats faster
+            for (float t = 0f; t < 1f; t += Time.deltaTime / (1.2f * pace)) { seam.Flare = Mathf.SmoothStep(0f, 1f, t); yield return null; }
+            seam.Flare = 1f;
+            Hud.I?.ShowCaption("the seam splits open: sunlight, and sand on the wind", 4f);
+            var tear = Game.Tears.OpenForStory(seam, CountryDatabase.Get(CountryId.Egypt));
+            if (tear != null)
+            {
+                const float Widest = 0.36f; // a wide slit: under the window size
+                for (float t = 0f; t < 1f && tear != null && !tear.Closing; t += Time.deltaTime / (2.2f * pace))
+                {
+                    tear.Aperture = Mathf.Lerp(TearController.SlitThreshold, Widest, Mathf.SmoothStep(0f, 1f, t));
+                    yield return null;
+                }
+                yield return new WaitForSeconds(2.4f * pace);
+                Game.Tears.Close(false);
+                for (float t = 0f; t < 3f && Game.Tears.Active != null; t += Time.deltaTime) yield return null;
+            }
+            for (float t = 0f; t < 1f; t += Time.deltaTime / (1.2f * pace)) { seam.Flare = 1f - Mathf.SmoothStep(0f, 1f, t); yield return null; }
+            seam.Flare = 0f;
         }
 
         /// <summary>
@@ -317,7 +363,7 @@ namespace TwelfthStamp
             pc.RetreatPoint = A.transform.TransformPoint(new Vector3(2.75f, 0f, -6.2f));
             pc.RetreatSeconds = 14f;
             pc.Spawn(Cell, new Vector3(2.75f, 0.01f, -5.2f), 0f, PassengerState.Observe, Disguise.Kandura);
-            pc.AllowChase = false; // the tutorial's first threat stays a slow stalk (the chase was the Between's)
+            pc.AllowChase = false; // the tutorial's first threat stays a slow stalk
             pc.Threatening = true;
             AudioDirector.I?.Play("pass_creak_1", pc.ChestPosition, 0.8f);
             Hud.I?.ShowCaption("glass creaks in the bathroom doorway", 3f);

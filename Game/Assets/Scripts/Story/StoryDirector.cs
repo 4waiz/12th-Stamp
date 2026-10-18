@@ -234,8 +234,8 @@ namespace TwelfthStamp
         /// After a seal is verified the country's stamp appears away from the player, and a few seconds later the
         /// Passenger comes running: reach the stamp and the dimension shift carries you on to the next country. (Playtest:
         /// "while I am running I have to collect the stamps, and when I collect one I enter another country".) The
-        /// passport and tears still work as before; the stamp is the fast way on. Not in the demo, the UAE tutorial (its
-        /// stamp is the Between run) or Berlin (the finale).
+        /// passport and tears still work as before; the stamp is the fast way on. Not in the demo, the UAE tutorial or
+        /// Berlin (the finale).
         /// </summary>
         void OfferStamp(CountryId id)
         {

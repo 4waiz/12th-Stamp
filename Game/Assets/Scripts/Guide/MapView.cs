@@ -89,7 +89,7 @@ namespace TwelfthStamp
                 m_MiniImg.texture = m_FullImg.texture = m_Data != null ? m_Data.Tex : null;
             }
             bool vr = Game.Mode == GameMode.VR;
-            bool show = m_Data != null && Game.Rig != null && !Game.InMenu && !DimensionShift.Running && BetweenRun.Current == null
+            bool show = m_Data != null && Game.Rig != null && !Game.InMenu && !DimensionShift.Running
                         && (Guide.I == null || !Guide.I.Cinematic);
             if (!show) m_FullOpen = false;
             else if (!vr && Game.Input != null && Game.Input.Map != null && Game.Input.Map.WasPressedThisFrame()) m_FullOpen = !m_FullOpen;

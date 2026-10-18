@@ -6,7 +6,7 @@ namespace TwelfthStamp
     /// Per-place reverb. One AudioReverbZone rides on the listener and its parameters glide between presets chosen by
     /// the active cell: small room (apartment, menu, home), tiled shop, the souk's alley, streets with facade
     /// reflections (Paris, Japan, London), hall (Berlin pavilion, New York terminal), courtyard, plaza, open dry desert,
-    /// garden (Agra), arena (Rio), the Margin's long dark tail (corrupted cells), the Between's void, and an unreal
+    /// garden (Agra), arena (Rio), the Margin's long dark tail (corrupted cells), and an unreal
     /// swelling space while a dimension shift runs. Cells that mix inside and outside listen with a cheap probe (one
     /// horizontal ray a frame round the head, 8 directions, 30 m): no open directions reads as enclosed, a couple as a
     /// street, most as open ground. Wet levels stay -11..-30 dB and early reflections short (VR comfort). Music, UI,
@@ -59,7 +59,6 @@ namespace TwelfthStamp
         static readonly Preset Garden =    new Preset(-2500, -1800, 1.1f, 0.45f, -2300, 0.06f, -1800, 0.045f, 70, 60);
         static readonly Preset Arena =     new Preset(-1700, -900, 3.0f, 0.45f, -1600, 0.04f, -900, 0.05f, 80, 90);
         static readonly Preset Margin =    new Preset(-1500, -1100, 4.5f, 0.35f, -1600, 0.02f, -300, 0.07f, 100, 60);
-        static readonly Preset Void =      new Preset(-1700, -1500, 6.0f, 0.3f, -3500, 0.1f, -400, 0.09f, 100, 40);
         static readonly Preset Shift =     new Preset(-1100, -1000, 7.0f, 0.4f, -1200, 0.03f, 0, 0.08f, 100, 50);
 
         AudioReverbZone m_Zone;
@@ -132,7 +131,6 @@ namespace TwelfthStamp
                 target = Preset.Mix(enclosed, wE, semi, Mathf.Max(0f, 1f - wE - wO), open, wO);
             }
             else target = enclosed;
-            if (BetweenRun.Current != null) target = Void;
 
             // A dimension shift: the space swells into something unreal, then lets go after the arrival.
             m_ShiftW = Mathf.MoveTowards(m_ShiftW, DimensionShift.Running ? 1f : 0f, dt * (DimensionShift.Running ? 0.4f : 0.65f));
