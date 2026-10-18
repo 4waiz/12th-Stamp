@@ -16,6 +16,7 @@ namespace TwelfthStamp
         string m_Page;
         readonly Stack<System.Action> m_Back = new Stack<System.Action>();
         bool m_PauseOpen;
+        LevelId? m_OpenLevelOnMenu; // "Next: Level 3" from the Victory Ground opens that level's card on the welcome screen
         float m_PresenceLostTime;
 
         public bool IsOpen => m_Panel != null && m_Panel.gameObject.activeSelf;
@@ -122,6 +123,12 @@ namespace TwelfthStamp
             Game.Campaign = SaveSystem.LoadCampaign() ?? CampaignState.NewGame();
             Show(true);
             MainPage();
+            if (m_OpenLevelOnMenu.HasValue)
+            {
+                var def = Levels.Get(m_OpenLevelOnMenu.Value);
+                m_OpenLevelOnMenu = null;
+                Push(MainPage, () => LevelPage(def));
+            }
             yield return null;
             cell.RefreshProbe();
             Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
@@ -136,13 +143,9 @@ namespace TwelfthStamp
             {
                 m_Panel.Text("<i>" + Branding.Tagline + "</i>", 0.0032f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.3f, 0.27f, 0.27f), true);
                 m_Panel.Space(0.01f);
-                bool hasSave = SaveSystem.HasValidCampaign();
-                m_Panel.Button(hasSave ? "New Story" : "Story Mode", () =>
-                {
-                    if (hasSave) Push(MainPage, ConfirmNewGame);
-                    else { HideAll(); StoryDirector.I.StartNewGame(); }
-                });
-                m_Panel.Button("Continue", () => { HideAll(); StoryDirector.I.ContinueGame(); }, hasSave);
+                m_Panel.Text("<b>CHOOSE A LEVEL</b>", 0.0024f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.5f, 0.09f, 0.08f));
+                m_Panel.LevelGrid(Levels.All, d => Levels.IsCompleted(d.Id), d => Push(MainPage, () => LevelPage(d)));
+                m_Panel.Space(0.008f);
                 m_Panel.Button("Judges' Demo (about 60 seconds)", () => { HideAll(); StoryDirector.I.StartDemo(); });
                 m_Panel.Button("Controls", () => Push(MainPage, ControlsPage));
                 m_Panel.Button("Settings", () => Push(MainPage, SettingsPage));
@@ -151,6 +154,57 @@ namespace TwelfthStamp
                 m_Panel.Text("<size=80%>" + (Game.Mode == GameMode.VR ? "Quest 3 (PC VR)" : "Desktop") + " mode · v" + Application.version + "</size>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.4f, 0.38f, 0.38f));
             }, false);
             Branding.I?.ShowWelcome(m_Panel.transform, Panel3D.CardWidth, m_Panel.CardHeight);
+            m_Panel.AnimateIn();
+        }
+
+        /// <summary>A level's card: what it holds, then Play (Hard: New Story / Continue, the story's own save).</summary>
+        void LevelPage(LevelDef def)
+        {
+            Page(def.Label, () =>
+            {
+                m_Panel.Text("<color=" + def.Hex + "><b>" + def.Difficulty.ToUpperInvariant() + "</b></color>", 0.0034f);
+                m_Panel.Text(def.Blurb, 0.0028f, TMPro.TextAlignmentOptions.Center, 0.02f);
+                if (def.Id != LevelId.FreeRoam && def.Countries.Length < CountryDatabase.CountryCount)
+                    m_Panel.Text("<size=90%>" + string.Join("   ·   ", System.Array.ConvertAll(def.Countries, c => CountryDatabase.Get(c).DisplayName)) + "</size>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0.02f, new Color(0.3f, 0.27f, 0.27f));
+                if (def.EndsInVictoryGround)
+                    m_Panel.Text("<i><size=90%>Finish it to reach the Victory Ground.</size></i>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.3f, 0.27f, 0.27f));
+                if (def.IsStory)
+                {
+                    bool hasSave = SaveSystem.HasValidCampaign();
+                    m_Panel.Button(hasSave ? "New Story" : "Story Mode", () =>
+                    {
+                        if (hasSave) Push(() => LevelPage(def), ConfirmNewGame);
+                        else { HideAll(); StoryDirector.I.StartNewGame(); }
+                    });
+                    m_Panel.Button("Continue", () => { HideAll(); StoryDirector.I.ContinueGame(); }, hasSave);
+                }
+                else m_Panel.Button("Play", () => { HideAll(); StoryDirector.I.StartLevel(def.Id); });
+                m_Panel.Button("Back", Back);
+            });
+            m_Panel.AnimateIn(0.035f);
+        }
+
+        /// <summary>The Victory Ground's results: next level, replay, stay, or the menu.</summary>
+        public void ShowLevelComplete(LevelDef def, string summary)
+        {
+            Show(false);
+            m_Back.Clear();
+            Page("Level complete", () =>
+            {
+                m_Panel.Text("<color=" + def.Hex + "><b>" + def.Label.ToUpperInvariant() + "</b></color>", 0.0034f);
+                m_Panel.Text(summary, 0.003f, TMPro.TextAlignmentOptions.Center, 0.1f);
+                var next = Levels.Next(def.Id);
+                if (next != null)
+                    m_Panel.Button("Next: " + next.Label, () =>
+                    {
+                        if (next.IsStory) { HideAll(); m_OpenLevelOnMenu = next.Id; StoryDirector.I.ReturnToMenu(); return; }
+                        HideAll(); StoryDirector.I.StartLevel(next.Id);
+                    });
+                m_Panel.Button("Play again", () => { HideAll(); StoryDirector.I.StartLevel(def.Id); });
+                m_Panel.Button("Stay on the Victory Ground", HideAll);
+                m_Panel.Button("Main menu", () => { HideAll(); StoryDirector.I.ReturnToMenu(); });
+            });
+            m_Panel.AnimateIn(0.05f, 0.1f);
         }
 
         void ConfirmNewGame()

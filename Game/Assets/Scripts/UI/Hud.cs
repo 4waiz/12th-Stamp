@@ -506,7 +506,7 @@ namespace TwelfthStamp
         {
             var c = Game.Campaign;
             var sb = new StringBuilder(m_ObjectiveText);
-            if (c != null) sb.Append("\n<size=82%><color=#A8A8A4>Seals verified  ").Append(c.VerifiedCount).Append(" / 11</color></size>");
+            if (c != null) sb.Append("\n<size=82%><color=#A8A8A4>Seals verified  ").Append(c.TargetVerifiedCount).Append(" / ").Append(c.TargetCount).Append("</color></size>");
             if (!m_Vr) sb.Append("\n<size=72%><color=#8E8E8A>").Append(KeyCap(Intent.Objectives)).Append("  hide</color></size>");
             const float W = 480f, P = 22f;
             float y = -P;

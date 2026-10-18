@@ -21,6 +21,8 @@ namespace TwelfthStamp
         public List<string> flags = new List<string>();
         public string checkpointCell = CellId.ShopNormal.ToString();
         public float vitality = 1f;
+        /// <summary>A level run (Easy, Medium, Free Roam) limits the passport to these countries, in play order; empty = the story.</summary>
+        public List<string> levelCountries = new List<string>();
 
         // Replay statistics.
         public float playTimeSeconds;
@@ -39,6 +41,15 @@ namespace TwelfthStamp
         public int VerifiedCount => CountryDatabase.All.Count(c => verified.Contains(c.StableId));
 
         public bool AllElevenVerified => VerifiedCount == CountryDatabase.CountryCount;
+
+        public bool IsLevelRun => levelCountries != null && levelCountries.Count > 0;
+
+        /// <summary>Seals that count towards this run: the level's countries, or all eleven in the story.</summary>
+        public int TargetCount => IsLevelRun ? levelCountries.Count : CountryDatabase.CountryCount;
+
+        public int TargetVerifiedCount => IsLevelRun ? levelCountries.Count(s => verified.Contains(s)) : VerifiedCount;
+
+        public bool LevelComplete => IsLevelRun && TargetVerifiedCount == TargetCount;
 
         /// <summary>Returns true if this call newly verified the seal.</summary>
         public bool Verify(CountryId id)
@@ -80,6 +91,7 @@ namespace TwelfthStamp
         /// <summary>Destinations become available once the apartment tutorial has revealed the seam.</summary>
         public bool IsDestinationAvailable(CountryId id)
         {
+            if (IsLevelRun) return levelCountries.Contains(CountryDatabase.Get(id).StableId);
             if (!HasFlag(StoryFlags.SeamRevealed)) return false;
             // The tutorial teaches one tear, to Egypt. Once the player has reached Egypt the whole passport opens, even if
             // they left the apartment before verifying its seal: that path never set TutorialDone, which stranded them in
@@ -110,6 +122,8 @@ namespace TwelfthStamp
 
         public CountryDef NextRecommended()
         {
+            if (IsLevelRun)
+                return levelCountries.Where(s => !verified.Contains(s)).Select(CountryDatabase.ByStableId).FirstOrDefault(d => d != null);
             return CountryDatabase.InRecommendedOrder.FirstOrDefault(c => !verified.Contains(c.StableId));
         }
 
@@ -121,6 +135,7 @@ namespace TwelfthStamp
             verified = (verified ?? new List<string>()).Where(s => CountryDatabase.ByStableId(s) != null).Distinct().ToList();
             resources = (resources ?? new List<string>()).Where(s => Enum.TryParse(s, out ResourceId _)).Distinct().ToList();
             flags = (flags ?? new List<string>()).Distinct().ToList();
+            levelCountries = (levelCountries ?? new List<string>()).Where(s => CountryDatabase.ByStableId(s) != null).Distinct().ToList();
             if (!Enum.TryParse(checkpointCell ?? "", out CellId _)) checkpointCell = CellId.ShopNormal.ToString();
             if (float.IsNaN(vitality) || vitality <= 0f || vitality > 1f) vitality = 1f;
             if (float.IsNaN(playTimeSeconds) || playTimeSeconds < 0) playTimeSeconds = 0;
@@ -140,6 +155,7 @@ namespace TwelfthStamp
             c.verified = new List<string>(verified);
             c.resources = new List<string>(resources);
             c.flags = new List<string>(flags);
+            c.levelCountries = new List<string>(levelCountries);
             return c;
         }
     }

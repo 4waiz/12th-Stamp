@@ -21,6 +21,7 @@ namespace TwelfthStamp
             f[CellId.Rio] = go => go.AddComponent<RioCell>();
             f[CellId.London] = go => go.AddComponent<LondonCell>();
             f[CellId.Berlin] = go => go.AddComponent<BerlinCell>();
+            f[CellId.VictoryGround] = go => go.AddComponent<VictoryCell>();
         }
     }
 }

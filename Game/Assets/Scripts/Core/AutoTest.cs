@@ -97,6 +97,7 @@ namespace TwelfthStamp
             if (m_Name == "guide") yield return GuideFlow();   // walkthroughs, markers, maps (AutoTestGuide.cs); not part of "all"
             if (m_Name == "explore") yield return ExploreFlow(); // the expanded countries (AutoTestExplore.cs)
             if (m_Name == "all" || m_Name == "lifecycle") yield return LifecycleFlow(); // AutoTestLifecycle.cs
+            if (m_Name == "all" || m_Name == "levels") yield return LevelsFlow();       // AutoTestLevels.cs
             if (m_Name == "persist1") yield return Persist1Flow();
             if (m_Name == "persist2") yield return Persist2Flow();
 

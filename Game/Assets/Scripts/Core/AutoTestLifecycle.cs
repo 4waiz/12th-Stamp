@@ -55,6 +55,7 @@ namespace TwelfthStamp
             Check(Game.Paused && MenuSystem.I.CurrentPage == "Paused", "pause opens the pause menu during the demo");
             yield return Press("Main menu");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu && Branding.I.WelcomeShowing && !Game.Paused, 10f, "Main menu returns to the welcome screen, unpaused");
+            yield return Press(Levels.Get(LevelId.Hard).Label); // the story is Level 3 on the welcome screen
             yield return Press(SaveSystem.HasValidCampaign() ? "New Story" : "Story Mode");
             if (MenuSystem.I.CurrentPage == "Start a new story?") yield return Press("Start new story");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal, 20f, "the story starts at home in Abu Dhabi");
@@ -259,6 +260,7 @@ namespace TwelfthStamp
             var s = Game.Settings;
             Check(Mathf.Abs(s.brightness - 0.37f) < 0.001f && s.subtitleSize == 2 && s.scareIntensity == 0 && Mathf.Abs(s.master - 0.61f) < 0.001f, "settings survived the restart");
             Check(SaveSystem.HasValidCampaign(), "the saved story is offered as Continue");
+            yield return Press(Levels.Get(LevelId.Hard).Label);
             yield return Press("Continue");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Paris && !Game.Story.Busy, 20f, "Continue resumes at the saved checkpoint (Paris)");
             Check(Game.Campaign.IsVerified(CountryId.Egypt) && Game.Campaign.HasResource(ResourceId.Sunlight), "verified seals and resources came back with the save");

@@ -50,6 +50,9 @@ namespace TwelfthStamp
 
         public bool comfortSetupDone = false;
 
+        // Levels finished from the welcome screen (stable ids, comma separated): shown as a tick on the level list.
+        public string completedLevels = "";
+
         public GameSettings Sanitized()
         {
             master = Mathf.Clamp01(master); music = Mathf.Clamp01(music); ambience = Mathf.Clamp01(ambience);
