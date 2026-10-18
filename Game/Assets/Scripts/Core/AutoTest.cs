@@ -83,7 +83,7 @@ namespace TwelfthStamp
             yield return new WaitForSeconds(1.5f);
             Check(Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu, "main menu cell active");
             Check(MenuSystem.I.IsOpen, "main menu panel open");
-            Check(Branding.I != null && Branding.I.WelcomeShowing, "welcome screen shows the key art and the logo beside the menu card");
+            Check(Branding.I != null && Branding.I.WelcomeShowing, "welcome screen shows the title logo beside the menu card");
             yield return Shot("01_menu");
             if (m_Name != "models") yield return WelcomeRoundTrip();
 
@@ -97,6 +97,7 @@ namespace TwelfthStamp
             if (m_Name == "guide") yield return GuideFlow();   // walkthroughs, markers, maps (AutoTestGuide.cs); not part of "all"
             if (m_Name == "explore") yield return ExploreFlow(); // the expanded countries (AutoTestExplore.cs)
             if (m_Name == "all" || m_Name == "lifecycle") yield return LifecycleFlow(); // AutoTestLifecycle.cs
+            if (m_Name == "all" || m_Name == "levels") yield return LevelsFlow();       // AutoTestLevels.cs
             if (m_Name == "persist1") yield return Persist1Flow();
             if (m_Name == "persist2") yield return Persist2Flow();
 
@@ -134,12 +135,13 @@ namespace TwelfthStamp
         {
             Note("--- Branding: intro ---");
             Check(Branding.AllPresent, "branding textures in the build (cover, thumbnail, logo, menu art)");
+            Check(Branding.TitleLogo != null, "the approved title logo is in the build (intro and welcome screen)");
             if (Branding.I == null) yield break;
             StartCoroutine(Branding.I.Intro());
             // Poll rather than sample once (a slow first frame or a stray startup input made the single sample flaky).
             bool seen = false;
             for (float t = 0f; t < 1.4f; t += Time.unscaledDeltaTime) { seen |= Branding.I.IntroShowing; yield return null; }
-            Check(seen || Branding.I.IntroShowing, "intro shows the approved cover");
+            Check(seen || Branding.I.IntroShowing, "intro shows the approved title logo");
             yield return Shot("00a_intro_cover");
             yield return new WaitForSecondsRealtime(1.7f);
             yield return Shot("00b_intro_logo");
@@ -401,7 +403,25 @@ namespace TwelfthStamp
             var tray = props != null ? props.GetComponentsInChildren<Socket>(true).FirstOrDefault(s => s.Accepts.Contains("festival_token")) : null;
             Check(token != null && tray != null, "the festival token and the brass tray are set out on the counter");
             yield return new WaitForSeconds(9f);
-            if (token != null && tray != null) { hand.Grab(token); yield return null; hand.PlaceInto(tray); }
+            // Playtest, 18 Oct ("there was no festival token"): the token glows on the counter until it is in hand, then the
+            // glow moves to the brass tray.
+            var glowT = props != null ? props.Find("ActHereGlow") : null;
+            Check(glowT != null && glowT.gameObject.activeSelf, "the festival token glows on the counter while it is to be paid");
+            if (token != null)
+            {
+                var toToken = token.transform.position - Game.Rig.Head.position;
+                Game.Rig.PlaceAt(Game.Rig.Feet, Quaternion.LookRotation(new Vector3(toToken.x, 0f, toToken.z)).eulerAngles.y);
+                if (Game.Rig is DesktopRig dr2) dr2.SetPitch(Mathf.Atan2(-toToken.y, new Vector2(toToken.x, toToken.z).magnitude) * Mathf.Rad2Deg);
+            }
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("22b_flashback_token");
+            if (token != null && tray != null)
+            {
+                hand.Grab(token);
+                yield return null; yield return null;
+                Check(glowT != null && (glowT.position - tray.transform.position).magnitude < 0.15f, "with the token in hand, the glow moves to the brass tray");
+                hand.PlaceInto(tray);
+            }
             yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.PrologueDone), 60f, "paying with the token completes the purchase and the memory folds away");
             Check(Game.Campaign.HasFlag(StoryFlags.ShopPurchased), "the glasses were bought in Marrakech");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal && !Game.InputLocked, 8f, "back home in the present");
@@ -414,10 +434,15 @@ namespace TwelfthStamp
             }, 8f, "the case opens and the glasses are ready");
             yield return new WaitForSeconds(0.6f);
             yield return Shot("23_home_glasses");
+            int tearsBefore = Game.Campaign.tearsOpened;
             if (wear != null) wear.Use(hand);
             yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.GlassesWorn), 4f, "glasses put on (the one action at home)");
-            yield return new WaitForSeconds(9f);
-            yield return Shot("24_reflection_wrong");
+            // Playtest, 18 Oct: no Between run; the room turns into the Margin copy and its kitchen seam opens on Egypt by itself.
+            yield return WaitUntil(() => Game.Tears.Active != null && Game.Tears.StoryTear && Game.Tears.Active.Destination.Id == CountryId.Egypt, 12f,
+                "the glasses wake the kitchen seam: it opens on Egypt by itself");
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot("24_seam_wakes_egypt");
+            Check(!Game.Campaign.IsVisited(CountryId.Egypt) && Game.Campaign.tearsOpened == tearsBefore, "the waking seam counts for nothing (no visit, no tear)");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentCorrupt && Game.Cells.Active.Encounter.Entered, 20f, "the apartment becomes the Margin copy in place");
             yield return new WaitForSeconds(2f);
             yield return Shot("25_margin_apartment");

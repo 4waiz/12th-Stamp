@@ -34,6 +34,13 @@ namespace TwelfthStamp
 
         IEnumerator LifecycleFlow()
         {
+            Note("--- Leaving the apartment before its seal must not strand the player in Egypt (playtest, 18 Oct) ---");
+            var tut = CampaignState.NewGame();
+            tut.SetFlag(StoryFlags.SeamRevealed);
+            Check(tut.IsDestinationAvailable(CountryId.Egypt) && !tut.IsDestinationAvailable(CountryId.France), "in the apartment tutorial the passport offers Egypt only");
+            tut.MarkVisited(CountryId.Egypt);
+            Check(tut.IsDestinationAvailable(CountryId.France) && tut.IsDestinationAvailable(CountryId.UAE), "once in Egypt every destination opens, even with the apartment's seal unverified");
+
             Note("--- Lifecycle: menu -> demo -> menu -> story ---");
             if (Game.Cells.Active == null || Game.Cells.Active.Id != CellId.Menu || !Branding.I.WelcomeShowing)
             {
@@ -48,6 +55,7 @@ namespace TwelfthStamp
             Check(Game.Paused && MenuSystem.I.CurrentPage == "Paused", "pause opens the pause menu during the demo");
             yield return Press("Main menu");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu && Branding.I.WelcomeShowing && !Game.Paused, 10f, "Main menu returns to the welcome screen, unpaused");
+            yield return Press(Levels.Get(LevelId.Hard).Label); // the story is Level 3 on the welcome screen
             yield return Press(SaveSystem.HasValidCampaign() ? "New Story" : "Story Mode");
             if (MenuSystem.I.CurrentPage == "Start a new story?") yield return Press("Start new story");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal, 20f, "the story starts at home in Abu Dhabi");
@@ -196,6 +204,27 @@ namespace TwelfthStamp
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Riyadh && !Game.Story.Busy, 20f, "collecting the stamp shifts the player into the next country (Saudi Arabia)");
             Check(Game.Campaign.IsVisited(CountryId.SaudiArabia) && Game.Cells.Active.Encounter != null && Game.Cells.Active.Encounter.Entered && Game.Story.WaitingStamp == null,
                 "after the shift the next country starts properly and no stamp is left waiting");
+
+            Note("--- Caught while stepping through a doorway tear (playtest, 18 Oct) ---");
+            // The two used to race: the shift carried the player on while the failure card stayed behind in the old place,
+            // leaving a dead screen with no card. Now nothing catches the player mid-travel, and no trip starts while a catch
+            // is playing out.
+            Game.Story.TravelThroughTear(CountryDatabase.ByCell(CellId.Egypt));
+            yield return null;
+            Check(Game.Story.Busy, "stepping through a doorway tear starts the shift");
+            Game.Story.Kill("test: caught mid-travel");
+            yield return null;
+            Check(!Game.Story.Failing && Game.Campaign.vitality > 0f, "a catch during the shift's build-up is ignored");
+            yield return WaitUntil(() => !Game.Story.Busy && Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Egypt, 12f, "the shift still completes into Egypt");
+            Check(!MenuSystem.I.IsOpen, "no failure card is left behind after the trip");
+            Game.Story.Kill("test: caught in Egypt");
+            Game.Story.TravelThroughTear(CountryDatabase.ByCell(CellId.Paris));
+            yield return null;
+            Check(!Game.Story.Busy, "no trip starts while a catch is playing out");
+            yield return WaitUntil(() => MenuSystem.I.IsOpen && MenuSystem.I.CurrentPage == "The Margin takes hold", 4f, "the failure card appears where the catch happened");
+            Check(Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Egypt, "the player is still in Egypt, with the card in front of them");
+            yield return Press("Retry from checkpoint");
+            yield return WaitUntil(() => !Game.Story.Busy && !MenuSystem.I.IsOpen && !Game.Story.Failing, 10f, "Retry recovers after the refused trip");
             Game.Story.ReturnToMenu();
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu, 10f, "lifecycle run ends at the menu");
         }
@@ -231,6 +260,7 @@ namespace TwelfthStamp
             var s = Game.Settings;
             Check(Mathf.Abs(s.brightness - 0.37f) < 0.001f && s.subtitleSize == 2 && s.scareIntensity == 0 && Mathf.Abs(s.master - 0.61f) < 0.001f, "settings survived the restart");
             Check(SaveSystem.HasValidCampaign(), "the saved story is offered as Continue");
+            yield return Press(Levels.Get(LevelId.Hard).Label);
             yield return Press("Continue");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Paris && !Game.Story.Busy, 20f, "Continue resumes at the saved checkpoint (Paris)");
             Check(Game.Campaign.IsVerified(CountryId.Egypt) && Game.Campaign.HasResource(ResourceId.Sunlight), "verified seals and resources came back with the save");

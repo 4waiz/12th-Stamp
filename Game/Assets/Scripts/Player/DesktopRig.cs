@@ -127,6 +127,18 @@ namespace TwelfthStamp
             if (m_Arms != null) m_Arms.ResetMotion();
         }
 
+        public float Yaw => m_Yaw;
+        public float Pitch => m_Pitch;
+
+        /// <summary>Scripted view (film capture): turns the view as mouse look would, without the teleport reset of PlaceAt.</summary>
+        public void SetLook(float yaw, float pitch)
+        {
+            m_Yaw = yaw;
+            m_Pitch = Mathf.Clamp(pitch, -82f, 82f);
+            transform.rotation = Quaternion.Euler(0, m_Yaw, 0);
+            Head.localRotation = Quaternion.Euler(m_Pitch, 0, 0);
+        }
+
         /// <summary>Tilts the view up or down (story shots frame their subject while input is locked).</summary>
         public void SetPitch(float pitch)
         {

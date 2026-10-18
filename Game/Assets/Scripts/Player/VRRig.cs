@@ -6,14 +6,16 @@ using UnityEngine.InputSystem.XR;
 namespace TwelfthStamp
 {
     /// <summary>
-    /// Quest 3 (PC VR over Link, OpenXR) rig: tracked head and controllers, teleport + snap turn by default,
-    /// optional smooth locomotion/turn, left-handed swap, seated offset, head-in-wall fade, controller callouts.
+    /// Quest 3 (PC VR over Link, OpenXR) rig: tracked head and controllers, smooth stick movement (a full push runs) + snap
+    /// turn by default, teleport and smooth turning as options, left-handed swap, seated offset, head-in-wall fade,
+    /// controller callouts.
     /// Scenery moves, the player's viewpoint is never driven by scripts (only by teleport/turn the player chose).
     /// </summary>
     public class VRRig : PlayerRig
     {
         Transform m_Offset;
         Transform m_LeftGrip, m_RightGrip, m_LeftAim, m_RightAim;
+        Transform m_LeftFrame, m_RightFrame; // under each grip, turned to the real controller (AlignFrame)
         Interactor m_Left, m_Right;
         ControllerModel m_LeftModel, m_RightModel;
         Transform m_PassportMountL, m_PassportMountR;
@@ -23,7 +25,6 @@ namespace TwelfthStamp
         readonly List<Interactor> m_Hands = new List<Interactor>();
         readonly List<Vector3> m_ArcPoints = new List<Vector3>();
         bool m_Aiming, m_ArcValid, m_TurnArmed = true, m_Pointer;
-        float m_RunHold; // seconds the move stick has been pushed fully forward (VR run)
         VRHands m_HandVisuals;
         int m_StepParity;
         float m_LastStepDistance;
@@ -41,6 +42,20 @@ namespace TwelfthStamp
         public override Transform PassportMount => Game.Input.PassportHand == HandSide.Left ? m_PassportMountL : m_PassportMountR;
         public Transform GripOf(HandSide h) => h == HandSide.Left ? m_LeftGrip : m_RightGrip;
         public ControllerModel ModelOf(HandSide h) => h == HandSide.Left ? m_LeftModel : m_RightModel;
+        public Transform AimOf(HandSide h) => h == HandSide.Left ? m_LeftAim : m_RightAim;
+        /// <summary>The controller's frame: a child of the grip turned about the handle to match the real controller. The
+        /// controller model, the drawn hand, the hold point and the passport mount all sit in it.</summary>
+        public Transform FrameOf(HandSide h) => h == HandSide.Left ? m_LeftFrame : m_RightFrame;
+
+        /// <summary>
+        /// Capture only (--vr-preview, no headset): stops the tracked-pose drivers so a film script can pose the head and the
+        /// hands, and widens the window camera towards a headset's view. Never used in play.
+        /// </summary>
+        public void UseScriptedPose()
+        {
+            foreach (var d in GetComponentsInChildren<TrackedPoseDriver>(true)) d.enabled = false;
+            if (Cam != null) Cam.fieldOfView = 78f;
+        }
 
         public override Ray TearAimRay
         {
@@ -91,17 +106,22 @@ namespace TwelfthStamp
             m_LeftAim = TrackedChild("LeftAim", input.LAimPos, input.LAimRot);
             m_RightAim = TrackedChild("RightAim", input.RAimPos, input.RAimRot);
 
-            m_Left = MakeHand(HandSide.Left, m_LeftGrip, m_LeftAim);
-            m_Right = MakeHand(HandSide.Right, m_RightGrip, m_RightAim);
-            m_LeftModel = ControllerModel.Create(m_LeftGrip, HandSide.Left);
-            m_RightModel = ControllerModel.Create(m_RightGrip, HandSide.Right);
+            m_LeftFrame = new GameObject("LeftControllerFrame").transform;
+            m_LeftFrame.SetParent(m_LeftGrip, false);
+            m_RightFrame = new GameObject("RightControllerFrame").transform;
+            m_RightFrame.SetParent(m_RightGrip, false);
+
+            m_Left = MakeHand(HandSide.Left, m_LeftGrip, m_LeftFrame, m_LeftAim);
+            m_Right = MakeHand(HandSide.Right, m_RightGrip, m_RightFrame, m_RightAim);
+            m_LeftModel = ControllerModel.Create(m_LeftFrame, HandSide.Left);
+            m_RightModel = ControllerModel.Create(m_RightFrame, HandSide.Right);
             // Hands are drawn at the grips; the controller models sit in the same hand frame and show (ghosted) only with their labels.
             m_LeftModel.transform.localRotation = VRHands.GripToModel;
             m_RightModel.transform.localRotation = VRHands.GripToModel;
             m_HandVisuals = VRHands.Create(this);
 
-            m_PassportMountL = Mount(m_LeftGrip, false);
-            m_PassportMountR = Mount(m_RightGrip, true);
+            m_PassportMountL = Mount(m_LeftFrame, false);
+            m_PassportMountR = Mount(m_RightFrame, true);
 
             m_LeftLaser = Laser("LeftLaser");
             m_RightLaser = Laser("RightLaser");
@@ -129,10 +149,10 @@ namespace TwelfthStamp
             return t;
         }
 
-        Interactor MakeHand(HandSide side, Transform grip, Transform aim)
+        Interactor MakeHand(HandSide side, Transform grip, Transform frame, Transform aim)
         {
             var hold = new GameObject("HoldPoint").transform;
-            hold.SetParent(grip, false);
+            hold.SetParent(frame, false);
             // Authored in the controller model's frame (y up, z forward as held); same alignment as the model and hands.
             hold.localPosition = VRHands.GripToModel * new Vector3(0, -0.01f, 0.05f);
             hold.localRotation = VRHands.GripToModel;
@@ -144,10 +164,10 @@ namespace TwelfthStamp
             return it;
         }
 
-        static Transform Mount(Transform grip, bool mirrored)
+        static Transform Mount(Transform frame, bool mirrored)
         {
             var t = new GameObject("PassportMount").transform;
-            t.SetParent(grip, false);
+            t.SetParent(frame, false);
             // Authored in the controller model's frame: in front of and above the controller as held, tilted to the eyes.
             t.localPosition = VRHands.GripToModel * new Vector3(mirrored ? -0.02f : 0.02f, 0.07f, 0.07f);
             t.localRotation = VRHands.GripToModel * Quaternion.Euler(48f, mirrored ? -12f : 12f, 0f);
@@ -208,9 +228,11 @@ namespace TwelfthStamp
             bool canAct = !Game.InputLocked && !Game.InMenu;
 
             UpdateHeadBlock();
+            AlignFrame(m_LeftGrip, m_LeftAim, m_LeftFrame, HandSide.Left);
+            AlignFrame(m_RightGrip, m_RightAim, m_RightFrame, HandSide.Right);
             UpdateLocomotion(canAct);
-            // Longer strides as the stick run builds (2.0 m/s walk, 3.3 m/s run), so running steps don't patter.
-            float stride = Mathf.Lerp(0.75f, 1.15f, Mathf.InverseLerp(2f, 3.3f, MoveSpeed));
+            // Longer strides as the stick run builds (2.0 m/s walk, 3.4 m/s run), so running steps don't patter.
+            float stride = Mathf.Lerp(0.75f, 1.15f, Mathf.InverseLerp(2f, 3.4f, MoveSpeed));
             UpdateFootsteps(stride);
             if (m_StepDistance < m_LastStepDistance - 1e-4f) m_StepParity ^= 1; // a footfall reset the stride counter
             m_LastStepDistance = m_StepDistance;
@@ -308,18 +330,19 @@ namespace TwelfthStamp
             if (s.smoothLocomotion)
             {
                 m_Arc.enabled = false; m_Reticle.gameObject.SetActive(false);
+                float speed = 0f;
                 if (move.sqrMagnitude > 0.04f)
                 {
-                    // Push the stick all the way forward to run: the Passenger chases at 2.8 m/s in VR, a walk is 2.0.
-                    m_RunHold = move.y > 0.92f ? m_RunHold + Time.deltaTime : 0f;
-                    float speed = m_RunHold > 0.35f ? 3.3f : 2.0f;
+                    // The stick runs (playtest, 18 Oct: "the mc should run when I use the joystick"): a full push is a run at
+                    // once, 3.4 m/s (the Passenger chases at 2.8 m/s in VR), a half push a walk; no hold before the run.
+                    speed = Mathf.Lerp(1.4f, 3.4f, Mathf.InverseLerp(0.3f, 0.85f, Mathf.Clamp01(move.magnitude)));
                     var dir = Forward * move.y + Vector3.Cross(Vector3.up, Forward) * move.x;
+                    if (dir.sqrMagnitude > 1f) dir.Normalize();
                     var local = transform.InverseTransformPoint(Head.position);
                     m_Body.center = new Vector3(local.x, 0.8f, local.z);
                     m_Body.Move(dir * speed * Time.deltaTime + Vector3.down * 2f * Time.deltaTime);
                 }
-                else m_RunHold = 0f;
-                Sprinting = move.sqrMagnitude > 0.04f && m_RunHold > 0.35f; // breathing, heartbeat and the sleeves read this
+                Sprinting = speed > 2.7f; // breathing, heartbeat and the sleeves read this
             }
             else
             {
@@ -397,6 +420,29 @@ namespace TwelfthStamp
             transform.position += new Vector3(target.x - f.x, target.y - transform.position.y, target.z - f.z);
             m_LastFeet = Feet;
             AudioDirector.I?.Play("foot_stone_1", target, 0.25f);
+        }
+
+        /// <summary>
+        /// Turns a controller frame about its grip's handle axis so the controller model, the hand round it, the hold point
+        /// and the passport mount point where the aim ray points. OpenXR fixes the grip's +Z up the handle; which way the
+        /// grip's X and Y face round that axis is the runtime's, and VRHands.GripToModel assumed one (playtest on Quest 3,
+        /// 18 Oct: the hands lay flat across the controllers, a quarter turn out). Both poses are fixed to the controller's
+        /// body, so the turn is constant; it is re-read every frame only so a reconnected controller is right too.
+        /// </summary>
+        void AlignFrame(Transform grip, Transform aim, Transform frame, HandSide side)
+        {
+            if (grip.localPosition.sqrMagnitude < 1e-8f || aim.localPosition.sqrMagnitude < 1e-8f) return; // no pose yet
+            var a = Quaternion.Inverse(grip.localRotation) * (aim.localRotation * Vector3.forward); // the aim ray in grip space
+            if (a.x * a.x + a.y * a.y < 0.09f) return; // nearly along the handle: nothing to read the turn from
+            // GripToModel leaves the model's forward at +90 degrees in the grip's XY plane: turn that onto the aim ray.
+            float roll = Mathf.Atan2(a.y, a.x) * Mathf.Rad2Deg - 90f;
+            var want = Quaternion.AngleAxis(roll, Vector3.forward);
+            float change = Quaternion.Angle(frame.localRotation, want);
+            if (change < 0.25f) return;
+            frame.localRotation = want;
+            if (change > 5f)
+                Debug.Log("[TS-VR] " + side + " controller frame: aim ray " + Vector3.Angle(a, Vector3.forward).ToString("0") +
+                          " deg off the grip's handle axis; frame turned " + roll.ToString("0") + " deg about it (aim in grip space " + a.ToString("F2") + ")");
         }
 
         void UpdateHeadBlock()

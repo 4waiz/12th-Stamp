@@ -53,7 +53,11 @@ namespace TwelfthStamp
             Physics.IgnoreLayerCollision(Layers.Interactable, Layers.PlayerBody, true);
 
             var mode = requested;
-            if (requested == GameMode.VR)
+            // Capture only: VR mode without OpenXR (no headset), for scripted in-engine footage of the VR rig. Never used by the
+            // shortcuts, and the footage must not be presented as headset capture.
+            bool vrPreview = requested == GameMode.VR && AppArgs.VrPreview && Game.IsAutoTest;
+            if (vrPreview) Debug.Log("[TS-Boot] VR preview: VR rig without OpenXR (capture only, no headset)");
+            if (requested == GameMode.VR && !vrPreview)
             {
                 while (true)
                 {
@@ -81,7 +85,8 @@ namespace TwelfthStamp
                 TearDownPresentation();
                 BuildPresentation(mode);
             }
-            Debug.Log("[TS-Boot] running in " + mode + " mode" + (mode == GameMode.VR ? " via " + XRBoot.RuntimeName : ""));
+            Debug.Log("[TS-Boot] running in " + mode + " mode" + (mode == GameMode.VR ? (vrPreview ? " (preview, no OpenXR)" : " via " + XRBoot.RuntimeName) : ""));
+            if (vrPreview && Game.Rig is VRRig previewRig) previewRig.UseScriptedPose();
 
             if (Game.IsAutoTest)
             {

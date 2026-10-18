@@ -16,6 +16,7 @@ namespace TwelfthStamp
         string m_Page;
         readonly Stack<System.Action> m_Back = new Stack<System.Action>();
         bool m_PauseOpen;
+        LevelId? m_OpenLevelOnMenu; // "Next: Level 3" from the Victory Ground opens that level's card on the welcome screen
         float m_PresenceLostTime;
 
         public bool IsOpen => m_Panel != null && m_Panel.gameObject.activeSelf;
@@ -122,6 +123,12 @@ namespace TwelfthStamp
             Game.Campaign = SaveSystem.LoadCampaign() ?? CampaignState.NewGame();
             Show(true);
             MainPage();
+            if (m_OpenLevelOnMenu.HasValue)
+            {
+                var def = Levels.Get(m_OpenLevelOnMenu.Value);
+                m_OpenLevelOnMenu = null;
+                Push(MainPage, () => LevelPage(def));
+            }
             yield return null;
             cell.RefreshProbe();
             Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
@@ -136,13 +143,9 @@ namespace TwelfthStamp
             {
                 m_Panel.Text("<i>" + Branding.Tagline + "</i>", 0.0032f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.3f, 0.27f, 0.27f), true);
                 m_Panel.Space(0.01f);
-                bool hasSave = SaveSystem.HasValidCampaign();
-                m_Panel.Button(hasSave ? "New Story" : "Story Mode", () =>
-                {
-                    if (hasSave) Push(MainPage, ConfirmNewGame);
-                    else { HideAll(); StoryDirector.I.StartNewGame(); }
-                });
-                m_Panel.Button("Continue", () => { HideAll(); StoryDirector.I.ContinueGame(); }, hasSave);
+                m_Panel.Text("<b>CHOOSE A LEVEL</b>", 0.0024f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.5f, 0.09f, 0.08f));
+                m_Panel.LevelGrid(Levels.All, d => Levels.IsCompleted(d.Id), d => Push(MainPage, () => LevelPage(d)));
+                m_Panel.Space(0.008f);
                 m_Panel.Button("Judges' Demo (about 60 seconds)", () => { HideAll(); StoryDirector.I.StartDemo(); });
                 m_Panel.Button("Controls", () => Push(MainPage, ControlsPage));
                 m_Panel.Button("Settings", () => Push(MainPage, SettingsPage));
@@ -151,6 +154,57 @@ namespace TwelfthStamp
                 m_Panel.Text("<size=80%>" + (Game.Mode == GameMode.VR ? "Quest 3 (PC VR)" : "Desktop") + " mode · v" + Application.version + "</size>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.4f, 0.38f, 0.38f));
             }, false);
             Branding.I?.ShowWelcome(m_Panel.transform, Panel3D.CardWidth, m_Panel.CardHeight);
+            m_Panel.AnimateIn();
+        }
+
+        /// <summary>A level's card: what it holds, then Play (Hard: New Story / Continue, the story's own save).</summary>
+        void LevelPage(LevelDef def)
+        {
+            Page(def.Label, () =>
+            {
+                m_Panel.Text("<color=" + def.Hex + "><b>" + def.Difficulty.ToUpperInvariant() + "</b></color>", 0.0034f);
+                m_Panel.Text(def.Blurb, 0.0028f, TMPro.TextAlignmentOptions.Center, 0.02f);
+                if (def.Id != LevelId.FreeRoam && def.Countries.Length < CountryDatabase.CountryCount)
+                    m_Panel.Text("<size=90%>" + string.Join("   ·   ", System.Array.ConvertAll(def.Countries, c => CountryDatabase.Get(c).DisplayName)) + "</size>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0.02f, new Color(0.3f, 0.27f, 0.27f));
+                if (def.EndsInVictoryGround)
+                    m_Panel.Text("<i><size=90%>Finish it to reach the Victory Ground.</size></i>", 0.0026f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.3f, 0.27f, 0.27f));
+                if (def.IsStory)
+                {
+                    bool hasSave = SaveSystem.HasValidCampaign();
+                    m_Panel.Button(hasSave ? "New Story" : "Story Mode", () =>
+                    {
+                        if (hasSave) Push(() => LevelPage(def), ConfirmNewGame);
+                        else { HideAll(); StoryDirector.I.StartNewGame(); }
+                    });
+                    m_Panel.Button("Continue", () => { HideAll(); StoryDirector.I.ContinueGame(); }, hasSave);
+                }
+                else m_Panel.Button("Play", () => { HideAll(); StoryDirector.I.StartLevel(def.Id); });
+                m_Panel.Button("Back", Back);
+            });
+            m_Panel.AnimateIn(0.035f);
+        }
+
+        /// <summary>The Victory Ground's results: next level, replay, stay, or the menu.</summary>
+        public void ShowLevelComplete(LevelDef def, string summary)
+        {
+            Show(false);
+            m_Back.Clear();
+            Page("Level complete", () =>
+            {
+                m_Panel.Text("<color=" + def.Hex + "><b>" + def.Label.ToUpperInvariant() + "</b></color>", 0.0034f);
+                m_Panel.Text(summary, 0.003f, TMPro.TextAlignmentOptions.Center, 0.1f);
+                var next = Levels.Next(def.Id);
+                if (next != null)
+                    m_Panel.Button("Next: " + next.Label, () =>
+                    {
+                        if (next.IsStory) { HideAll(); m_OpenLevelOnMenu = next.Id; StoryDirector.I.ReturnToMenu(); return; }
+                        HideAll(); StoryDirector.I.StartLevel(next.Id);
+                    });
+                m_Panel.Button("Play again", () => { HideAll(); StoryDirector.I.StartLevel(def.Id); });
+                m_Panel.Button("Stay on the Victory Ground", HideAll);
+                m_Panel.Button("Main menu", () => { HideAll(); StoryDirector.I.ReturnToMenu(); });
+            });
+            m_Panel.AnimateIn(0.05f, 0.1f);
         }
 
         void ConfirmNewGame()
@@ -264,7 +318,7 @@ namespace TwelfthStamp
                     m_Panel.Slider("Mouse sensitivity", Mathf.InverseLerp(0.2f, 3f, s.mouseSensitivity), v => { s.mouseSensitivity = Mathf.Lerp(0.2f, 3f, v); Save(); }, v => Mathf.Lerp(0.2f, 3f, v).ToString("0.0") + "×");
                     m_Panel.Toggle("Invert vertical look", s.invertY, v => { s.invertY = v; Save(); });
                 }
-                m_Panel.Choice("Movement", new[] { "Teleport", "Smooth (opt-in)" }, s.smoothLocomotion ? 1 : 0, i => { s.smoothLocomotion = i == 1; Save(); });
+                m_Panel.Choice("Movement", new[] { "Smooth", "Teleport" }, s.smoothLocomotion ? 0 : 1, i => { s.smoothLocomotion = i == 0; Save(); });
                 m_Panel.Choice("Turning", new[] { "Snap", "Smooth (opt-in)" }, s.smoothTurn ? 1 : 0, i => { s.smoothTurn = i == 1; Save(); });
                 m_Panel.Choice("Snap angle", new[] { "30°", "45°", "60°" }, s.snapAngle <= 30 ? 0 : s.snapAngle <= 45 ? 1 : 2, i => { s.snapAngle = i == 0 ? 30 : i == 1 ? 45 : 60; Save(); });
                 m_Panel.Toggle("Left-handed (passport in right hand)", s.leftHanded, v => { s.leftHanded = v; Save(); });
@@ -458,7 +512,7 @@ namespace TwelfthStamp
                 m_Panel.Toggle("Subtitles", s.subtitles, v => { s.subtitles = v; Save(); });
                 if (Game.Mode == GameMode.VR)
                 {
-                    m_Panel.Choice("Movement", new[] { "Teleport", "Smooth (opt-in)" }, s.smoothLocomotion ? 1 : 0, i => { s.smoothLocomotion = i == 1; Save(); });
+                    m_Panel.Choice("Movement", new[] { "Smooth", "Teleport" }, s.smoothLocomotion ? 0 : 1, i => { s.smoothLocomotion = i == 0; Save(); });
                     m_Panel.Toggle("Seated play", s.seated, v => { s.seated = v; Save(); });
                     m_Panel.Toggle("Left-handed", s.leftHanded, v => { s.leftHanded = v; Save(); });
                 }

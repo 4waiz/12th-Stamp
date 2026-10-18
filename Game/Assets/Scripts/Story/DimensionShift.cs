@@ -8,8 +8,8 @@ namespace TwelfthStamp
 {
     /// <summary>
     /// The horror "dimension shift" between places, in five beats.
-    /// 1. Rumble: the light sinks into a slow-pulsing red, things near the player start to rattle, the first cracks split
-    ///    the walls.
+    /// 1. Rumble: the light sinks into a slow pulse of the destination's light (no red: playtest, 18 Oct), things near the
+    ///    player start to rattle, the first cracks split the walls.
     /// 2. Tearing loose: props and furniture near the player lift off and circle him, faster and faster (stand-in copies:
     ///    the real ones are only hidden, and shown again at the swap); debris tears up from the floor; the wall surface peels
     ///    away in sheets that turn over into passport pages and spiral up; through every crack and bared patch shows the
@@ -18,7 +18,7 @@ namespace TwelfthStamp
     /// 3. Inhale (0.4 s): everything slows and hangs in the air, the room's light and the sound drain away; only the cracks
     ///    blaze.
     /// 4. Slam: the cracks burst, one dark fade hides the swap the caller makes (activate the next cell, place the player),
-    ///    its colour crossing from blood red to a dark shade of the destination's light.
+    ///    its colour a dark shade of the destination's light.
     /// 5. Arrival: the new place assembles round him: the debris that came through falls and sinks into its floor, dust
     ///    drifts down through its light, a ring of that light runs out across the ground, and its lamps come up.
     /// Comfort (the brief's rules): the camera and the rig are never moved, shaken or turned; nothing flashes faster than
@@ -33,7 +33,6 @@ namespace TwelfthStamp
         public enum Stage { None, Build, Inhale, Slam, Arrival }
 
         const string SeenKey = "ts_shift_seen";
-        static readonly Color SlamRed = new Color(0.16f, 0.01f, 0.02f);
 
         public static bool Running { get; private set; }
 
@@ -63,6 +62,8 @@ namespace TwelfthStamp
         public struct Report
         {
             public Color Glimpse;
+            /// <summary>The slam's fade colour: a dark shade of the destination's light (never red).</summary>
+            public Color Slam;
             public int Loose, Pages, Tears, Shafts, Settled;
             /// <summary>The room's light at the bottom of the inhale, as a share of its own level.</summary>
             public float InhaleLight;
@@ -178,7 +179,9 @@ namespace TwelfthStamp
             var guard = root.gameObject.AddComponent<Guard>();
             guard.Beat = Time.time;
             guard.Track(Game.Cells.Active);
-            var red = PointLight(root, centre + Vector3.up * 2.2f, new Color(1f, 0.16f, 0.1f), 9f);
+            var glow = PointLight(root, centre + Vector3.up * 2.2f, light, 9f);
+            var slamShade = new Color(light.r * 0.12f, light.g * 0.12f, light.b * 0.12f);
+            Last.Slam = slamShade;
 
             float motion = vr ? 0.6f : 1f;                              // VR: everything circles slower
             float thin = gentle ? 0.4f : reduced ? 0.6f : 1f;
@@ -190,7 +193,7 @@ namespace TwelfthStamp
             var debris = Debris(root, Mathf.RoundToInt(56 * thin));
             var tears = Tears(root, head, look, gentle ? 3 : 7, light, gentle ? 1 : vr ? 2 : 3, guard, used);
             var pages = Pages(root, head, centre, look, Mathf.RoundToInt((vr ? 16 : 22) * thin), light, build, guard, used);
-            var tunnel = !vr && !reduced && !gentle ? new Tunnel(root, head, build, Color.Lerp(new Color(1f, 0.32f, 0.22f), light, 0.55f), guard) : null;
+            var tunnel = !vr && !reduced && !gentle ? new Tunnel(root, head, build, light, guard) : null;
             Last.Loose = loose.Count;
             Last.Pages = pages.Count;
             Last.Tears = tears.Count;
@@ -217,7 +220,7 @@ namespace TwelfthStamp
             float rumbleTop = gentle ? 0.4f : 0.8f, stretchTop = rumbleClip != null ? 0.45f : 0.7f;
             audio?.Play("pass_sting", null, gentle ? 0.4f : 0.75f, 0.8f, Bus.SFX, true);
 
-            float t = 0f, pulse = 0f, shiftNow = 0f, tintNow = 0f, redNow = 0f;
+            float t = 0f, pulse = 0f, shiftNow = 0f, tintNow = 0f, glowNow = 0f;
             int whispers = 0, maxWhispers = gentle ? 0 : build >= 3f ? 4 : 2, tearSounds = 0, pageSounds = 0;
             bool skipped = false;
             while (t < build)
@@ -235,10 +238,10 @@ namespace TwelfthStamp
                 float k = Mathf.Clamp01(t / build);                    // 0..1 build-up
                 pulse = 0.5f + 0.5f * Mathf.Sin(t * Mathf.PI * 2f * 0.7f); // 0.7 Hz: well under the flashing limit
                 shiftNow = k * (0.75f + 0.25f * pulse) * (gentle ? 0.6f : 1f);
-                tintNow = shiftNow * Mathf.Lerp(1f, 0.35f, Mathf.Clamp01((k - 0.15f) / 0.6f)); // the red gives way to the cracks' light
-                PostFx.I?.SetShift(shiftNow, tintNow);
-                redNow = Mathf.Lerp(0f, gentle ? 1.1f : 2.2f, k) * (0.65f + 0.35f * pulse);
-                red.intensity = redNow;
+                tintNow = shiftNow * Mathf.Lerp(1f, 0.35f, Mathf.Clamp01((k - 0.15f) / 0.6f)); // the tint gives way to the cracks' light
+                PostFx.I?.SetShift(shiftNow, tintNow, light);
+                glowNow = Mathf.Lerp(0f, gentle ? 1.1f : 2.2f, k) * (0.65f + 0.35f * pulse);
+                glow.intensity = glowNow;
                 guard.Dim(Mathf.Lerp(1f, 0.25f, k));
                 if (stretch != null) { audio.SetBaseVolume(stretch, k * stretchTop); stretch.pitch = 0.7f + k * 0.6f; }
                 if (heart != null) { audio.SetBaseVolume(heart, 0.3f + k * 0.5f); heart.pitch = 1f + k * 0.5f; }
@@ -279,7 +282,7 @@ namespace TwelfthStamp
                     float room = Mathf.Lerp(0.25f, 0.06f, f);
                     guard.Dim(room);
                     Last.InhaleLight = room;
-                    red.intensity = redNow * (1f - f);
+                    glow.intensity = glowNow * (1f - f);
                     PostFx.I?.SetShift(shiftNow * (1f - 0.4f * f), tintNow * (1f - 0.6f * f));
                     PostFx.I?.SetInhale(f * (gentle ? 0.6f : 1f));
                     if (stretch != null) audio.SetBaseVolume(stretch, stretchTop * (1f - f));
@@ -295,11 +298,10 @@ namespace TwelfthStamp
                 }
             }
 
-            // The slam: the cracks burst as one dark fade closes; behind it the colour crosses from blood red to a dark
-            // shade of where he is going.
+            // The slam: the cracks burst as one dark fade closes, in a dark shade of where he is going.
             Phase = Stage.Slam;
             audio?.Play("tear_breach", null, gentle ? 0.6f : 1f, 0.85f, Bus.SFX, true);
-            Fader.I.SetColor(SlamRed);
+            Fader.I.SetColor(slamShade);
             Fader.I.FadeTo(1f, skipped ? 0.15f : 0.28f);
             float slam = skipped ? 0.18f : 0.32f;
             for (float s = 0f; s < slam; s += Time.deltaTime)
@@ -314,7 +316,7 @@ namespace TwelfthStamp
             for (float c = 0f; c < cross; c += Time.deltaTime)
             {
                 guard.Beat = Time.time;
-                Fader.I.SetColor(Color.Lerp(SlamRed, across, c / cross));
+                Fader.I.SetColor(Color.Lerp(slamShade, across, c / cross));
                 yield return null;
             }
             Fader.I.SetColor(across);
@@ -697,7 +699,7 @@ namespace TwelfthStamp
             }
         }
 
-        static Material Dark => Mats.Lit(new Color(0.07f, 0.06f, 0.06f), 0.6f, 0.2f, null, false, new Color(0.24f, 0.026f, 0.012f)); // ember-edged
+        static Material Dark => Mats.Lit(new Color(0.07f, 0.06f, 0.06f), 0.6f, 0.2f, null, false, new Color(0.05f, 0.045f, 0.04f)); // faintly lit edges (no red ember)
         static Material Pale => Mats.Lit(new Color(0.55f, 0.52f, 0.48f), 0.3f, 0f, "plaster_warm");
 
         static List<Shard> Debris(Transform root, int count)
@@ -761,8 +763,9 @@ namespace TwelfthStamp
                 m_Full = new Vector3(w, h, 1f);
                 m_T.localScale = Vector3.zero;
 
-                // Behind to front: the red rim, the black split, the other place's light in the split.
-                m_Glow = guard.Temp(new Material(Mats.Particle(Tex.SoftDot, true, new Color(1f, 0.15f, 0.08f), 1.2f)) { name = "ShiftTearGlow", renderQueue = 3000 });
+                // Behind to front: the glowing rim, the black split, the other place's light in the split (no red rim since
+                // the playtest of 18 Oct: the rim is the same light, dimmer).
+                m_Glow = guard.Temp(new Material(Mats.Particle(Tex.SoftDot, true, new Color(light.r * 0.8f, light.g * 0.8f, light.b * 0.8f), 1.2f)) { name = "ShiftTearGlow", renderQueue = 3000 });
                 m_Core = guard.Temp(new Material(Mats.Particle(Tex.TearMask, true, light, 0f)) { name = "ShiftTearCore", renderQueue = 3002 });
                 Piece("Glow", m_T, Unit, m_Glow, new Vector3(0f, 0f, 0.01f), Quaternion.identity, new Vector3(2.4f, 1.5f, 1f));
                 Piece("Split", m_T, Unit, black, Vector3.zero, Quaternion.identity, Vector3.one);

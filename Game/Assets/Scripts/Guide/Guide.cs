@@ -43,13 +43,15 @@ namespace TwelfthStamp
         public Vector3? Target { get; private set; }
         /// <summary>The checklist (rich text) for the objectives panel and the full map.</summary>
         public string ChecklistText { get; private set; } = "";
-        /// <summary>True while the game shows something the guide must not cover (menus, shifts, the Between).</summary>
+        /// <summary>True while the game shows something the guide must not cover (menus, shifts).</summary>
         public bool Cinematic { get; private set; }
         /// <summary>The current step's index in the active place's guide (tests), -1 when there is none.</summary>
         public int StepIndex => m_Step;
         public PlaceGuide Current => m_Guide;
         public bool BriefingShowing => m_Brief != null && m_Brief.gameObject.activeSelf;
         public bool BannerShowing => m_Banner != null && m_Banner.gameObject.activeSelf;
+        /// <summary>Desktop, while the screen marker shows: the space it takes (icon, arrow and name), in screen pixels.</summary>
+        public Rect? MarkerRect { get; private set; }
 
         /// <summary>Closes the arrival briefing (the skip and use inputs do the same).</summary>
         public void DismissBriefing() => m_BriefingUntil = 0f;
@@ -65,11 +67,14 @@ namespace TwelfthStamp
         readonly HashSet<CellId> m_Briefed = new HashSet<CellId>();
 
         RectTransform m_Root, m_Banner, m_Marker, m_Brief, m_Meter;
+        CanvasGroup m_BannerFade;
         Image m_MeterFill, m_MarkerIcon, m_MarkerArrow;
         TextMeshProUGUI m_Header, m_Text, m_Hint, m_Alert, m_Footer, m_MarkerLabel, m_BriefText;
         Transform m_Beacon;
         Material m_BeaconMat;
         static Sprite s_Panel, s_Diamond, s_Chevron;
+        static readonly Vector3[] s_Corners = new Vector3[4];
+        readonly List<Rect> m_Avoid = new List<Rect>(4);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -95,8 +100,9 @@ namespace TwelfthStamp
                 m_Guide = cell != null ? GuideBook.For(cell) : null;
                 m_Step = -1;
                 m_LastChecklist = null;
+                m_BriefingUntil = 0f;   // a briefing never carries over to the next place
             }
-            Cinematic = Game.InMenu || DimensionShift.Running || BetweenRun.Current != null || (Game.Story != null && Game.Story.Busy);
+            Cinematic = Game.InMenu || DimensionShift.Running || (Game.Story != null && Game.Story.Busy);
             bool live = m_Guide != null && !Cinematic && cell != null && (cell.Encounter == null || cell.Encounter.IsLive) && Game.Rig != null;
             if (!live)
             {
@@ -104,6 +110,7 @@ namespace TwelfthStamp
                 m_Banner.gameObject.SetActive(false);
                 m_Brief.gameObject.SetActive(false);
                 m_Marker.gameObject.SetActive(false);
+                MarkerRect = null;
                 if (m_Beacon != null) m_Beacon.gameObject.SetActive(false);
                 return;
             }
@@ -126,8 +133,9 @@ namespace TwelfthStamp
             }
             var s = step < m_Guide.Steps.Count ? m_Guide.Steps[step] : null;
 
-            // Briefing the first time the player is here.
-            if (!m_Briefed.Contains(cell.Id))
+            // Briefing the first time the player is here. In VR it waits for the title card: the small HUD there has no room
+            // for both (on desktop the title card moves aside for it).
+            if (!m_Briefed.Contains(cell.Id) && !(Game.Mode == GameMode.VR && Hud.I.TitleShowing))
             {
                 m_Briefed.Add(cell.Id);
                 m_BriefingUntil = Time.unscaledTime + BriefingSeconds;
@@ -139,10 +147,12 @@ namespace TwelfthStamp
                 m_BriefingUntil = 0f;
                 briefing = false;
             }
-            m_Brief.gameObject.SetActive(briefing);
+            m_Brief.gameObject.SetActive(briefing && (MapView.I == null || !MapView.I.FullOpen));
 
-            // Banner.
-            m_Banner.gameObject.SetActive(s != null && !briefing && (MapView.I == null || !MapView.I.FullOpen));
+            // Banner (not while a briefing is still to come).
+            m_Banner.gameObject.SetActive(s != null && !briefing && m_Briefed.Contains(cell.Id) && (MapView.I == null || !MapView.I.FullOpen));
+            PlaceBanner();
+            m_BannerFade.alpha = Mathf.MoveTowards(m_BannerFade.alpha, 1f, Time.unscaledDeltaTime * 6f);
             Vector3? target = null;
             if (s != null)
             {
@@ -254,39 +264,73 @@ namespace TwelfthStamp
                 float a = 0.55f + 0.2f * Mathf.Sin(Time.time * Mathf.PI * 0.9f);
                 m_BeaconMat.SetColor("_TintColor", new Color(0.55f, 0.95f, 0.85f, a));
             }
-            // Screen marker (desktop): a diamond over the target with its name and distance, held at the screen edge
-            // when the target is off screen.
-            if (vr || !show) { m_Marker.gameObject.SetActive(false); return; }
+            // Screen marker (desktop): a diamond over the target with its name and distance. When the target is off screen
+            // it waits at the edge pointing the way, far enough in for its name to stay on screen, and clear of the panels
+            // along the edges.
+            if (vr || !show) { m_Marker.gameObject.SetActive(false); MarkerRect = null; return; }
+            float dist = (target.Value - Game.Rig.Feet).magnitude;
+            string label = s.LabelNow != null ? s.LabelNow() : s.Label;
+            m_MarkerLabel.text = (string.IsNullOrEmpty(label) ? "" : label + "\n") + "<size=80%>" + Mathf.RoundToInt(dist) + " m</size>";
+            var size = m_MarkerLabel.GetPreferredValues(m_MarkerLabel.text, 220f, 0f);
+            float px = m_Root.lossyScale.x;                                     // canvas units to screen pixels
+            float half = Mathf.Clamp(size.x / 2f, 24f, 110f) * px;              // its reach either side,
+            float up = 48f * px, down = (22f + size.y) * px;                    // above (icon, arrow) and below (its name)
             var cam = Game.Rig.Cam;
             var sp = cam.WorldToScreenPoint(target.Value + Vector3.up * 0.35f);
             bool behind = sp.z < 0f;
-            var canvasRt = m_Root;
             float sw = Screen.width, sh = Screen.height;
             Vector2 p = new Vector2(sp.x, sp.y);
             if (behind) p = new Vector2(sw - p.x, sh - p.y);
-            float m = 60f;
-            bool off = behind || p.x < m || p.x > sw - m || p.y < m || p.y > sh - m;
+            float mx = Mathf.Max(60f, half + 8f), mb = Mathf.Max(60f, down + 8f), mt = Mathf.Max(60f, up + 8f);
+            bool off = behind || p.x < mx || p.x > sw - mx || p.y < mb || p.y > sh - mt;
             var c = new Vector2(sw / 2f, sh / 2f);
             if (off)
             {
                 var dir = (p - c);
                 if (behind && dir.sqrMagnitude < 1f) dir = Vector2.down;
                 dir.Normalize();
-                float kx = (sw / 2f - m) / Mathf.Max(0.001f, Mathf.Abs(dir.x));
-                float ky = (sh / 2f - m) / Mathf.Max(0.001f, Mathf.Abs(dir.y));
+                float kx = (sw / 2f - mx) / Mathf.Max(0.001f, Mathf.Abs(dir.x));
+                float ky = (dir.y < 0f ? sh / 2f - mb : sh / 2f - mt) / Mathf.Max(0.001f, Mathf.Abs(dir.y));
                 p = c + dir * Mathf.Min(kx, ky);
+                KeepClear(ref p, kx <= ky, half, up, down);
                 m_MarkerArrow.gameObject.SetActive(true);
                 m_MarkerArrow.rectTransform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f);
             }
             else m_MarkerArrow.gameObject.SetActive(false);
             m_Marker.gameObject.SetActive(true);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, p, null, out var local);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(m_Root, p, null, out var local);
             m_Marker.localPosition = local;
-            float dist = (target.Value - Game.Rig.Feet).magnitude;
-            string label = s.LabelNow != null ? s.LabelNow() : s.Label;
-            m_MarkerLabel.text = (string.IsNullOrEmpty(label) ? "" : label + "\n") + "<size=80%>" + Mathf.RoundToInt(dist) + " m</size>";
+            MarkerRect = Rect.MinMaxRect(p.x - half, p.y - down, p.x + half, p.y + up);
             float pulse = 1f + 0.12f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 1.4f);
             m_MarkerIcon.rectTransform.localScale = Vector3.one * pulse;
+        }
+
+        /// <summary>
+        /// Moves a marker held at the screen edge further in, along that edge's normal, until it is clear of the panels
+        /// there: the objectives panel (Tab), the step banner, the passport card and the minimap. Never past the middle.
+        /// </summary>
+        void KeepClear(ref Vector2 p, bool side, float half, float up, float down)
+        {
+            m_Avoid.Clear();
+            AddAvoid(Hud.I.ObjectivesPanel);
+            AddAvoid(BannerShowing ? m_Banner : null);
+            AddAvoid(Hud.I.PassportCard);
+            if (MapView.I != null && MapView.I.MiniScreenRect.HasValue) m_Avoid.Add(MapView.I.MiniScreenRect.Value);
+            float sw = Screen.width, sh = Screen.height, gap = 8f;
+            for (int pass = 0; pass < 2; pass++)
+                foreach (var r in m_Avoid)
+                {
+                    if (!Rect.MinMaxRect(p.x - half - gap, p.y - down - gap, p.x + half + gap, p.y + up + gap).Overlaps(r)) continue;
+                    if (side) p.x = p.x < sw / 2f ? Mathf.Min(r.xMax + half + gap, sw / 2f - half) : Mathf.Max(r.xMin - half - gap, sw / 2f + half);
+                    else p.y = p.y > sh / 2f ? Mathf.Max(r.yMin - up - gap, sh / 2f + up) : Mathf.Min(r.yMax + down + gap, sh / 2f - down);
+                }
+        }
+
+        void AddAvoid(RectTransform rt)
+        {
+            if (rt == null) return;
+            rt.GetWorldCorners(s_Corners);   // desktop: the HUD canvas is a screen-space overlay, so these are screen pixels
+            m_Avoid.Add(Rect.MinMaxRect(s_Corners[0].x, s_Corners[0].y, s_Corners[2].x, s_Corners[2].y));
         }
 
         void BuildBeacon()
@@ -313,10 +357,8 @@ namespace TwelfthStamp
             m_Root = canvas.GetComponent<RectTransform>();
 
             m_Banner = Panel("GuideBanner", m_Root, new Color(0.02f, 0.024f, 0.03f, 0.78f));
-            var a = vr ? new Vector2(1f, 1f) : new Vector2(0f, 0f);
-            m_Banner.anchorMin = m_Banner.anchorMax = a;
-            m_Banner.pivot = vr ? new Vector2(1f, 1f) : new Vector2(0f, 0f);
-            m_Banner.anchoredPosition = vr ? new Vector2(-110f, -110f) : new Vector2(36f, 128f);   // above the subtitle band
+            m_BannerFade = m_Banner.gameObject.AddComponent<CanvasGroup>();
+            PlaceBanner();
             m_Header = Label(m_Banner, 14, Hud.Amber, true);
             m_Header.characterSpacing = 6f;
             m_Text = Label(m_Banner, 23, Hud.Ivory, false);
@@ -336,11 +378,11 @@ namespace TwelfthStamp
             m_Footer = Label(m_Banner, 13, new Color(0.6f, 0.6f, 0.58f), false);
             m_Footer.text = vr ? "" : Hud.KeyTag(Intent.Objectives) + "  all steps     " + Hud.KeyTag(Intent.Map) + "  map";
 
-            // Briefing card: centre left, over the view for a few seconds on arrival.
+            // Briefing card, over the view for a few seconds on arrival. Desktop: 150 from the left edge at any aspect ratio,
+            // and the title card moves aside for it. VR: centred, once the title card has gone.
             m_Brief = Panel("GuideBriefing", m_Root, new Color(0.02f, 0.024f, 0.03f, 0.86f));
-            m_Brief.anchorMin = m_Brief.anchorMax = new Vector2(0.5f, 0.5f);
-            m_Brief.pivot = new Vector2(0.5f, 0.5f);
-            m_Brief.anchoredPosition = vr ? new Vector2(0f, 40f) : new Vector2(-480f, 40f);   // clear of the title card
+            m_Brief.anchorMin = m_Brief.anchorMax = m_Brief.pivot = vr ? new Vector2(0.5f, 0.5f) : new Vector2(0f, 0.5f);
+            m_Brief.anchoredPosition = vr ? new Vector2(0f, 40f) : new Vector2(150f, 40f);
             m_Brief.sizeDelta = new Vector2(660f, 600f);
             m_BriefText = Label(m_Brief, 30, Hud.Ivory, false);
             m_BriefText.rectTransform.anchorMin = Vector2.zero;
@@ -370,7 +412,31 @@ namespace TwelfthStamp
             m_Banner.gameObject.SetActive(false);
             m_Brief.gameObject.SetActive(false);
             m_Marker.gameObject.SetActive(false);
+            Hud.I.KeepTitleClearOf(m_Brief);
+            Hud.I.KeepTitleClearOf(m_Banner);
             return true;
+        }
+
+        /// <summary>
+        /// Desktop: bottom left, above the subtitle band, except while the passport is in view. The passport is held in the
+        /// lower left at every aspect ratio, so then the banner waits at the top left under the toast line (beside the
+        /// objectives panel while Tab has it open), and fades in there instead of jumping. VR: top right of the view.
+        /// </summary>
+        void PlaceBanner()
+        {
+            Vector2 corner, pos;
+            if (Game.Mode == GameMode.VR) { corner = Vector2.one; pos = new Vector2(-110f, -110f); }
+            else if (Game.Passport != null && Game.Passport.InView)
+            {
+                var tab = Hud.I.ObjectivesPanel;
+                corner = new Vector2(0f, 1f);
+                pos = new Vector2(tab != null ? Hud.I.CanvasRect(tab).xMax + m_Root.rect.width / 2f + 16f : 36f, -120f);
+            }
+            else { corner = Vector2.zero; pos = new Vector2(36f, 128f); }
+            if (m_Banner.anchorMin == corner && m_Banner.anchoredPosition == pos) return;
+            m_Banner.anchorMin = m_Banner.anchorMax = m_Banner.pivot = corner;
+            m_Banner.anchoredPosition = pos;
+            m_BannerFade.alpha = 0f;
         }
 
         /// <summary>Stacks the banner's lines and sizes the panel to them.</summary>

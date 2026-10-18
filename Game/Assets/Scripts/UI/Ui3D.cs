@@ -395,5 +395,41 @@ namespace TwelfthStamp
         }
 
         public void Space(float h = 0.02f) => m_Cursor -= h;
+
+        /// <summary>
+        /// The level list as a grid of coloured tiles, two to a row (green easy, amber medium, red hard, blue free roam).
+        /// Each tile is a button named "Button_" + its label, like every other button.
+        /// </summary>
+        public List<LevelTile> LevelGrid(IList<LevelDef> levels, Func<LevelDef, bool> completed, Action<LevelDef> onClick)
+        {
+            const float tileH = 0.105f, gap = 0.012f;
+            float tileW = (Width - 0.05f - gap) * 0.5f;
+            var tiles = new List<LevelTile>();
+            for (int i = 0; i < levels.Count; i += 2)
+            {
+                var row = Row("LevelRow");
+                m_Cursor -= tileH + gap - RowHeight;
+                for (int k = 0; k < 2 && i + k < levels.Count; k++)
+                {
+                    var def = levels[i + k];
+                    var x = (k == 0 ? -1f : 1f) * (tileW + gap) * 0.5f;
+                    var tile = LevelTile.Create(row.transform, def, completed(def), new Vector3(x, -(tileH + gap - RowHeight) * 0.5f, 0f), tileW, tileH);
+                    tile.OnClick = () => onClick(def);
+                    tiles.Add(tile);
+                }
+            }
+            return tiles;
+        }
+
+        /// <summary>Rows rise into place one after another (welcome screen, level cards).</summary>
+        public void AnimateIn(float stagger = 0.045f, float startDelay = 0.05f)
+        {
+            for (int i = 0; i < m_Rows.Count; i++)
+            {
+                if (m_Rows[i] == null) continue;
+                var r = m_Rows[i].GetComponent<UiReveal>() ?? m_Rows[i].AddComponent<UiReveal>();
+                r.Begin(startDelay + i * stagger);
+            }
+        }
     }
 }

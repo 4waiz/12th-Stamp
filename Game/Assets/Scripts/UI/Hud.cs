@@ -11,7 +11,8 @@ namespace TwelfthStamp
     /// at a comfortable distance (never rigidly head-locked).
     /// Layout rules: nothing is drawn over the held passport (lower left) or on the reticle. An interaction prompt sits
     /// beside the reticle; passport and tear controls live in one card on the right; subtitles and toasts size to
-    /// their text. Every key shown is read from the live input bindings.
+    /// their text; the title card moves aside for panels that share the screen with it (KeepTitleClearOf). Every key
+    /// shown is read from the live input bindings.
     /// </summary>
     public class Hud : MonoBehaviour
     {
@@ -72,7 +73,10 @@ namespace TwelfthStamp
         RectTransform m_TitleRoot;
         TextMeshProUGUI m_Title, m_TitleSub;
         Image m_TitleRule;
-        float m_TitleStart, m_TitleUntil;
+        float m_TitleStart, m_TitleUntil, m_TitleWidth;
+        Vector2 m_TitleHome;
+        readonly List<RectTransform> m_TitleClear = new List<RectTransform>();
+        readonly Vector3[] m_Corners = new Vector3[4];
         RectTransform m_VitalityPanel;
         CanvasGroup m_VitalityGroup;
         Image m_VitalityFill;
@@ -306,6 +310,7 @@ namespace TwelfthStamp
             // Title card.
             m_TitleRoot = Holder("TitleCard", m_Root);
             Pin(m_TitleRoot, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, m_Vr ? 120 : 170), new Vector2(1400, 200));
+            m_TitleHome = m_TitleRoot.anchoredPosition;
             m_Title = Label(m_TitleRoot, 74, Ivory, TextAlignmentOptions.Center, true);
             m_Title.characterSpacing = 6f;
             Pin(m_Title.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(1400, 96));
@@ -315,6 +320,8 @@ namespace TwelfthStamp
             m_TitleSub.fontStyle = FontStyles.Italic;
             Pin(m_TitleSub.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -56), new Vector2(1200, 36));
             m_TitleRoot.gameObject.SetActive(false);
+            KeepTitleClearOf(m_ObjectivePanel.rectTransform);   // Tab, on a narrow screen
+            KeepTitleClearOf(m_Card.rectTransform);
 
             // Vitality (bottom left; fades away while full).
             m_VitalityPanel = Holder("Vitality", m_Root);
@@ -499,7 +506,7 @@ namespace TwelfthStamp
         {
             var c = Game.Campaign;
             var sb = new StringBuilder(m_ObjectiveText);
-            if (c != null) sb.Append("\n<size=82%><color=#A8A8A4>Seals verified  ").Append(c.VerifiedCount).Append(" / 11</color></size>");
+            if (c != null) sb.Append("\n<size=82%><color=#A8A8A4>Seals verified  ").Append(c.TargetVerifiedCount).Append(" / ").Append(c.TargetCount).Append("</color></size>");
             if (!m_Vr) sb.Append("\n<size=72%><color=#8E8E8A>").Append(KeyCap(Intent.Objectives)).Append("  hide</color></size>");
             const float W = 480f, P = 22f;
             float y = -P;
@@ -517,11 +524,65 @@ namespace TwelfthStamp
             m_TitleRoot.gameObject.SetActive(true);
             m_TitleStart = Time.unscaledTime;
             m_TitleUntil = Time.unscaledTime + seconds;
+            m_TitleWidth = Mathf.Max(m_Title.GetPreferredValues(m_Title.text).x, m_TitleSub.GetPreferredValues(m_TitleSub.text).x, m_TitleRule.rectTransform.rect.width);
+            PlaceTitle(true);
         }
 
         public void HideTitleCard()
         {
             if (m_TitleRoot != null) m_TitleRoot.gameObject.SetActive(false);
+        }
+
+        public bool TitleShowing => m_TitleRoot != null && m_TitleRoot.gameObject.activeSelf;
+
+        /// <summary>Keeps the title card clear of a panel that can be on screen with it (the guide's arrival briefing, the minimap).</summary>
+        public void KeepTitleClearOf(RectTransform panel)
+        {
+            if (panel != null && !m_TitleClear.Contains(panel)) m_TitleClear.Add(panel);
+        }
+
+        /// <summary>The objectives panel (Tab) while it is open, else null.</summary>
+        public RectTransform ObjectivesPanel => m_ObjectivePanel != null && m_ObjectivePanel.gameObject.activeSelf ? m_ObjectivePanel.rectTransform : null;
+
+        /// <summary>The passport or tear card on the right while it is showing, else null.</summary>
+        public RectTransform PassportCard => m_Card != null && m_Card.gameObject.activeSelf ? m_Card.rectTransform : null;
+
+        /// <summary>Where a panel on this HUD's canvas is, in canvas units from the canvas centre.</summary>
+        public Rect CanvasRect(RectTransform rt)
+        {
+            rt.GetWorldCorners(m_Corners);
+            Vector2 min = m_Root.InverseTransformPoint(m_Corners[0]), max = m_Root.InverseTransformPoint(m_Corners[2]);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+        }
+
+        /// <summary>
+        /// The title card stays centred unless a panel on screen with it would cover it: the guide's arrival briefing or the
+        /// objectives panel on the left, the passport card or the minimap's label on the right. Then it slides along its line
+        /// just clear of them, and shrinks only if the space between them is too narrow. In canvas units, so it holds at any
+        /// aspect ratio.
+        /// </summary>
+        void PlaceTitle(bool snap)
+        {
+            const float Gap = 40f, Margin = 40f;
+            float lo = -m_Root.rect.width / 2f + Margin, hi = m_Root.rect.width / 2f - Margin;
+            var tr = m_Title.rectTransform;
+            var sr = m_TitleSub.rectTransform;
+            float top = m_TitleHome.y + tr.anchoredPosition.y + tr.rect.height / 2f;
+            float bottom = m_TitleHome.y + sr.anchoredPosition.y - sr.rect.height / 2f;
+            foreach (var p in m_TitleClear)
+            {
+                if (p == null || !p.gameObject.activeInHierarchy) continue;
+                var r = CanvasRect(p);
+                if (r.yMin > top || r.yMax < bottom) continue;   // above or below the card's lines
+                if (r.center.x < 0f) lo = Mathf.Max(lo, r.xMax + Gap);
+                else hi = Mathf.Min(hi, r.xMin - Gap);
+            }
+            float scale = Mathf.Clamp((hi - lo) / Mathf.Max(1f, m_TitleWidth), 0.55f, 1f);
+            float half = m_TitleWidth * scale / 2f;
+            float x = lo + half > hi - half ? (lo + hi) / 2f : Mathf.Clamp(0f, lo + half, hi - half);
+            float k = snap ? 1f : 1f - Mathf.Exp(-Time.unscaledDeltaTime * 10f);
+            m_TitleRoot.anchoredPosition = Vector2.Lerp(m_TitleRoot.anchoredPosition, new Vector2(x, m_TitleHome.y), k);
+            m_TitleRoot.localScale = Vector3.one * Mathf.Lerp(m_TitleRoot.localScale.x, scale, k);
         }
 
         /// <summary>Called every frame while a tear is open (aperture 0..1, seal 0..1), or for any other timed hold.</summary>
@@ -551,6 +612,7 @@ namespace TwelfthStamp
                 m_Title.alpha = a; m_TitleSub.alpha = a;
                 m_TitleRule.color = new Color(Amber.r, Amber.g, Amber.b, 0.85f * a);
                 if (t > m_TitleUntil) m_TitleRoot.gameObject.SetActive(false);
+                else PlaceTitle(t - m_TitleStart < 0.2f);   // the briefing appears in the same frame or the next: no visible slide
             }
 
             var rig = Game.Rig;

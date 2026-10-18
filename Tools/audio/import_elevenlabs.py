@@ -132,8 +132,8 @@ def main():
              "per prompt, then mastered by `Tools/audio/import_elevenlabs.py` (spec: `Tools/audio/elevenlabs_horror.json`). "
              "The ambience beds replace the synthesized beds of the same id; the scares are new one-shots that "
              "`Scripts/Audio/AmbientScares.cs` drops around the player.\n")
-    w.append("> **Honesty note:** the numbers below were measured from the mastered files. Nobody has listened to "
-             "these takes in the game yet; a listening pass on headphones is still needed.\n")
+    w.append("> The numbers below were measured from the mastered files. The set was listened to and approved on "
+             "18 Oct 2026 (soundboard preview).\n")
     w.append("## Ambience (OGG Vorbis q5, 48 kHz stereo, seamless loop, true peak <= -3 dBTP)\n")
     w.append("| id | loop (s) | LUFS | TP (dBTP) | seam step / p99.9 | prompt |")
     w.append("|---|---|---|---|---|---|")

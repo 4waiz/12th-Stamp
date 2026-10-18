@@ -105,18 +105,12 @@ namespace TwelfthStamp
                     stalking = !chaseNow && p.State != PassengerState.Retreat && p.State != PassengerState.Repelled && p.State != PassengerState.Dormant;
                 }
             }
-            var run = BetweenRun.Current;
-            if (live && run != null && !run.Finished && run.Runner != null && run.Runner.Chest != null)
-            {
-                float d = Vector3.Distance(rig.Head.position, run.Runner.Chest.position);
-                target = Mathf.Max(target, 0.55f + 0.45f * (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(2.5f, 25f, d))));
-            }
             if (dt > 0f) Fear += (target - Fear) * (1f - Mathf.Exp(-dt / (target > Fear ? 0.4f : 5f)));
             if (!live) Fear = Mathf.MoveTowards(Fear, 0f, udt / 0.5f);
 
             // ---- chase on / off (with hysteresis so a stutter in the pursuit does not restart it)
             string music = ad.CurrentMusic;
-            bool sceneChase = music == "mus_chase"; // the story runs its own chase music (the Between)
+            bool sceneChase = music == "mus_chase"; // a scene that runs its own chase music
             if (chaseNow && !m_Chase) BeginChase(now, sceneChase);
             else if (chaseNow) m_ChaseOffAt = -1f;
             else if (m_Chase)

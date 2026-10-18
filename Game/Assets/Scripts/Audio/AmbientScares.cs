@@ -8,8 +8,9 @@ namespace TwelfthStamp
     /// dark, breathing right behind the head. Every place has two sounds of its own and the horror places also draw on a
     /// shared pool (scream, growl, bones, pounding, breath, giggle); the calm places (the shop, home before the glasses)
     /// only creak and knock, and rarely. Close sounds sit just behind a shoulder, the rest 7-16 m away behind or beside
-    /// the player. Nothing fires over a menu, a pause, a scripted beat, narration, a chase or a close stalker, the
-    /// Between run, the fail sequence or an automated test. Gentle: no jump scares, half as often, quieter.
+    /// the player. Nothing fires over a menu, a pause, a scripted beat, narration, a chase or a close stalker, the fail
+    /// sequence or an automated test, and never on the menu, the Victory Ground or in the epilogue. Gentle: no jump
+    /// scares, half as often, quieter.
     /// </summary>
     public class AmbientScares : MonoBehaviour
     {
@@ -61,7 +62,7 @@ namespace TwelfthStamp
                 case CellId.London: return London;
                 case CellId.ShopCorrupt: return Morocco;
                 case CellId.Berlin: return Berlin;
-                default: return null; // the menu and the epilogue stay clean
+                default: return null; // the menu, the Victory Ground and the epilogue stay clean
             }
         }
 
@@ -101,9 +102,7 @@ namespace TwelfthStamp
             if (Game.IsAutoTest || Game.InMenu || Game.InputLocked) return true;
             if (Game.Story != null && Game.Story.Failing) return true;
             if (AudioDirector.I.VoiceActive) return true;
-            if (ThreatAudio.I != null && (ThreatAudio.I.ChaseActive || ThreatAudio.I.Fear > 0.6f)) return true;
-            var run = BetweenRun.Current;
-            return run != null && !run.Finished;
+            return ThreatAudio.I != null && (ThreatAudio.I.ChaseActive || ThreatAudio.I.Fear > 0.6f);
         }
 
         static float Delay(CellId cell, bool arriving)

@@ -12,6 +12,8 @@ namespace TwelfthStamp
     ///   --start=&lt;CellId&gt;            developer: start the campaign in a given cell (no save writes)
     ///   --no-intro                      skip the branded intro (capture and developer runs)
     ///   --save-dir=&lt;path&gt;            keep saves and settings in this folder (tests: never the player's own save)
+    ///   --vr-preview                    capture only, with --mode=vr: build the VR rig without starting OpenXR, so a film
+    ///                                   script can pose the head and hands and the game renders VR mode to the window
     /// </summary>
     public static class AppArgs
     {
@@ -24,6 +26,7 @@ namespace TwelfthStamp
         public static string StartCell { get; private set; }
         public static bool NoIntro { get; private set; }
         public static string SaveDir { get; private set; }
+        public static bool VrPreview { get; private set; }
 
         static bool s_Parsed;
 
@@ -31,7 +34,7 @@ namespace TwelfthStamp
 
         public static void Parse(IList<string> args)
         {
-            Mode = null; ModeArgumentPresent = false; InvalidModeValue = null; Demo = false; AutoTest = null; ReportDir = null; StartCell = null; NoIntro = false; SaveDir = null;
+            Mode = null; ModeArgumentPresent = false; InvalidModeValue = null; Demo = false; AutoTest = null; ReportDir = null; StartCell = null; NoIntro = false; SaveDir = null; VrPreview = false;
             foreach (var raw in args)
             {
                 if (string.IsNullOrEmpty(raw)) continue;
@@ -50,6 +53,7 @@ namespace TwelfthStamp
                 else if (a.StartsWith("--start=", StringComparison.OrdinalIgnoreCase)) StartCell = a.Substring(8);
                 else if (a.Equals("--no-intro", StringComparison.OrdinalIgnoreCase)) NoIntro = true;
                 else if (a.StartsWith("--save-dir=", StringComparison.OrdinalIgnoreCase)) SaveDir = a.Substring(11).Trim('"');
+                else if (a.Equals("--vr-preview", StringComparison.OrdinalIgnoreCase)) VrPreview = true;
             }
             s_Parsed = true;
         }

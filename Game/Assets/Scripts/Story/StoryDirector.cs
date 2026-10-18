@@ -9,7 +9,7 @@ namespace TwelfthStamp
     /// → bathroom/epilogue → results → credits → menu. Also the judges' demo. Owns vitality, checkpoints, failure
     /// and retry, early glasses removal, recall and travel between cells.
     /// </summary>
-    public class StoryDirector : MonoBehaviour
+    public partial class StoryDirector : MonoBehaviour
     {
         public static StoryDirector I { get; private set; }
 
@@ -44,6 +44,7 @@ namespace TwelfthStamp
         // ------------------------------------------------------------------ entry points
         public void StartNewGame()
         {
+            Levels.Current = null;
             Game.IsDemo = false;
             SaveSystem.WritesSuspended = Game.TestWritesBlocked;
             Game.Campaign = CampaignState.NewGame();
@@ -55,6 +56,7 @@ namespace TwelfthStamp
         {
             var c = SaveSystem.LoadCampaign();
             if (c == null) { Hud.I?.ShowToast("No valid save found.", 2.5f); return; }
+            Levels.Current = null;
             Game.IsDemo = false;
             Game.Campaign = c;
             StartCoroutine(RunCampaign());
@@ -63,6 +65,7 @@ namespace TwelfthStamp
         /// <summary>Developer/test start in a given cell (no save writes).</summary>
         public void StartAt(CellId cell, System.Action<CampaignState> configure = null)
         {
+            Levels.Current = null;
             Game.IsDemo = false;
             SaveSystem.WritesSuspended = true;
             var c = CampaignState.NewGame();
@@ -76,6 +79,7 @@ namespace TwelfthStamp
 
         public void StartDemo()
         {
+            Levels.Current = null;
             Game.IsDemo = true;
             SaveSystem.WritesSuspended = true; // the demo never touches the campaign save
             var c = CampaignState.NewGame();
@@ -132,10 +136,12 @@ namespace TwelfthStamp
             Game.Passenger?.Despawn();
             Game.Tears?.ForceReset();
             Narration.I?.StopAll();
+            Hud.I?.HideTitleCard(); // a country's title card must not linger over the welcome screen
             Game.Passport?.Close();
             ClearStamp();
             Game.SaveNow();
             Game.IsDemo = false;
+            Levels.Current = null;
             ResetChapterGates();
             SaveSystem.WritesSuspended = Game.TestWritesBlocked;
             StartCoroutine(MenuSystem.I.ShowMainMenuRoutine());
@@ -144,7 +150,7 @@ namespace TwelfthStamp
         // ------------------------------------------------------------------ travel
         public void TravelThroughTear(CountryDef dest)
         {
-            if (Busy) return;
+            if (Busy || m_Failing) return; // no trip while a catch plays out: its Retry card must stay in front of the player
             if (dest == CountryDatabase.Home) { StartCoroutine(EndingChapter.Run()); return; }
             // Stepping through a doorway tear is a trip into another world, not a cut (playtest: "more dramatic"): a short
             // dimension shift with the doorway still open in front of the player until the swap.
@@ -192,6 +198,7 @@ namespace TwelfthStamp
             var here = cell != null ? CountryDatabase.ByCell(cell.Id) : null;
             string text;
             if (here != null && !c.IsVerified(here.Id)) text = cell.Encounter != null ? cell.Encounter.Objective : here.Objective;
+            else if (cell != null && cell.Id == CellId.VictoryGround && cell.Encounter != null) text = cell.Encounter.Objective;
             else
             {
                 var next = c.NextRecommended();
@@ -216,14 +223,15 @@ namespace TwelfthStamp
             var def = CountryDatabase.Get(id);
             if (newly)
             {
-                Hud.I?.ShowToast("Seal verified: " + def.DisplayName + "   (" + c.VerifiedCount + " / 11)", 3.5f);
+                Hud.I?.ShowToast("Seal verified: " + def.DisplayName + "   (" + c.TargetVerifiedCount + " / " + c.TargetCount + ")", 3.5f);
                 Game.Cells.Active?.Encounter?.SendMessage("OnVerified", SendMessageOptions.DontRequireReceiver);
             }
             Game.SaveNow();
-            if (!c.HasFlag(StoryFlags.CounterfeitRevealed) && c.ShouldRevealCounterfeit)
+            if (!c.IsLevelRun && !c.HasFlag(StoryFlags.CounterfeitRevealed) && c.ShouldRevealCounterfeit)
                 yield return CounterfeitReveal();
             UpdateObjective();
             if (Game.IsDemo && id == CountryId.France) yield return DemoEnd();
+            else if (newly && InCampaign && OnLevelSealVerified()) { }
             else if (newly && InCampaign) OfferStamp(id);
         }
 
@@ -234,8 +242,8 @@ namespace TwelfthStamp
         /// After a seal is verified the country's stamp appears away from the player, and a few seconds later the
         /// Passenger comes running: reach the stamp and the dimension shift carries you on to the next country. (Playtest:
         /// "while I am running I have to collect the stamps, and when I collect one I enter another country".) The
-        /// passport and tears still work as before; the stamp is the fast way on. Not in the demo, the UAE tutorial (its
-        /// stamp is the Between run) or Berlin (the finale).
+        /// passport and tears still work as before; the stamp is the fast way on. Not in the demo, the UAE tutorial or
+        /// Berlin (the finale).
         /// </summary>
         void OfferStamp(CountryId id)
         {
@@ -250,7 +258,7 @@ namespace TwelfthStamp
             var here = CountryDatabase.Get(id);
             Hud.I?.ShowToast("Your " + here.DisplayName + " stamp is waiting. Reach it before it reaches you.", 4f);
             Hud.I?.SetObjective("Run to your " + here.DisplayName + " stamp to go on to " + next.DisplayName + " (or open your passport and tear a way).", false);
-            if (ThreatAllowed) StartCoroutine(HuntAfter(cell, 3.5f));
+            if (ThreatAllowed && !Levels.CurrentIsHarmless) StartCoroutine(HuntAfter(cell, 3.5f));
         }
 
         /// <summary>
@@ -310,6 +318,7 @@ namespace TwelfthStamp
         /// Nothing can catch the player during the build-up; the old place, its tear and its Passenger go at the swap.</summary>
         IEnumerator ShiftInto(CellId next, float buildUp)
         {
+            if (m_Failing) yield break;
             Busy = true;
             if (Game.Passenger != null) Game.Passenger.Threatening = false;
             Game.Passport?.Close();
@@ -363,8 +372,9 @@ namespace TwelfthStamp
         public void DrainVitality(float amount)
         {
             if (!InCampaign && !Game.IsDemo) return;
+            if (Levels.CurrentIsHarmless) return;
             var c = Game.Campaign;
-            if (c == null || m_Failing || amount <= 0f) return;
+            if (c == null || m_Failing || Busy || amount <= 0f) return;
             c.vitality = Mathf.Max(0f, c.vitality - amount);
             if (c.vitality <= 0f) StartCoroutine(FailRoutine(false));
         }
@@ -378,6 +388,11 @@ namespace TwelfthStamp
             if (!InCampaign && !Game.IsDemo) return;
             var c = Game.Campaign;
             if (c == null || m_Failing) return;
+            // Nothing catches the player mid-travel (a cell swap or the dimension shift's build-up). The two used to race when
+            // Paris's hand breached as the player stepped through a doorway tear: the shift carried them on while the Retry
+            // card stayed behind, leaving a dead screen with no card (playtest, 18 Oct).
+            if (Busy) { Debug.Log("[TS-Story] Catch ignored mid-travel (" + cause + ")"); return; }
+            if (Levels.CurrentIsHarmless) { OnHarmlessCatch(); return; }
             c.vitality = 0f;
             Debug.Log("[TS-Story] Caught by the Passenger (" + cause + ")");
             StartCoroutine(FailRoutine(true));
@@ -426,7 +441,7 @@ namespace TwelfthStamp
         }
 
         // ------------------------------------------------------------------ glasses (early removal)
-        public bool CanRemoveGlassesEarly => InCampaign && Game.Campaign != null && Game.Campaign.HasFlag(StoryFlags.GlassesWorn) && !Game.Campaign.HasFlag(StoryFlags.Escaped) && !Busy;
+        public bool CanRemoveGlassesEarly => InCampaign && Levels.Current == null && Game.Campaign != null && Game.Campaign.HasFlag(StoryFlags.GlassesWorn) && !Game.Campaign.HasFlag(StoryFlags.Escaped) && !Busy;
 
         public void RequestEarlyGlassesRemoval()
         {

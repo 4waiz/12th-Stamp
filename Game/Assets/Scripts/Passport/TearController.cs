@@ -24,6 +24,8 @@ namespace TwelfthStamp
         public float Contamination => Active != null ? Active.Contamination : m_ResidualContamination;
         public string HintText { get; private set; }
         public bool IsPulling { get; private set; }
+        /// <summary>True while the open tear is the story's own (OpenForStory): no readout, no size events, no breach.</summary>
+        public bool StoryTear { get; private set; }
 
         public event Action<Tear> Opened;
         public event Action<Tear, TearSize> SizeChanged;
@@ -55,7 +57,7 @@ namespace TwelfthStamp
                 {
                     if (size > m_LastSize) OnGrew(size);
                     m_LastSize = size;
-                    SizeChanged?.Invoke(Active, size);
+                    if (!StoryTear) SizeChanged?.Invoke(Active, size);
                 }
                 if (!Active.Closing)
                 {
@@ -69,7 +71,7 @@ namespace TwelfthStamp
                 }
                 SetPocketPlane(Active.Anchor);
                 PostFx.I?.SetContamination(Active.Contamination);
-                Hud.I?.ShowTear(Active.Aperture, Active.SealProgress, TearLabel(Active));
+                if (!StoryTear) Hud.I?.ShowTear(Active.Aperture, Active.SealProgress, TearLabel(Active));
             }
             else
             {
@@ -207,6 +209,35 @@ namespace TwelfthStamp
 
         public Tear Open(SeamAnchor anchor, CountryDef dest)
         {
+            var tear = Spawn(anchor, dest);
+            if (tear == null) return null;
+            tear.Contamination = m_ResidualContamination * 0.5f;
+            Game.Campaign.tearsOpened++;
+            Game.Campaign.MarkVisited(dest.Id);
+            AudioDirector.I?.Play("tear_open_slit", anchor.Center, 1f);
+            AudioDirector.Haptic(m_LastHand, 0.7f, 0.12f);
+            Narration.I?.ClearTutorial();
+            Opened?.Invoke(tear);
+            return tear;
+        }
+
+        /// <summary>
+        /// The story opens a tear by itself (the seam waking when the glasses go on): the same tear, light and view, but it
+        /// counts for nothing (no visit, no tutorial step, no readout, no breach) and only the story closes it.
+        /// </summary>
+        public Tear OpenForStory(SeamAnchor anchor, CountryDef dest)
+        {
+            var tear = Spawn(anchor, dest);
+            if (tear == null) return null;
+            StoryTear = true;
+            m_BreachFired = true;
+            m_Detent = 0f;
+            AudioDirector.I?.Play("tear_open_slit", anchor.Center, 1f);
+            return tear;
+        }
+
+        Tear Spawn(SeamAnchor anchor, CountryDef dest)
+        {
             if (Active != null) return null;
             var cell = Game.Cells.Prepare(dest.Cell);
             if (cell == null) return null;
@@ -216,17 +247,11 @@ namespace TwelfthStamp
             var tear = go.AddComponent<Tear>();
             tear.Init(anchor, dest, cell, cell.Lighting);
             tear.Aperture = SlitThreshold;
-            tear.Contamination = m_ResidualContamination * 0.5f;
             Active = tear;
+            StoryTear = false;
             m_LastSize = TearSize.Slit;
             m_BreachFired = false;
             m_Detent = DetentSeconds;
-            Game.Campaign.tearsOpened++;
-            Game.Campaign.MarkVisited(dest.Id);
-            AudioDirector.I?.Play("tear_open_slit", anchor.Center, 1f);
-            AudioDirector.Haptic(m_LastHand, 0.7f, 0.12f);
-            Narration.I?.ClearTutorial();
-            Opened?.Invoke(tear);
             return tear;
         }
 
@@ -284,7 +309,7 @@ namespace TwelfthStamp
                 tear.Aperture = Mathf.Lerp(start, 0f, Mathf.SmoothStep(0f, 1f, t / seconds));
                 yield return null;
             }
-            if (Active == tear) Active = null;
+            if (Active == tear) { Active = null; StoryTear = false; }
             if (tear != null)
             {
                 tear.DestinationCell?.HidePocket();
@@ -303,6 +328,7 @@ namespace TwelfthStamp
                 Active.Cleanup();
                 Active = null;
             }
+            StoryTear = false;
             m_ResidualContamination = 0f;
             ClearPocketPlane();
             PostFx.I?.SetContamination(0f);

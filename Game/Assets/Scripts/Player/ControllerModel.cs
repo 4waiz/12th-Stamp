@@ -217,7 +217,9 @@ namespace TwelfthStamp
             Vector3 offset;
             switch (control)
             {
-                case "trigger": offset = new Vector3(0, -0.045f, 0.075f); break;
+                // Beside the handle on the outer side (the grip's label has the inner side). Ahead of and below the head, where
+                // it used to be, the body hid it whenever the face plate was turned to the eye.
+                case "trigger": offset = new Vector3(-0.1f * s, 0f, -0.06f); break;
                 case "grip": offset = new Vector3(0.07f * s, -0.04f, -0.02f); break;
                 case "thumbstick": offset = new Vector3(-0.07f * s, 0.05f, 0.03f); break;
                 case "secondaryButton": offset = new Vector3(0.07f * s, 0.06f, 0.04f); break;

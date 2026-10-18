@@ -15,7 +15,8 @@ The script copies the sources, then writes every derivative and records sizes an
 
 - **Corner mask:** the key art's rounded corners are fitted as circles (TL 300, TR 302, BR 364, BL 362 px). Only pixels outside those arcs become transparent; the artwork itself is never cropped or recoloured.
 - **Game/Assets/Resources/Art/Branding/keyart_cover.png** (1254²): the full cover, used for the intro and the loading frame.
-- **keyart_logo.png** (2048 × 683): the logo, used for the intro title, the welcome screen and the end cards.
+- **keyart_logo.png** (2048 × 683): the logo, used for the end cards.
+- **keyart_titlelogo.png** (2172 × 724): a byte-identical copy of the approved "Bloodied Metallic" title logo (SHA-256 `53d2538e…`, the same as the source above), used on the intro and the welcome screen since 18 Oct 2026. It was copied as-is; `make_branding.py` does not produce it yet.
 - **keyart_menu.png** (1254 × 915): the cover without its lower title band, used beside the welcome menu.
 - **keyart_thumb.png** (256²): a centred crop (box 160, 55, 1050, 945), used for small headers, the loading mark and icons of 96 px and smaller (at those sizes the title is unreadable).
 - **Game/Assets/Branding/Icons/icon_{1024,512,256,128,64,48,32,16}.png**: the Player Settings application icons.
@@ -24,8 +25,9 @@ The script copies the sources, then writes every derivative and records sizes an
 
 ## Where it appears
 
-- **Startup:** `UI/Branding.cs` `Intro()`. The cover fades in, holds, crossfades to the logo, holds, then fades out. Any key skips it after 0.35 s. In VR it is a head-locked card at 2.4 m with post-processing off. `--no-intro` skips it.
-- **Welcome / main menu:** `Branding.ShowWelcome`. The menu art sits on the left, the logo top-right, the tagline under the logo and the menu card beside them. VR uses world-space quads.
+- **Startup:** `UI/Branding.cs` `Intro()`. By Awaiz's choice (18 Oct 2026) the intro shows the title logo only, with no cover picture: it fades in, holds, then fades out (about 3 s). Any key skips it after 0.35 s. In VR it is a head-locked card at 2.4 m with post-processing off. `--no-intro` skips it.
+- **Welcome / main menu:** `Branding.ShowWelcome`. The title logo sits beside the menu card with the tagline under it; the cover art is no longer shown here (18 Oct 2026). VR uses world-space quads.
+- **The cover art** still appears as the executable and shortcut icon and in the promotional materials.
 - **Menu headers (pause, controls, settings, credits, results):** a small thumbnail icon above the title (`Panel3D` header icon).
 - **Loading:** a small pulsing thumbnail mark, bottom-right, appears only while the screen is fully faded to black on desktop and outside menus (`Rendering/Fader.cs`).
 - **End cards:** the logo and the tagline "You travelled alone. Something came back with you." after the judges' demo and the epilogue.

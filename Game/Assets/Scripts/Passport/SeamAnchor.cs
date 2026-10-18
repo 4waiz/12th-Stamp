@@ -15,6 +15,8 @@ namespace TwelfthStamp
         public bool Revealed = true;
         /// <summary>The true return in Berlin: only the genuine home tear opens here.</summary>
         public bool HomeSeam;
+        /// <summary>0..1 extra glow in warm daylight, for story moments (the seam waking when the glasses go on).</summary>
+        public float Flare;
 
         Material m_Mat;
         GameObject m_Visual;
@@ -71,9 +73,11 @@ namespace TwelfthStamp
             bool show = Revealed && Game.Campaign != null && (Game.Campaign.HasFlag(StoryFlags.SeamRevealed) || Game.IsDemo);
             bool tearHere = Game.Tears != null && Game.Tears.Active != null && Game.Tears.Active.Anchor == this;
             float target = !show || tearHere ? 0f : m_Targeted ? 1f : (Game.Passport != null && Game.Passport.IsOpen ? 0.55f : 0.18f);
+            if (show && !tearHere) target = Mathf.Max(target, Flare);
             m_Glow = Mathf.MoveTowards(m_Glow, target, Time.deltaTime * 2.5f);
             float pulse = 0.85f + 0.15f * Mathf.Sin(Time.time * 2.3f + transform.position.x);
             var c = m_Targeted ? new Color(0.65f, 1f, 0.9f) : new Color(0.45f, 0.95f, 0.82f);
+            c = Color.Lerp(c, new Color(1f, 0.82f, 0.55f), Flare);
             m_Mat.SetColor("_Color", new Color(c.r, c.g, c.b, m_Glow * pulse));
             m_Visual.SetActive(m_Glow > 0.01f);
         }

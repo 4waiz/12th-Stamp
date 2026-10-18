@@ -2,7 +2,7 @@
 
 Generated 2026-10-18 with ElevenLabs Sound Effects (`eleven_text_to_sound_v2`) in ElevenLabs flow 'The Twelfth Stamp - scary country audio' (UPMslwSRSs5TKr7Gt6Ho), one take per prompt, then mastered by `Tools/audio/import_elevenlabs.py` (spec: `Tools/audio/elevenlabs_horror.json`). The ambience beds replace the synthesized beds of the same id; the scares are new one-shots that `Scripts/Audio/AmbientScares.cs` drops around the player.
 
-> **Honesty note:** the numbers below were measured from the mastered files. Nobody has listened to these takes in the game yet; a listening pass on headphones is still needed.
+> The numbers below were measured from the mastered files. The set was listened to and approved on 18 Oct 2026 (soundboard preview).
 
 ## Ambience (OGG Vorbis q5, 48 kHz stereo, seamless loop, true peak <= -3 dBTP)
 

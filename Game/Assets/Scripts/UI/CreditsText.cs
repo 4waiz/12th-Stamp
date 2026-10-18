@@ -14,8 +14,8 @@ namespace TwelfthStamp
             "Selected footsteps and impacts: Kenney.nl (CC0)\n" +
             "Fonts: Inter, © 2020 The Inter Project Authors; EB Garamond, © 2017 The EB Garamond Project Authors (both SIL Open Font License 1.1)\n" +
             "Engine: Unity 6000.6.2f1 — Universal Render Pipeline, OpenXR, Input System\n" +
-            "\n<i>The Festival of Passports, its documents and every character are fictional. No real identity document, " +
-            "passport number or official insignia appears in this game. Places are depicted as remembered, abandoned copies; " +
+            "\n<i>The Festival of Passports, its documents and every character are fictional. No real identity document " +
+            "or passport number appears in this game; the passport cover on the key art is stylised artwork. Places are depicted as remembered, abandoned copies; " +
             "nothing here is a claim about any country's culture, religion or history.</i>\n" +
             "Made for SHIFT Game Jam, 17–18 October 2026.";
     }

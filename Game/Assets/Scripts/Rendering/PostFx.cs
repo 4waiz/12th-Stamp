@@ -22,8 +22,8 @@ namespace TwelfthStamp
         float m_Contamination;   // 0..1 from the open tear
         float m_Drain;           // 0..1 vitality loss feedback
         float m_Flash;           // brief white/sun flash
-        float m_Shift;           // 0..1 dimension shift (DimensionShift): red grade, contrast, vignette, aberration
-        float m_ShiftTint;       // 0..1 how much of the shift's red reaches the colour filter (it gives way to the cracks' light)
+        float m_Shift;           // 0..1 dimension shift (DimensionShift): tinted grade, contrast, vignette, aberration
+        float m_ShiftTint;       // 0..1 how much of the shift's tint reaches the colour filter (it gives way to the cracks' light)
         float m_Inhale;          // 0..1 the shift's held breath before the slam: one slow darkening
 
         public static PostFx Create(Transform parent)
@@ -77,11 +77,20 @@ namespace TwelfthStamp
         /// <summary>Dimension-shift grade, 0..1 (set every frame by DimensionShift; it never flashes).</summary>
         public void SetShift(float s) => SetShift(s, s);
 
-        /// <summary>As SetShift, with the red colour filter at its own level, so the light through the cracks keeps its colour.</summary>
+        /// <summary>As SetShift, with the colour filter at its own level, so the light through the cracks keeps its colour.</summary>
         public void SetShift(float s, float tint)
         {
             m_Shift = Mathf.Clamp01(s);
             m_ShiftTint = Mathf.Clamp01(tint);
+        }
+
+        Color m_ShiftLight = new Color(0.85f, 0.9f, 1f);
+
+        /// <summary>As SetShift, tinted with the destination's light (no red: playtest, 18 Oct).</summary>
+        public void SetShift(float s, float tint, Color light)
+        {
+            SetShift(s, tint);
+            m_ShiftLight = light;
         }
 
         /// <summary>The shift's inhale, 0..1: the picture darkens once, slowly (exposure, and a touch of vignette on desktop).</summary>
@@ -124,9 +133,9 @@ namespace TwelfthStamp
             {
                 m_Color.saturation.value -= m_Shift * 30f;
                 m_Color.contrast.value += m_Shift * 22f;
-                m_Color.colorFilter.value = Color.Lerp(m_Color.colorFilter.value, new Color(1f, 0.42f, 0.36f), m_ShiftTint * 0.7f);
+                m_Color.colorFilter.value = Color.Lerp(m_Color.colorFilter.value, Color.Lerp(Color.white, m_ShiftLight, 0.6f), m_ShiftTint * 0.7f);
                 m_Vignette.intensity.value = Mathf.Clamp01(m_Vignette.intensity.value + m_Shift * 0.3f);
-                m_Vignette.color.value = Color.Lerp(m_Vignette.color.value, new Color(0.22f, 0f, 0.01f), m_Shift);
+                m_Vignette.color.value = Color.Lerp(m_Vignette.color.value, new Color(m_ShiftLight.r * 0.12f, m_ShiftLight.g * 0.12f, m_ShiftLight.b * 0.12f), m_Shift);
                 if (m_Chroma.active && Game.Mode != GameMode.VR) m_Chroma.intensity.value = Mathf.Max(m_Chroma.intensity.value, m_Shift * 0.85f);
             }
             if (m_Inhale > 0f)

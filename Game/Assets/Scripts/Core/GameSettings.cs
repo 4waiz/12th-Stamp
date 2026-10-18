@@ -7,7 +7,7 @@ namespace TwelfthStamp
     [Serializable]
     public class GameSettings
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
         public int version = CurrentVersion;
 
         // Audio buses (0..1)
@@ -37,7 +37,7 @@ namespace TwelfthStamp
         public bool invertY = false;
 
         // VR comfort
-        public bool smoothLocomotion = false; // teleport by default
+        public bool smoothLocomotion = true;  // smooth stick movement by default (VR playtest, 18 Oct: "it should not teleport")
         public bool smoothTurn = false;       // snap turn by default
         public float snapAngle = 45f;
         public bool leftHanded = false;
@@ -49,6 +49,9 @@ namespace TwelfthStamp
         public int scareIntensity = 1;        // 0 gentle, 1 standard
 
         public bool comfortSetupDone = false;
+
+        // Levels finished from the welcome screen (stable ids, comma separated): shown as a tick on the level list.
+        public string completedLevels = "";
 
         public GameSettings Sanitized()
         {
@@ -62,7 +65,8 @@ namespace TwelfthStamp
             seatedHeight = Mathf.Clamp(seatedHeight, 0f, 0.8f);
             haptics = Mathf.Clamp01(haptics);
             scareIntensity = Mathf.Clamp(scareIntensity, 0, 1);
-            if (version < 1 || version > CurrentVersion) version = CurrentVersion;
+            if (version < 2) smoothLocomotion = true; // v2: smooth movement became the default (v1 files kept the old teleport default)
+            version = CurrentVersion;
             return this;
         }
 

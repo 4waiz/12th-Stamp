@@ -36,7 +36,8 @@ namespace TwelfthStamp
         London,
         ShopCorrupt,
         Berlin,
-        Epilogue
+        Epilogue,
+        VictoryGround
     }
 
     public enum ResourceId { Sunlight, Noisemaker, CalibrationInsert, VoidStamp }

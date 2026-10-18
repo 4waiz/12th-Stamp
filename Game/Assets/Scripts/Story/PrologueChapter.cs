@@ -54,6 +54,12 @@ namespace TwelfthStamp
             if (tokenCol != null) tokenCol.radius = 0.06f; // a coin is a small target: easier to pick up
             var token = PropLibrary.MakeGrabbable(tokenGo, "festival_token", "Take your festival token");
             token.SetHome();
+            // Playtest, 18 Oct: "there was no festival token". A 3 cm brass coin on a brass-and-wood counter vanished in the
+            // memory grade, so it is a little bigger than a coin and gets a soft teal glow (the guide's "act here" colour)
+            // while it is to be paid; the glow moves to the brass tray once the token is in hand.
+            tokenGo.transform.localScale = Vector3.one * 1.5f;
+            var glow = MakeGlow(props);
+            var glowLight = glow.GetComponent<Light>();
             var traySock = new GameObject("TraySocket");
             traySock.transform.SetParent(props, false);
             traySock.transform.position = shop.TraySpot.position + Vector3.up * 0.006f;
@@ -114,20 +120,34 @@ namespace TwelfthStamp
             // The purchase: the player puts the festival token in the brass tray; the frames go into their case.
             if (!s_Skip)
             {
-                Hud.I?.SetObjective("Pay with your festival token: put it in the brass tray.", false);
+                bool vr = Game.Mode == GameMode.VR;
+                string use = vr ? "grip" : Game.Input.Label(Intent.Interact);
+                Hud.I?.SetObjective("Pay with your festival token: the glowing brass coin on the counter. Put it in the brass tray.", false);
+                glow.gameObject.SetActive(true);
                 float t = 0f;
+                bool hinted = false;
                 while (!s_Skip && !paid)
                 {
                     if (SkipPressed()) { s_Skip = true; break; }
+                    bool held = token.Holder != null;
+                    var at = held ? shop.TraySpot.position + Vector3.up * 0.06f : tokenGo.transform.position + Vector3.up * 0.07f;
+                    glow.position = at;
+                    var toHead = Game.Rig.Head.position - at;
+                    if (toHead.sqrMagnitude > 0.0001f) glow.rotation = Quaternion.LookRotation(-toHead.normalized, Vector3.up);
+                    float k = 0.5f + 0.5f * Mathf.Sin(Time.time * Mathf.PI * 1.2f);
+                    glow.localScale = Vector3.one * (0.85f + 0.3f * k);
+                    if (glowLight != null) glowLight.intensity = 0.5f + 0.8f * k;
                     t += Time.deltaTime;
-                    if (t > 20f)
+                    if (t > (hinted ? 15f : 6f))
                     {
-                        Hud.I?.ShowToast(Game.Mode == GameMode.VR ? "Grip the token, then let go of it over the brass tray"
-                            : Game.Input.Label(Intent.Interact) + ": take the token, then " + Game.Input.Label(Intent.Interact) + " at the brass tray", 4f);
+                        hinted = true;
+                        Hud.I?.ShowToast(held ? (vr ? "Let go of the token over the glowing brass tray" : use + " at the glowing brass tray: pay with the token")
+                                              : "Your festival token is the small brass coin glowing on the counter. " + (vr ? "Grip it" : use + ": take it"), 5f);
                         t = 0f;
                     }
                     yield return null;
                 }
+                glow.gameObject.SetActive(false);
             }
             if (!s_Skip)
             {
@@ -174,6 +194,24 @@ namespace TwelfthStamp
             rig.PlaceAt(homeFeet, homeYaw);
             Game.InputLocks = Mathf.Max(0, Game.InputLocks - 1);
             yield return Fader.I.FadeIn(1.2f);
+        }
+
+        /// <summary>A soft pulsing teal light with a glow dot that marks a small thing to act on (the token, then the tray).</summary>
+        static Transform MakeGlow(Transform parent)
+        {
+            var root = new GameObject("ActHereGlow").transform;
+            root.SetParent(parent, false);
+            var light = root.gameObject.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.range = 0.45f;
+            light.intensity = 0.9f;
+            light.color = new Color(0.55f, 0.95f, 0.85f);
+            light.shadows = LightShadows.None;
+            var mat = new Material(Mats.Particle(Tex.SoftDot, true, new Color(0.7f, 1f, 0.92f), 1.4f)) { name = "ActHereDot" };
+            var dot = MeshFactory.Quad("Dot", root, 0.14f, 0.14f, mat, Vector3.zero, Quaternion.identity);
+            dot.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            root.gameObject.SetActive(false);
+            return root;
         }
 
         static bool LookingAt(Vector3 point, float maxDistance, float maxAngle)
