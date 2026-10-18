@@ -27,6 +27,8 @@ namespace TwelfthStamp
         public static bool NoIntro { get; private set; }
         public static string SaveDir { get; private set; }
         public static bool VrPreview { get; private set; }
+        /// <summary>--clean-hud (trailer capture): no HUD canvas at all (instructions, prompts, subtitles, map, hearts).</summary>
+        public static bool CleanHud { get; private set; }
 
         static bool s_Parsed;
 
@@ -34,7 +36,7 @@ namespace TwelfthStamp
 
         public static void Parse(IList<string> args)
         {
-            Mode = null; ModeArgumentPresent = false; InvalidModeValue = null; Demo = false; AutoTest = null; ReportDir = null; StartCell = null; NoIntro = false; SaveDir = null; VrPreview = false;
+            Mode = null; ModeArgumentPresent = false; InvalidModeValue = null; Demo = false; AutoTest = null; ReportDir = null; StartCell = null; NoIntro = false; SaveDir = null; VrPreview = false; CleanHud = false;
             foreach (var raw in args)
             {
                 if (string.IsNullOrEmpty(raw)) continue;
@@ -54,6 +56,7 @@ namespace TwelfthStamp
                 else if (a.Equals("--no-intro", StringComparison.OrdinalIgnoreCase)) NoIntro = true;
                 else if (a.StartsWith("--save-dir=", StringComparison.OrdinalIgnoreCase)) SaveDir = a.Substring(11).Trim('"');
                 else if (a.Equals("--vr-preview", StringComparison.OrdinalIgnoreCase)) VrPreview = true;
+                else if (a.Equals("--clean-hud", StringComparison.OrdinalIgnoreCase)) CleanHud = true;
             }
             s_Parsed = true;
         }

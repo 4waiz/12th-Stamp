@@ -146,7 +146,7 @@ namespace TwelfthStamp
                 m_Panel.Text("<b>CHOOSE A LEVEL</b>", 0.0024f, TMPro.TextAlignmentOptions.Center, 0f, new Color(0.5f, 0.09f, 0.08f));
                 m_Panel.LevelGrid(Levels.All, d => Levels.IsCompleted(d.Id), d => Push(MainPage, () => LevelPage(d)));
                 m_Panel.Space(0.008f);
-                m_Panel.Button("Judges' Demo (about 60 seconds)", () => { HideAll(); StoryDirector.I.StartDemo(); });
+                // Only the levels are offered (18 Oct: the judges' demo button is gone; --demo still boots it for testing).
                 m_Panel.Button("Controls", () => Push(MainPage, ControlsPage));
                 m_Panel.Button("Settings", () => Push(MainPage, SettingsPage));
                 m_Panel.Button("Credits", () => Push(MainPage, CreditsPage));

@@ -93,7 +93,7 @@ namespace TwelfthStamp
                         && (Guide.I == null || !Guide.I.Cinematic);
             if (!show) m_FullOpen = false;
             else if (!vr && Game.Input != null && Game.Input.Map != null && Game.Input.Map.WasPressedThisFrame()) m_FullOpen = !m_FullOpen;
-            m_Mini.gameObject.SetActive(show && !m_FullOpen);
+            m_Mini.gameObject.SetActive(false); // no minimap (18 Oct, the user asked for it gone); M still opens the full map on desktop
             m_Full.gameObject.SetActive(show && m_FullOpen);
             if (show && m_FullOpen) Hud.I.HideTitleCard();   // an arrival title would show through the map's panels
             MiniScreenRect = null;

@@ -22,7 +22,6 @@ To remove them, run:  powershell -NoProfile -ExecutionPolicy Bypass -File Instal
 You can also start it from a terminal:
     TheTwelfthStamp.exe --mode=desktop
     TheTwelfthStamp.exe --mode=vr
-    TheTwelfthStamp.exe --mode=desktop --demo      (goes straight to the 60-second judges' demo)
 With no --mode argument the game starts in desktop mode.
 
 
@@ -95,7 +94,6 @@ While you play
 --------
 Progress is saved at checkpoints to:
     %USERPROFILE%\AppData\LocalLow\Awaiz Ahmed\The Twelfth Stamp\
-The judges' demo never writes to your story save.
 
 
 6. TROUBLESHOOTING

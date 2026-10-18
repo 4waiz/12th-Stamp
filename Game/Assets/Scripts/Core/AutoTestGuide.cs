@@ -33,7 +33,7 @@ namespace TwelfthStamp
                 Guide.I.DismissBriefing();
                 yield return new WaitForSeconds(0.3f);
                 Check(Guide.I.BannerShowing, id + ": the step banner is on screen");
-                Check(MapView.I.HasMap && MapView.I.MiniShowing, id + ": the minimap shows a map of the place (" + MapView.I.MapSize + ")");
+                Check(MapView.I.HasMap && !MapView.I.MiniShowing, id + ": the place has a map for M, and the minimap stays off (" + MapView.I.MapSize + ")");
                 var st = g != null && Guide.I.StepIndex >= 0 && Guide.I.StepIndex < g.Steps.Count ? g.Steps[Guide.I.StepIndex] : null;
                 Check(st != null && (st.Target == null || Guide.I.Target.HasValue), id + ": the current step's marker is placed" + (st != null && st.Target == null ? " (this step has no place)" : ""));
                 var country = Game.Cells.Active.Country;

@@ -47,8 +47,11 @@ namespace TwelfthStamp
                 Game.Story.ReturnToMenu();
                 yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu && Branding.I.WelcomeShowing, 12f, "start from the welcome screen");
             }
-            yield return Press("Judges' Demo (about 60 seconds)");
-            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Paris && !Game.Story.Busy, 20f, "the demo button starts the judges' demo in Paris");
+            // The welcome screen offers only the levels (18 Oct); the demo still starts the way --demo boots it.
+            Check(Find<Button3D>("Button_Judges' Demo (about 60 seconds)") == null, "the welcome screen has no judges' demo button, only the levels");
+            MenuSystem.I.HideAll();
+            StoryDirector.I.StartDemo();
+            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Paris && !Game.Story.Busy, 20f, "the judges' demo (--demo) starts in Paris");
             yield return new WaitForSeconds(1.0f);
             MenuSystem.I.TogglePause();
             yield return null;

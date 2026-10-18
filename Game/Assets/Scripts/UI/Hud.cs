@@ -330,7 +330,7 @@ namespace TwelfthStamp
             // emojis on top right"). A catch by the Passenger costs a heart; the maze's heat and other drains empty them
             // bit by bit (each heart fills from the bottom).
             m_VitalityPanel = Holder("Hearts", m_Root);
-            Pin(m_VitalityPanel, new Vector2(1f, 1f), new Vector2(1f, 1f), m_Vr ? new Vector2(-150, -110) : new Vector2(-44, -330), new Vector2(StoryDirector.Hearts * 58f, 52));
+            Pin(m_VitalityPanel, new Vector2(1f, 1f), new Vector2(1f, 1f), m_Vr ? new Vector2(-150, -110) : new Vector2(-44, -36) /* top-right corner: the minimap is gone */, new Vector2(StoryDirector.Hearts * 58f, 52));
             m_VitalityGroup = m_VitalityPanel.gameObject.AddComponent<CanvasGroup>();
             m_VitalityGroup.alpha = 0f;
             if (s_Heart == null) s_Heart = SpriteOf(HeartTexture());
@@ -338,8 +338,8 @@ namespace TwelfthStamp
             {
                 var slot = MakeImage("HeartSlot" + i, m_VitalityPanel, new Color(0.12f, 0.02f, 0.03f, 0.75f));
                 slot.sprite = s_Heart;
-                Pin(slot.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * 58f, 0f), new Vector2(50, 46));
-                var fill = MakeImage("Heart" + i, slot.transform, new Color(0.9f, 0.06f, 0.1f));
+                Pin(slot.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * 58f, 0f), new Vector2(60, 60));
+                var fill = MakeImage("Heart" + i, slot.transform, Color.white); // the heart texture carries its own colours
                 fill.sprite = s_Heart;
                 Stretch(fill.rectTransform);
                 fill.type = Image.Type.Filled; fill.fillMethod = Image.FillMethod.Vertical; fill.fillOrigin = 0;
@@ -607,6 +607,7 @@ namespace TwelfthStamp
         // ------------------------------------------------------------------ per frame
         void LateUpdate()
         {
+            if (AppArgs.CleanHud && m_Canvas != null && m_Canvas.enabled) m_Canvas.enabled = false; // trailer capture: a clean picture
             float t = Time.unscaledTime;
             if (m_SubtitlePanel.gameObject.activeSelf && t > m_SubtitleUntil) m_SubtitlePanel.gameObject.SetActive(false);
             if (m_ToastPanel.gameObject.activeSelf)
@@ -805,20 +806,34 @@ namespace TwelfthStamp
             }
         }
 
-        /// <summary>A heart shape (white on clear) for the health hearts: the classic heart curve, soft-edged.</summary>
+        /// <summary>
+        /// A glossy red heart (the user's reference, 18 Oct): red from bright at the top to deep at the point, a bright rim,
+        /// a white highlight on the upper-left lobe and a soft red glow round it. Drawn in full colour, so the filled hearts
+        /// show it as is (white tint) and the empty slots darken it.
+        /// </summary>
         static Texture2D HeartTexture()
         {
-            const int n = 64;
+            const int n = 96;
             var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "Heart", wrapMode = TextureWrapMode.Clamp };
             var px = new Color32[n * n];
             for (int y = 0; y < n; y++)
                 for (int x = 0; x < n; x++)
                 {
-                    float fx = (x + 0.5f) / n * 2.6f - 1.3f, fy = (y + 0.5f) / n * 2.6f - 1.25f;
+                    float fx = (x + 0.5f) / n * 3.2f - 1.6f, fy = (y + 0.5f) / n * 3.2f - 1.5f;
                     float a = fx * fx + fy * fy - 1f;
                     float f = a * a * a - fx * fx * fy * fy * fy; // <= 0 inside
-                    float alpha = Mathf.Clamp01(0.5f - f * 18f);
-                    px[y * n + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
+                    float inside = Mathf.Clamp01(0.5f - f * 18f);
+                    float glow = f > 0f ? Mathf.Exp(-f * 9f) * 0.55f : 0f;
+                    float v = Mathf.InverseLerp(-1.1f, 1.3f, fy);
+                    var c = Color.Lerp(new Color(0.72f, 0.0f, 0.03f), new Color(1f, 0.16f, 0.16f), v);
+                    float rim = f > -0.12f && f <= 0f ? (1f - (-f / 0.12f)) * 0.35f : 0f;
+                    float hx = (fx + 0.48f) / 0.3f, hy = (fy - 0.62f) / 0.19f;
+                    float spec = Mathf.Clamp01(1f - (hx * hx + hy * hy)) * 0.85f;
+                    c = Color.Lerp(c, Color.white, Mathf.Clamp01(spec + rim));
+                    var outCol = new Color(0.95f, 0.05f, 0.05f);
+                    var col = Color.Lerp(outCol, c, inside);
+                    float alpha = Mathf.Max(inside, glow);
+                    px[y * n + x] = new Color32((byte)(col.r * 255f), (byte)(col.g * 255f), (byte)(col.b * 255f), (byte)(Mathf.Clamp01(alpha) * 255f));
                 }
             t.SetPixels32(px);
             t.Apply();

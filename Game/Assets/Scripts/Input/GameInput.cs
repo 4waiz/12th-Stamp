@@ -206,7 +206,7 @@ namespace TwelfthStamp
                 case Intent.Objectives: return "Look at your passport";
                 case Intent.RemoveGlasses: return "Pause menu → Remove the glasses";
                 case Intent.Skip: return "Trigger";
-                case Intent.Map: return "The minimap is always in view";   // every controller button is taken
+                case Intent.Map: return "No map in VR (the full map is on M in desktop mode)";   // every controller button is taken; the minimap is gone
                 case Intent.Sprint: return Game.Settings.smoothLocomotion ? "Push the " + HandName(XRControl(MoveStick).Hand) + " thumbstick fully forward" : "Teleport in quick hops";
             }
             return "?";
