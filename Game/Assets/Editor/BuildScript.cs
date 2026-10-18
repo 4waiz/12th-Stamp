@@ -9,8 +9,9 @@ using UnityEngine;
 namespace TwelfthStamp.EditorTools
 {
     /// <summary>
-    /// Headless Windows build:
+    /// Headless builds:
     /// Unity.exe -batchmode -quit -projectPath Game -executeMethod TwelfthStamp.EditorTools.BuildScript.BuildWindows -buildPath "C:\...\TheTwelfthStamp.exe" [-devBuild]
+    /// Unity.exe -batchmode -quit -projectPath Game -executeMethod TwelfthStamp.EditorTools.BuildScript.BuildWeb -buildPath "C:\...\Web" [-devBuild]
     /// </summary>
     public static class BuildScript
     {
@@ -24,15 +25,7 @@ namespace TwelfthStamp.EditorTools
         public static void BuildWindows()
         {
             string path = GetArg("-buildPath");
-            if (string.IsNullOrEmpty(path))
-            {
-                // Next to the repo (C:\Dev\12th-Stamp -> C:\Dev\12th-Stamp-builds): outside source control, and not under
-                // AppData, which a packaged app such as the Claude desktop app redirects into its own private storage,
-                // where Explorer, Unity Hub and the desktop shortcuts can't see it.
-                var repo = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
-                var root = Path.Combine(Path.GetDirectoryName(repo), Path.GetFileName(repo) + "-builds", "Builds", "Windows");
-                path = Path.Combine(root, "TheTwelfthStamp.exe");
-            }
+            if (string.IsNullOrEmpty(path)) path = Path.Combine(DefaultBuildsRoot(), "Windows", "TheTwelfthStamp.exe");
             Directory.CreateDirectory(Path.GetDirectoryName(path));
 
             if (!ApplyIcon())
@@ -41,16 +34,63 @@ namespace TwelfthStamp.EditorTools
                 return;
             }
 
-            var options = new BuildPlayerOptions
+            bool ok = Build(new BuildPlayerOptions
             {
-                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
+                scenes = EnabledScenes(),
                 locationPathName = path,
                 target = BuildTarget.StandaloneWindows64,
                 targetGroup = BuildTargetGroup.Standalone,
                 options = HasArg("-devBuild") ? BuildOptions.Development : BuildOptions.None
-            };
+            });
+            if (ok) CopyPlayerFiles(Path.GetDirectoryName(path));
 
-            Debug.Log("[TS-Build] Building to " + path);
+            if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
+        }
+
+        /// <summary>Browser build (WebGL): a folder with index.html that plays desktop mode in the browser.</summary>
+        [MenuItem("Twelfth Stamp/Build Web")]
+        public static void BuildWeb()
+        {
+            string path = GetArg("-buildPath");
+            bool ok = BuildWebTo(string.IsNullOrEmpty(path) ? Path.Combine(DefaultBuildsRoot(), "Web") : path);
+            if (Application.isBatchMode) EditorApplication.Exit(ok ? 0 : 1);
+        }
+
+        public static bool BuildWebTo(string path)
+        {
+            Directory.CreateDirectory(path);
+
+            // Gzip with the decompression fallback, so the folder plays from any static file server (a local preview,
+            // itch.io, GitHub Pages) without that server having to send Content-Encoding headers.
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
+
+            return Build(new BuildPlayerOptions
+            {
+                scenes = EnabledScenes(),
+                locationPathName = path,
+                target = BuildTarget.WebGL,
+                targetGroup = BuildTargetGroup.WebGL,
+                options = HasArg("-devBuild") ? BuildOptions.Development : BuildOptions.None
+            });
+        }
+
+        /// <summary>
+        /// Next to the repo (C:\Dev\12th-Stamp -> C:\Dev\12th-Stamp-builds\Builds): outside source control, and not under
+        /// AppData, which a packaged app such as the Claude desktop app redirects into its own private storage,
+        /// where Explorer, Unity Hub and the desktop shortcuts can't see it.
+        /// </summary>
+        static string DefaultBuildsRoot()
+        {
+            var repo = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+            return Path.Combine(Path.GetDirectoryName(repo), Path.GetFileName(repo) + "-builds", "Builds");
+        }
+
+        static string[] EnabledScenes() => EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
+
+        static bool Build(BuildPlayerOptions options)
+        {
+            Debug.Log("[TS-Build] Building to " + options.locationPathName);
             var report = BuildPipeline.BuildPlayer(options);
             var s = report.summary;
             Debug.Log($"[TS-Build] Result={s.result} errors={s.totalErrors} warnings={s.totalWarnings} size={s.totalSize / (1024 * 1024)}MB time={s.totalTime}");
@@ -58,10 +98,7 @@ namespace TwelfthStamp.EditorTools
                 foreach (var m in step.messages)
                     if (m.type == LogType.Error || m.type == LogType.Exception)
                         Debug.Log("[TS-Build] ERROR: " + m.content);
-            if (s.result == BuildResult.Succeeded) CopyPlayerFiles(Path.GetDirectoryName(path));
-
-            if (Application.isBatchMode)
-                EditorApplication.Exit(s.result == BuildResult.Succeeded ? 0 : 1);
+            return s.result == BuildResult.Succeeded;
         }
 
         /// <summary>Ships the shortcut installer, its icon and the player README next to the .exe.</summary>

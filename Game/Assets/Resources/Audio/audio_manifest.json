@@ -2500,131 +2500,131 @@
       "id": "amb_shop",
       "file": "Audio/Ambience/amb_shop",
       "bus": "Ambience",
-      "duration": 52.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -28.2
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -28.0
     },
     {
       "id": "amb_apartment",
       "file": "Audio/Ambience/amb_apartment",
       "bus": "Ambience",
-      "duration": 52.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -29.2
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -28.0
     },
     {
       "id": "amb_apartment_corrupt",
       "file": "Audio/Ambience/amb_apartment_corrupt",
       "bus": "Ambience",
-      "duration": 52.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -30.4
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_egypt",
       "file": "Audio/Ambience/amb_egypt",
       "bus": "Ambience",
-      "duration": 56.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -27.9
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_paris_rain",
       "file": "Audio/Ambience/amb_paris_rain",
       "bus": "Ambience",
-      "duration": 56.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -27.9
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_ny_harbour",
       "file": "Audio/Ambience/amb_ny_harbour",
       "bus": "Ambience",
-      "duration": 60.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -28.1
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_japan_night",
       "file": "Audio/Ambience/amb_japan_night",
       "bus": "Ambience",
-      "duration": 52.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -29.3
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_riyadh_wind",
       "file": "Audio/Ambience/amb_riyadh_wind",
       "bus": "Ambience",
-      "duration": 52.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -28.3
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_india_garden",
       "file": "Audio/Ambience/amb_india_garden",
       "bus": "Ambience",
-      "duration": 52.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -28.4
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_rio_frozen",
       "file": "Audio/Ambience/amb_rio_frozen",
       "bus": "Ambience",
-      "duration": 48.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -30.0
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_london_river",
       "file": "Audio/Ambience/amb_london_river",
       "bus": "Ambience",
-      "duration": 56.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -28.3
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_berlin_hall",
       "file": "Audio/Ambience/amb_berlin_hall",
       "bus": "Ambience",
-      "duration": 56.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -28.2
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "amb_margin",
       "file": "Audio/Ambience/amb_margin",
       "bus": "Ambience",
-      "duration": 60.0,
+      "duration": 29.0,
       "loop": true,
-      "source": "synth:Tools/audio/make_ambience.py",
-      "license": "Original synthesis for The Twelfth Stamp (project-owned; no third-party material)",
-      "lufs": -28.0
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -26.0
     },
     {
       "id": "mus_menu",
@@ -2685,6 +2685,326 @@
       "source": "synth:Tools/audio/make_music.py",
       "license": "Original composition and synthesis for The Twelfth Stamp (project-owned; no third-party material)",
       "lufs": -24.0
+    },
+    {
+      "id": "scare_any_scream",
+      "file": "Audio/SFX/scare_any_scream",
+      "bus": "SFX",
+      "duration": 2.781,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -14.2
+    },
+    {
+      "id": "scare_any_growl",
+      "file": "Audio/SFX/scare_any_growl",
+      "bus": "SFX",
+      "duration": 4.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -19.3
+    },
+    {
+      "id": "scare_any_bones",
+      "file": "Audio/SFX/scare_any_bones",
+      "bus": "SFX",
+      "duration": 2.951,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -22.3
+    },
+    {
+      "id": "scare_any_pound",
+      "file": "Audio/SFX/scare_any_pound",
+      "bus": "SFX",
+      "duration": 4.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.1
+    },
+    {
+      "id": "scare_any_breath",
+      "file": "Audio/SFX/scare_any_breath",
+      "bus": "SFX",
+      "duration": 3.96,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -25.7
+    },
+    {
+      "id": "scare_any_giggle",
+      "file": "Audio/SFX/scare_any_giggle",
+      "bus": "SFX",
+      "duration": 2.655,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -23.7
+    },
+    {
+      "id": "scare_shop_1",
+      "file": "Audio/SFX/scare_shop_1",
+      "bus": "SFX",
+      "duration": 2.798,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -20.1
+    },
+    {
+      "id": "scare_shop_2",
+      "file": "Audio/SFX/scare_shop_2",
+      "bus": "SFX",
+      "duration": 3.99,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -23.8
+    },
+    {
+      "id": "scare_home_1",
+      "file": "Audio/SFX/scare_home_1",
+      "bus": "SFX",
+      "duration": 1.756,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -21.5
+    },
+    {
+      "id": "scare_home_2",
+      "file": "Audio/SFX/scare_home_2",
+      "bus": "SFX",
+      "duration": 2.75,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -21.1
+    },
+    {
+      "id": "scare_margin_1",
+      "file": "Audio/SFX/scare_margin_1",
+      "bus": "SFX",
+      "duration": 3.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.9
+    },
+    {
+      "id": "scare_margin_2",
+      "file": "Audio/SFX/scare_margin_2",
+      "bus": "SFX",
+      "duration": 4.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.9
+    },
+    {
+      "id": "scare_egy_1",
+      "file": "Audio/SFX/scare_egy_1",
+      "bus": "SFX",
+      "duration": 4.028,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.2
+    },
+    {
+      "id": "scare_egy_2",
+      "file": "Audio/SFX/scare_egy_2",
+      "bus": "SFX",
+      "duration": 3.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -23.8
+    },
+    {
+      "id": "scare_par_1",
+      "file": "Audio/SFX/scare_par_1",
+      "bus": "SFX",
+      "duration": 4.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -14.6
+    },
+    {
+      "id": "scare_par_2",
+      "file": "Audio/SFX/scare_par_2",
+      "bus": "SFX",
+      "duration": 2.967,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -23.3
+    },
+    {
+      "id": "scare_ny_1",
+      "file": "Audio/SFX/scare_ny_1",
+      "bus": "SFX",
+      "duration": 3.822,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -15.5
+    },
+    {
+      "id": "scare_ny_2",
+      "file": "Audio/SFX/scare_ny_2",
+      "bus": "SFX",
+      "duration": 2.148,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -19.7
+    },
+    {
+      "id": "scare_jpn_1",
+      "file": "Audio/SFX/scare_jpn_1",
+      "bus": "SFX",
+      "duration": 1.967,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -19.8
+    },
+    {
+      "id": "scare_jpn_2",
+      "file": "Audio/SFX/scare_jpn_2",
+      "bus": "SFX",
+      "duration": 3.906,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.8
+    },
+    {
+      "id": "scare_sau_1",
+      "file": "Audio/SFX/scare_sau_1",
+      "bus": "SFX",
+      "duration": 2.86,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.1
+    },
+    {
+      "id": "scare_sau_2",
+      "file": "Audio/SFX/scare_sau_2",
+      "bus": "SFX",
+      "duration": 5.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -19.7
+    },
+    {
+      "id": "scare_ind_1",
+      "file": "Audio/SFX/scare_ind_1",
+      "bus": "SFX",
+      "duration": 4.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.2
+    },
+    {
+      "id": "scare_ind_2",
+      "file": "Audio/SFX/scare_ind_2",
+      "bus": "SFX",
+      "duration": 2.961,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.5
+    },
+    {
+      "id": "scare_bra_1",
+      "file": "Audio/SFX/scare_bra_1",
+      "bus": "SFX",
+      "duration": 4.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -21.0
+    },
+    {
+      "id": "scare_bra_2",
+      "file": "Audio/SFX/scare_bra_2",
+      "bus": "SFX",
+      "duration": 4.436,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.2
+    },
+    {
+      "id": "scare_uk_1",
+      "file": "Audio/SFX/scare_uk_1",
+      "bus": "SFX",
+      "duration": 4.721,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -18.5
+    },
+    {
+      "id": "scare_uk_2",
+      "file": "Audio/SFX/scare_uk_2",
+      "bus": "SFX",
+      "duration": 4.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -22.9
+    },
+    {
+      "id": "scare_mor_1",
+      "file": "Audio/SFX/scare_mor_1",
+      "bus": "SFX",
+      "duration": 2.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -25.7
+    },
+    {
+      "id": "scare_mor_2",
+      "file": "Audio/SFX/scare_mor_2",
+      "bus": "SFX",
+      "duration": 4.0,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -25.4
+    },
+    {
+      "id": "scare_ger_1",
+      "file": "Audio/SFX/scare_ger_1",
+      "bus": "SFX",
+      "duration": 1.527,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -20.2
+    },
+    {
+      "id": "scare_ger_2",
+      "file": "Audio/SFX/scare_ger_2",
+      "bus": "SFX",
+      "duration": 3.78,
+      "loop": false,
+      "source": "elevenlabs:eleven_text_to_sound_v2",
+      "license": "Generated with ElevenLabs Sound Effects (eleven_text_to_sound_v2) on 2026-10-18 for The Twelfth Stamp; use is governed by the ElevenLabs terms of the generating account's plan. Disclose as AI-generated.",
+      "lufs": -24.7
     }
   ]
 }

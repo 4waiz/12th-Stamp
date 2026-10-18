@@ -280,6 +280,8 @@ One-shots are loudness-normalised on their **peak short-window loudness** (`Lmax
 
 ## Ambience (seamless loops)
 
+> **Replaced on 18 Oct 2026.** All 13 beds below were swapped for ElevenLabs horror beds of the same ids (29 s loops, -26 LUFS; -28 for the shop and home). The table describes the old synthesised beds; the current ones, and the 32 new `scare_*` one-shots, are in `Audio/ElevenLabsHorror.md`.
+
 Seam columns: ratio of the wrap's step / curvature (second difference) to the 99th percentile of the same quantity within +-50 ms (<= 1 means indistinguishable from the surrounding audio), first for the float master and then for the decoded .ogg. The last column gives the decoded wrap kink in dBFS and how far it sits below the cue's RMS.
 
 | id | dur (s) | LUFS | TP (dBTP) | master step/curv | ogg step/curv | ogg kink | content |

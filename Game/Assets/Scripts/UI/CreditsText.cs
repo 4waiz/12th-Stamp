@@ -10,6 +10,7 @@ namespace TwelfthStamp
             "Engineering, procedural modelling, sound synthesis and integration: Awaiz Ahmed, Bilal Feroz, Mohammad Umar, Fuad Ahamed\n" +
             "3D models of the props, furniture, landmarks, controllers and the Passenger: built in Blender 5.2\n" +
             "Narration: Hyperframes CLI (run locally)\n" +
+            "Horror ambience and scare sounds: generated with ElevenLabs Sound Effects\n" +
             "Selected footsteps and impacts: Kenney.nl (CC0)\n" +
             "Fonts: Inter, © 2020 The Inter Project Authors; EB Garamond, © 2017 The EB Garamond Project Authors (both SIL Open Font License 1.1)\n" +
             "Engine: Unity 6000.6.2f1 — Universal Render Pipeline, OpenXR, Input System\n" +

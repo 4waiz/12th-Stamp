@@ -109,6 +109,7 @@ namespace TwelfthStamp
             // The body, the threat and the room: persistent like the director, created with it.
             NewChild<PlayerAudio>(go.transform, "PlayerAudio");
             NewChild<ThreatAudio>(go.transform, "ThreatAudio");
+            NewChild<AmbientScares>(go.transform, "AmbientScares");
             NewChild<Acoustics>(go.transform, "Acoustics");
         }
 
@@ -447,6 +448,7 @@ namespace TwelfthStamp
             float max = Mathf.Max(DefaultMax, minDistance * 20f);
             if (s_Range.TryGetValue(id, out var r)) { minDistance = Mathf.Max(minDistance, r.x); max = r.y; }
             else if (id.StartsWith("pass_", StringComparison.Ordinal)) max = 40f;          // the Passenger's cues carry
+            else if (id.StartsWith("scare_", StringComparison.Ordinal)) max = 60f;         // AmbientScares: a street away still reaches you
             else if (id.StartsWith("foot_", StringComparison.Ordinal)) minDistance = Mathf.Max(minDistance, 1.8f); // own feet: no head-to-floor loss
             Configure(t, src, bus, spatial ? 1f : 0f, minDistance, max);
             src.clip = clip;
