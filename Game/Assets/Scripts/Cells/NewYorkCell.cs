@@ -239,6 +239,9 @@ namespace TwelfthStamp
     public class NewYorkEncounter : Encounter
     {
         NewYorkCell N => (NewYorkCell)Cell;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public bool Powered => m_Powered;
+        public bool NoiseOn => m_On;
         AudioSource m_Noise;
         bool m_On, m_Powered;
         float m_InvestigateCooldown;

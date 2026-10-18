@@ -206,6 +206,10 @@ namespace TwelfthStamp
     public class ParisEncounter : Encounter
     {
         ParisCell P => (ParisCell)Cell;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public bool Cleared => m_Cleared;            // the guard left the desk while a tear was open
+        public bool HandShown => m_HandShown;        // its hand came through the tear
+        public float RespawnIn => m_RespawnTimer;    // seconds until it comes back after a seal (< 0: not waiting)
         PassengerHand m_Hand;
         float m_WindowTime;
         bool m_HandShown, m_LightTaught, m_Cleared;

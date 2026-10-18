@@ -324,5 +324,19 @@
       "4.0 m cast-iron Parisian lamp post (TS_MetalDark): fluted flared base, collars, a tapering fluted shaft, a ladder-rest crossbar with ball ends, scroll brackets, a lantern cup, a hexagonal tapered lantern frame, and a crown roof with a finial.",
       "`Lantern` is a child (TS_EmissiveWarm): the hexagonal glass body inside the frame, origin at its centre (3.495 m up). Put a point light there."
     ]
+  },
+  "Saeed": {
+    "script": "build_saeed.py",
+    "front": "+Z (face and toes); skinned, the feet on the origin",
+    "origin": "between the soles at floor level (the Root bone)",
+    "source": "Modelled (Blender script) on the MPFB 2 / MakeHuman base body (CC0)",
+    "notes": [
+      "The player, Saeed, for the bathroom mirror (Player/MirrorAvatar.cs) and the ending: a slim Emirati man of about 25, 1.78 m to the top of the skull and 1.83 m to the top of the hair, built from the user's turnaround (front, side, back and face).",
+      "Body: the MPFB 2 (MakeHuman) base mesh with its macro and face targets (male, 25, slim; an oval face, defined cheekbones, a slight aquiline nose, a half-smile), CC0. Rig: MPFB's game_engine rig and its weights, 53 bones renamed for Unity: Root, Hips, Spine, Chest, UpperChest, Neck, Head, Shoulder/UpperArm/Forearm/Hand_L/R, Thumb/Index/Middle/Ring/Little1-3_L/R, UpperLeg/LowerLeg/Foot/Toes_L/R. _L is the wearer's left (Unity -X). Bind pose: MakeHuman's relaxed A-pose, elbows a little bent.",
+      "Skinned, unlike the other files: one mesh, `SaeedMesh`, on `Armature` (exported with object_types ARMATURE+MESH, bake_space_transform=False, add_leaf_bones=False, at most 4 weights a vertex). In Unity the prefab root is identity and the Armature node carries the axis conversion (270 degrees about X); the skinned result faces +Z with up +Y.",
+      "Modelled on the body: the kandura (#EDEBE4; a shell from MPFB's tights helper above the chest, a lofted straight robe below it with soft folds and a hem flare, a round collarless neckline, the buttoned placket, the furakha cord and tassel, plain cuffs, inner facings at the openings), curly hair (short sides, volume on top), a short full beard and moustache, brows, eyes, a crossbody satchel (right shoulder to the left hip, padded over the shoulder, two slider buckles on the chest run, a small pouch resting slightly behind the left hip) and suede desert boots on crepe soles. The body the kandura and the boots hide is removed.",
+      "Textures in Resources/Art/Saeed, baked in Cycles from procedural shaders (albedo and tangent-space normal): saeed_skin (2048; the first-person hands' colour, `HandMesh.SkinColor`, so the mirror and the hands agree), saeed_kandura (2048), saeed_hair (1024; the beard and brows too), saeed_leather (1024; buckles in gunmetal), saeed_suede (512), saeed_eyes (512, generated). `Models.SaeedSlots()` builds the materials; the names do not end in _a, so Models.Spawn never tiles them.",
+      "Rebuild: `blender -b --python-exit-code 1 -P Tools/blender/build_saeed.py`. It needs the MPFB 2 extension installed (it enables it for the run only and never saves Blender's preferences) and does not use --factory-startup. Stage .blend checkpoints go to %LOCALAPPDATA%\\TheTwelfthStamp\\Blender\\saeed_work, outside the repo."
+    ]
   }
 }

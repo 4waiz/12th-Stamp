@@ -311,6 +311,9 @@ namespace TwelfthStamp
     {
         RiyadhCell R => (RiyadhCell)Cell;
         bool m_Aligned, m_Solved;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public bool Aligned => m_Aligned;
+        public bool Solved => m_Solved;
         int m_LastArchCheck = -1;
 
         public override string Objective => !m_Aligned ? "Turn the optical panel to match the registration mark." : "Walk through the arch whose reflection tells the truth.";

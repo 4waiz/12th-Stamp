@@ -26,7 +26,11 @@ namespace TwelfthStamp.EditorTools
             string path = GetArg("-buildPath");
             if (string.IsNullOrEmpty(path))
             {
-                var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TheTwelfthStamp", "Builds", "Windows");
+                // Next to the repo (C:\Dev\12th-Stamp -> C:\Dev\12th-Stamp-builds): outside source control, and not under
+                // AppData, which a packaged app such as the Claude desktop app redirects into its own private storage,
+                // where Explorer, Unity Hub and the desktop shortcuts can't see it.
+                var repo = Path.GetFullPath(Path.Combine(Application.dataPath, "..", ".."));
+                var root = Path.Combine(Path.GetDirectoryName(repo), Path.GetFileName(repo) + "-builds", "Builds", "Windows");
                 path = Path.Combine(root, "TheTwelfthStamp.exe");
             }
             Directory.CreateDirectory(Path.GetDirectoryName(path));

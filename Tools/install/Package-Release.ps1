@@ -8,12 +8,18 @@
     entry count and SHA-256. The ZIP contains the game, README.txt and the shortcut installer.
 #>
 param(
-    [string]$BuildDir = "$env:LOCALAPPDATA\TheTwelfthStamp\Builds\Windows",
-    [string]$OutDir = "$env:LOCALAPPDATA\TheTwelfthStamp\Release",
+    [string]$BuildDir = "",
+    [string]$OutDir = "",
     [string]$Version = "0.9.0"
 )
 
 $ErrorActionPreference = 'Stop'
+# Builds and packages live next to the repo (C:\Dev\12th-Stamp -> C:\Dev\12th-Stamp-builds), not under AppData: a
+# packaged app such as the Claude desktop app redirects AppData writes into its own private storage, out of Explorer's sight.
+$repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
+$buildsRoot = Join-Path (Split-Path -Parent $repo) ((Split-Path -Leaf $repo) + '-builds')
+if (-not $BuildDir) { $BuildDir = Join-Path $buildsRoot 'Builds\Windows' }
+if (-not $OutDir) { $OutDir = Join-Path $buildsRoot 'Release' }
 if (-not (Test-Path -LiteralPath (Join-Path $BuildDir 'TheTwelfthStamp.exe'))) { throw "No build at '$BuildDir'." }
 
 $name = "TheTwelfthStamp_v${Version}_Windows"

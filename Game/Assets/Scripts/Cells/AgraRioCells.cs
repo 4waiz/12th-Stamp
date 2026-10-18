@@ -281,6 +281,9 @@ namespace TwelfthStamp
     public class RioEncounter : Encounter
     {
         RioCell R => (RioCell)Cell;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public int Hits => m_Hits;                  // masked stamps in a row (3 verifies)
+        public float AlertSeconds => m_Alert;       // the float's shadow is hunting while > 0
         float m_Clock;
         int m_Hits;
         bool m_Done;

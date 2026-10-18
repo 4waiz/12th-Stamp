@@ -26,7 +26,7 @@ The demo never touches the story save. Each step below is checked by the in-buil
 
 ### Before the judges arrive
 
-- [ ] Build from `%LOCALAPPDATA%\TheTwelfthStamp\Builds\Windows` or the ZIP. Both desktop shortcuts start.
+- [ ] Build from `C:\Dev\12th-Stamp-builds\Builds\Windows` or the ZIP. Both desktop shortcuts start.
 - [ ] Desktop: volume at a comfortable level, subtitles on (default), Graphics "High" or "Ultra".
 - [ ] Quest 3: Link connected, Meta Horizon Link set as the active OpenXR runtime **by you** in the Link app. Run the demo once in the headset before judging.
 - [ ] Tell judges: pause any time (Esc / left Menu button). Taking the headset off is always fine.

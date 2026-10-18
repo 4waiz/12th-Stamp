@@ -8,7 +8,7 @@ namespace TwelfthStamp
     /// <summary>Gameplay intents. On-screen labels and controller callouts are generated from the real bindings.</summary>
     public enum Intent
     {
-        Move, Look, Interact, Grab, Passport, Destination, Tear, Seal, Recall, Pause, Teleport, Turn, RemoveGlasses, Objectives, Skip, Sprint
+        Move, Look, Interact, Grab, Passport, Destination, Tear, Seal, Recall, Pause, Teleport, Turn, RemoveGlasses, Objectives, Skip, Sprint, Map
     }
 
     /// <summary>A physical control on a Quest-style controller that an intent is bound to (for 3D callouts).</summary>
@@ -29,7 +29,7 @@ namespace TwelfthStamp
         public readonly InputActionMap DesktopMap, XRMap;
 
         // Desktop
-        public InputAction Move, Look, Interact, PassportToggle, DestScroll, DestPrev, DestNext, Tear, Seal, Recall, Pause, Objectives, RemoveGlasses, Skip, Sprint, Point, Click;
+        public InputAction Move, Look, Interact, PassportToggle, DestScroll, DestPrev, DestNext, Tear, Seal, Recall, Pause, Objectives, RemoveGlasses, Skip, Sprint, Point, Click, Map;
         // XR raw controls
         public InputAction LGrip, RGrip, LTrigger, RTrigger, LStick, RStick, X, Y, A, B, Menu;
         public InputAction HeadPos, HeadRot, LPos, LRot, RPos, RRot, LAimPos, LAimRot, RAimPos, RAimRot, LTracked, RTracked;
@@ -58,6 +58,7 @@ namespace TwelfthStamp
             Skip = DesktopMap.AddAction("Skip", InputActionType.Button, "<Keyboard>/space");
             Skip.AddBinding("<Keyboard>/enter");
             Sprint = DesktopMap.AddAction("Sprint", InputActionType.Button, "<Keyboard>/leftShift");
+            Map = DesktopMap.AddAction("Map", InputActionType.Button, "<Keyboard>/m");   // the full map (Guide/MapView.cs)
             Point = DesktopMap.AddAction("Point", InputActionType.PassThrough, "<Mouse>/position");
             Click = DesktopMap.AddAction("Click", InputActionType.Button, "<Mouse>/leftButton");
 
@@ -182,6 +183,7 @@ namespace TwelfthStamp
                     case Intent.RemoveGlasses: return "Hold " + DesktopLabel(RemoveGlasses);
                     case Intent.Skip: return DesktopLabel(Skip);
                     case Intent.Sprint: return "Hold " + DesktopLabel(Sprint);
+                    case Intent.Map: return DesktopLabel(Map);
                     case Intent.Teleport: return DesktopLabel(Move);
                     case Intent.Turn: return "Mouse";
                 }
@@ -204,6 +206,7 @@ namespace TwelfthStamp
                 case Intent.Objectives: return "Look at your passport";
                 case Intent.RemoveGlasses: return "Pause menu → Remove the glasses";
                 case Intent.Skip: return "Trigger";
+                case Intent.Map: return "The minimap is always in view";   // every controller button is taken
                 case Intent.Sprint: return Game.Settings.smoothLocomotion ? "Push the " + HandName(XRControl(MoveStick).Hand) + " thumbstick fully forward" : "Teleport in quick hops";
             }
             return "?";

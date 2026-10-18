@@ -11,29 +11,31 @@ Last updated 17 Oct 2026. Evidence for every "verified" line is in `Docs/QA/QA_R
 | Shaders | `Game/Assets/Shaders` (tear stencil, pocket-world lighting, light shafts, particles, sky) |
 | Editor and build scripts | `Game/Assets/Editor` (`ProjectSetup.cs`, `BuildScript.cs`) |
 | Generated textures, audio, narration | `Game/Assets/Resources` (generators in `Tools/textures`, `Tools/audio`) |
-| Windows build | `%LOCALAPPDATA%\TheTwelfthStamp\Builds\Windows\TheTwelfthStamp.exe` (outside the repo and outside OneDrive) |
+| Windows build | `C:\Dev\12th-Stamp-builds\Builds\Windows\TheTwelfthStamp.exe` (outside the repo and outside OneDrive) |
 | Shortcut installer and player README | `Tools/install` (copied next to the .exe by every build) |
-| Release ZIP (not uploaded) | `%LOCALAPPDATA%\TheTwelfthStamp\Release\TheTwelfthStamp_v0.9.0_Windows.zip`, 110 MB, SHA-256 `21A26786AC350B5D580343F3B2DF5A3DCB102A4C0995AA58F19A3DA6CF6ECEDE`. Rebuild it with `Tools/install/Package-Release.ps1`. |
-| Desktop shortcuts | "The Twelfth Stamp - Quest 3" and "The Twelfth Stamp - Desktop" on your Desktop, pointing at the build above |
-| Automated test reports and screenshots | `Docs/QA/QA_Report.md`, final run in `Docs/QA/run8/`, earlier runs in `%LOCALAPPDATA%\TheTwelfthStamp\QA-archive` |
+| Release ZIP (not uploaded) | `C:\Dev\12th-Stamp-builds\Release\TheTwelfthStamp_v0.9.0_Windows.zip`, 130.2 MB, SHA-256 `4EB8E6D76B1E60AE0698921A2AC9018D6B94B223B6CE61C5F0D8FE1AC143592E` (the combined build of 18 Oct 03:25). Rebuild it with `Tools/install/Package-Release.ps1`. |
+| Desktop shortcuts | "The Twelfth Stamp - Quest 3" and "The Twelfth Stamp - Desktop" on your Desktop, pointing at the installed copy in `C:\Users\awaiz\Games\TheTwelfthStamp` (a rebuild doesn't change it until that copy is refreshed) |
+| Automated test reports and screenshots | `Docs/QA/QA_Report.md`, final run in `Docs/QA/run8/`, earlier runs in `C:\Dev\12th-Stamp-builds\QA-archive` |
 | References, credits, pitch | `Art/References/REFERENCES.md`, `Docs/Credits_and_AI_Disclosure.md`, `Docs/Pitch_and_Demo.md` |
 
 ## Build, test, install
 
 All commands run from any folder. Close the Unity editor first if it has the project open.
 
+Keep builds, the installed copy and Unity's `Library` out of `AppData`. The Claude desktop app is an MSIX package, so anything a Claude session (or a Unity or game process it starts) writes under `C:\Users\<you>\AppData` really lands in the app's private storage (`AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\...`), where Explorer, Unity Hub and the desktop shortcuts can't see it. That is why builds, the ZIP and test reports live in `C:\Dev\12th-Stamp-builds`, the installed copy in `C:\Users\awaiz\Games\TheTwelfthStamp`, and `Game\Library` is a normal folder.
+
 ```bash
 "C:\Program Files\Unity\Hub\Editor\6000.6.2f1\Editor\Unity.exe" -batchmode -nographics -quit -projectPath "C:\Dev\12th-Stamp\Game" -executeMethod TwelfthStamp.EditorTools.BuildScript.SetupAndBuild -logFile build.log
 ```
 
 ```bash
-"%LOCALAPPDATA%\TheTwelfthStamp\Builds\Windows\TheTwelfthStamp.exe" --mode=desktop --autotest=all --report-dir="C:\Dev\12th-Stamp\Docs\QA\latest" -screen-fullscreen 0 -screen-width 1600 -screen-height 900
+"C:\Dev\12th-Stamp-builds\Builds\Windows\TheTwelfthStamp.exe" --mode=desktop --autotest=all --report-dir="C:\Dev\12th-Stamp\Docs\QA\latest" -screen-fullscreen 0 -screen-width 1600 -screen-height 900
 ```
 
-`--autotest` accepts `demo`, `egypt`, `story`, `countries`, `finale` or `all`. The test drives the real game systems, writes `autotest_<name>.md` plus screenshots, and exits with code 0 only if every check passed. It never writes to your save. `--autotest=models` and `--autotest=shift` are separate art-review passes, not part of `all`: `models` frames every Blender model and landmark, and `shift` frames the glasses moment, the dimension shift and the Between. It checks that every Blender model is in place and frames each one for a screenshot.
+`--autotest` accepts `demo`, `egypt`, `story`, `countries`, `finale` or `all`. The test drives the real game systems, writes `autotest_<name>.md` plus screenshots, and exits with code 0 only if every check passed. It never writes to your save. `--autotest=models` and `--autotest=shift` are separate art-review passes, not part of `all`: `models` frames every Blender model and landmark, and `shift` frames the glasses moment, the dimension shift and the Between. `--autotest=guide` visits every place and checks its walkthrough (step banner, marker, arrival briefing) and its minimap and full map, and plays Egypt through. It checks that every Blender model is in place and frames each one for a screenshot.
 
 ```bash
-"%LOCALAPPDATA%\TheTwelfthStamp\Builds\Windows\Install Shortcuts.cmd"
+"C:\Users\awaiz\Games\TheTwelfthStamp\Install Shortcuts.cmd"
 ```
 
 The installer creates "The Twelfth Stamp - Quest 3" and "The Twelfth Stamp - Desktop" on your Desktop, pointing at the game in that folder.

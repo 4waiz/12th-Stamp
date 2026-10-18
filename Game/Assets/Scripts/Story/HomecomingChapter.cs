@@ -226,6 +226,10 @@ namespace TwelfthStamp
     {
         ApartmentCell A => (ApartmentCell)Cell;
         bool m_TraceRevealed, m_ThreatStarted, m_Escaping;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public bool TraceShown => m_TraceRevealed;
+        public bool ThreatStarted => m_ThreatStarted;
+        public bool Escaping => m_Escaping;
         float m_ReflectionAlpha;
 
         public override string Objective => Game.Campaign.IsVerified(CountryId.UAE)

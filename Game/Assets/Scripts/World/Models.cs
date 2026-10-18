@@ -15,6 +15,7 @@ namespace TwelfthStamp
         static readonly Dictionary<string, Material> s_Defaults = new Dictionary<string, Material>();
         static readonly Dictionary<(Material, float), Material> s_Tiled = new Dictionary<(Material, float), Material>();
         static readonly Dictionary<Material, Material> s_NoShadow = new Dictionary<Material, Material>();
+        static readonly Dictionary<string, Material> s_Baked = new Dictionary<string, Material>();
 
         public static GameObject Spawn(string name, Transform parent, System.Func<string, Material> slot, Vector3 position = default, float yaw = 180f, float scale = 1f)
             => Spawn(name, parent, slot, position, Quaternion.Euler(0f, yaw, 0f), Vector3.one * scale);
@@ -90,6 +91,41 @@ namespace TwelfthStamp
             var f = go.GetComponent<MeshFilter>();
             if (f != null) Object.DestroyImmediate(f);
         }
+
+        /// <summary>
+        /// A lit material on a character's own baked albedo and normal map in Resources/Art (laid out on its UVs, so never
+        /// tiled). <paramref name="art"/> is the albedo's path under Art, e.g. "Saeed/saeed_skin"; the normal map is the
+        /// same name with "_n".
+        /// </summary>
+        public static Material Baked(string art, float smoothness, float metallic = 0f)
+        {
+            if (s_Baked.TryGetValue(art, out var cached) && cached != null) return cached;
+            var albedo = Tex.Art(art);
+            var normal = Tex.Art(art + "_n");
+            var m = new Material(Mats.Template(normal != null ? "Lit_Normal" : "Lit_Opaque")) { name = "Baked_" + System.IO.Path.GetFileName(art) };
+            m.SetColor("_BaseColor", Color.white);
+            if (albedo != null) m.SetTexture("_BaseMap", albedo);
+            if (normal != null) m.SetTexture("_BumpMap", normal);
+            m.SetFloat("_Smoothness", smoothness);
+            m.SetFloat("_Metallic", metallic);
+            s_Baked[art] = m;
+            return m;
+        }
+
+        /// <summary>Saeed's six slots (Saeed.fbx) on his baked textures in Resources/Art/Saeed.</summary>
+        public static System.Func<string, Material> SaeedSlots() => name =>
+        {
+            switch (SlotOf(name))
+            {
+                case "TS_Skin": return Baked("Saeed/saeed_skin", 0.42f);
+                case "TS_Kandura": return Baked("Saeed/saeed_kandura", 0.15f);
+                case "TS_Hair": return Baked("Saeed/saeed_hair", 0.22f);
+                case "TS_Leather": return Baked("Saeed/saeed_leather", 0.4f);
+                case "TS_Suede": return Baked("Saeed/saeed_suede", 0.08f);
+                case "TS_Eyes": return Baked("Saeed/saeed_eyes", 0.85f);
+            }
+            return null;
+        };
 
         /// <summary>The game's materials for each slot when the caller has no scene-specific one.</summary>
         public static Material Default(string slot)

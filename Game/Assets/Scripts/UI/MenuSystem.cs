@@ -185,10 +185,14 @@ namespace TwelfthStamp
                     Row("Remove the glasses (returns you to the apartment)", Intent.RemoveGlasses),
                 };
                 lines.Insert(1, Row("Run", Intent.Sprint));
-                if (Game.Mode == GameMode.Desktop) lines.Add(Row("Objectives", Intent.Objectives));
+                if (Game.Mode == GameMode.Desktop)
+                {
+                    lines.Add(Row("Objectives and steps", Intent.Objectives));
+                    lines.Add(Row("Map", Intent.Map));
+                }
                 m_Panel.Text(string.Join("\n", lines), 0.0027f, TMPro.TextAlignmentOptions.Left, 0.36f);
                 if (Game.Mode == GameMode.VR)
-                    m_Panel.Text("<i>Raise a controller to your face to see its button labels.</i>", 0.0026f);
+                    m_Panel.Text("<i>Raise a controller to your face to see its button labels. The current step and the minimap stay in view.</i>", 0.0026f);
                 m_Panel.Button("Back", Back);
             });
         }

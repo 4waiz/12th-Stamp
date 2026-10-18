@@ -22,7 +22,7 @@ ORDER = [
     "VintageCamera", "Noisemaker", "HandLantern", "GardenLamp", "Reflector", "VerificationDesk", "VoidStamp",
     "FestivalToken", "OpticalPanel",
     "Landmark_Eiffel", "Landmark_Liberty", "Landmark_Pagoda", "Landmark_ArchTower", "Landmark_DomedPavilion",
-    "Landmark_ClockTower", "Landmark_ColumnGate", "StreetLamp_Paris",
+    "Landmark_ClockTower", "Landmark_ColumnGate", "StreetLamp_Paris", "Saeed",
 ]
 
 

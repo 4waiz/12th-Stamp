@@ -127,6 +127,9 @@ namespace TwelfthStamp
     public class BerlinEncounter : Encounter
     {
         BerlinCell B => (BerlinCell)Cell;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public bool NoiseOn => m_NoiseOn;
+        public bool ThreatUp => m_ThreatUp;
         Grabbable m_Noise;
         AudioSource m_NoiseLoop;
         bool m_NoiseOn, m_Exposed, m_ThreatUp;

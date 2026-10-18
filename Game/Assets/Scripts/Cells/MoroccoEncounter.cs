@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TwelfthStamp
@@ -8,6 +9,13 @@ namespace TwelfthStamp
     public class MoroccoEncounter : Encounter
     {
         ShopCell S => (ShopCell)Cell;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public IReadOnlyList<Grabbable> Items => m_Items;   // postcard, brass tray, camera
+        public IReadOnlyList<Socket> Marks => m_Marks;      // their outlines on the counter, same order
+        public Grabbable Insert => m_Insert;
+        public Socket CaseSocket => m_CaseSocket;
+        public bool DrawerOpen => m_DrawerOpen;
+        public bool NotesRead => m_NotesRead;
         Socket[] m_Marks;
         Grabbable[] m_Items;
         Grabbable m_Insert;

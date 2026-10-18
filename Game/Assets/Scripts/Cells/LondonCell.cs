@@ -90,6 +90,8 @@ namespace TwelfthStamp
     public class LondonEncounter : Encounter
     {
         LondonCell L => (LondonCell)Cell;
+        // Read-only state for the guide (Guide/GuideBook.cs).
+        public float SecondsToChime => UntilChime;
         float m_Clock;
         bool m_Revealed;
 

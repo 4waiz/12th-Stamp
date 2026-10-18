@@ -128,8 +128,83 @@ namespace TwelfthStamp
             yield return Frame(berlin, stamp + new Vector3(0.25f, 0.5f, 0.55f), stamp + new Vector3(0f, 0.07f, 0f), "m27_berlin_void_stamp");
             Destroy(stampLight);
             yield return Landmark(berlin, "ColumnGate", 27f, 40f, "m28_berlin_gate");
+            yield return SaeedModel();
 
             rig.enabled = true;
+        }
+
+        /// <summary>
+        /// Saeed (Saeed.fbx, built by Tools/blender/build_saeed.py): one skinned mesh on an armature with Unity-style bone
+        /// names, feet on the origin, facing +Z, about 1.78 m to the top of the skull; turning the Head bone turns the face
+        /// and leaves the feet. Framed front, side and face in Egypt's daylight, a few steps ahead of the arrival point
+        /// (open ground by design), on his baked textures.
+        /// </summary>
+        IEnumerator SaeedModel()
+        {
+            var egypt = Game.Cells.Activate(CellId.Egypt);
+            var cellT = egypt.transform;
+            var ahead = Vector3.ProjectOnPlane(egypt.Arrival.forward, Vector3.up).normalized;
+            var spotW = egypt.Arrival.position + ahead * 2.6f;
+            if (Physics.Raycast(spotW + Vector3.up * 3f, Vector3.down, out var floor, 6f, Layers.FloorMask, QueryTriggerInteraction.Ignore))
+                spotW = floor.point;
+            var court = cellT.InverseTransformPoint(spotW);
+            var facing = cellT.InverseTransformDirection(-ahead);            // he faces back toward the arrival point
+            facing.y = 0f;
+            facing.Normalize();
+            var right = Vector3.Cross(Vector3.up, facing);
+            var sideW = spotW + Vector3.up * 1.4f;
+            if (Physics.Raycast(sideW, cellT.TransformDirection(right), 3f, ~0, QueryTriggerInteraction.Ignore)) right = -right; // the open side
+            float yaw = Mathf.Atan2(facing.x, facing.z) * Mathf.Rad2Deg;
+            var model = Models.Spawn("Saeed", cellT, Models.SaeedSlots(), court, yaw);
+            Check(model != null, "Saeed.fbx loads");
+            if (model == null) yield break;
+            string[] bones = { "Hips", "Spine", "Chest", "Neck", "Head", "Shoulder_L", "Shoulder_R", "UpperArm_L", "UpperArm_R", "Forearm_L",
+                               "Forearm_R", "Hand_L", "Hand_R", "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R", "Foot_L", "Foot_R" };
+            var all = model.GetComponentsInChildren<Transform>(true);
+            var missing = bones.Where(b => all.All(t => t.name != b)).ToList();
+            Check(missing.Count == 0, "Saeed: the armature has the bones the mirror drives" + (missing.Count > 0 ? " (missing " + string.Join(", ", missing) + ")" : " (" + bones.Length + " named, " + all.Length + " transforms)"));
+            var smrs = model.GetComponentsInChildren<SkinnedMeshRenderer>(true);
+            Check(smrs.Length == 1, "Saeed: one skinned mesh (" + smrs.Length + ")");
+            if (smrs.Length != 1 || missing.Count > 0) yield break;
+            var smr = smrs[0];
+            var slots = smr.sharedMaterials.Select(m => m != null && m.name.StartsWith("Baked_saeed_") ? m.name.Substring(12) : (m != null ? m.name : "null")).ToList();
+            int tris = 0;                                                   // index counts: the mesh is not CPU-readable
+            for (int i = 0; i < smr.sharedMesh.subMeshCount; i++) tris += (int)smr.sharedMesh.GetIndexCount(i) / 3;
+            Check(slots.Count == 6 && smr.sharedMaterials.All(m => m != null && m.name.StartsWith("Baked_saeed_") && m.GetTexture("_BaseMap") != null && m.GetTextureScale("_BaseMap") == Vector2.one),
+                "Saeed: six slots on his baked textures, untiled (" + string.Join(", ", slots) + ")");
+            Check(tris >= 20000 && tris <= 35000, "Saeed: " + tris + " triangles (20-35k)");
+
+            // Rest pose, in the model's own space.
+            var mesh = new Mesh();
+            smr.BakeMesh(mesh, true);
+            var toWorld = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one);
+            var local = mesh.vertices.Select(v => model.transform.InverseTransformPoint(toWorld.MultiplyPoint3x4(v))).ToArray();
+            float minY = local.Min(v => v.y), maxY = local.Max(v => v.y);
+            var head = all.First(t => t.name == "Head");
+            var headLocal = model.transform.InverseTransformPoint(head.position);
+            var band = local.Select((v, i) => (v, i)).Where(p => Mathf.Abs(p.v.y - (headLocal.y + 0.06f)) < 0.025f && Mathf.Abs(p.v.x) < 0.03f).ToList();
+            var nose = band.OrderByDescending(p => p.v.z).First();
+            var back = band.OrderBy(p => p.v.z).First();
+            Check(Mathf.Abs(minY) < 0.03f && maxY > 1.74f && maxY < 1.9f, "Saeed: feet on the origin, " + maxY.ToString("0.00") + " m to the top of the hair (" + minY.ToString("0.000") + " at the soles)");
+            Check(nose.v.z - headLocal.z > headLocal.z - back.v.z, "Saeed: faces +Z (the face " + (nose.v.z - headLocal.z).ToString("0.00") + " m in front of the head bone, the back of the head " + (headLocal.z - back.v.z).ToString("0.00") + " m behind)");
+            var low = local.Select((v, i) => (v, i)).OrderBy(p => p.v.y).First();
+            var rest = head.localRotation;
+            head.Rotate(model.transform.up, 35f, Space.World);
+            var turned = new Mesh();
+            smr.BakeMesh(turned, true);
+            var noseNow = model.transform.InverseTransformPoint(toWorld.MultiplyPoint3x4(turned.vertices[nose.i]));
+            var lowNow = model.transform.InverseTransformPoint(toWorld.MultiplyPoint3x4(turned.vertices[low.i]));
+            head.localRotation = rest;
+            Check(Mathf.Abs(noseNow.x - nose.v.x) > 0.03f && (lowNow - low.v).magnitude < 0.001f,
+                "Saeed: turning the Head bone 35 degrees turns the face (the nose moves " + ((noseNow - nose.v).magnitude * 100f).ToString("0") + " cm) and leaves the feet");
+            Destroy(mesh);
+            Destroy(turned);
+
+            var up = Vector3.up;
+            yield return Frame(egypt, court + facing * 2.7f + up * 1.45f, court + up * 0.95f, "m29_saeed_front");
+            yield return Frame(egypt, court + right * 2.7f + up * 1.45f, court + up * 0.95f, "m30_saeed_side");
+            yield return Frame(egypt, court + facing * 0.62f + right * 0.2f + up * (headLocal.y + 0.04f), court + up * (headLocal.y + 0.03f), "m31_saeed_face");
+            Destroy(model);
         }
 
         /// <summary>

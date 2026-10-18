@@ -48,7 +48,8 @@ Keyboard and mouse
     Open / widen a tear ......... Hold left mouse button (aim at a seam with the passport open)
     Seal the tear ............... Hold right mouse button
     Recall carried item ......... R
-    Objectives .................. Tab
+    Objectives and steps ........ Tab (the place's step checklist; the current step is always shown)
+    Map ......................... M (the minimap stays in a corner)
     Take the glasses off early .. Hold G for 2 seconds (a story choice: the curse pulls you back to
                                   the apartment; your verified seals are kept)
     Skip / continue ............. Space or Enter
@@ -66,6 +67,12 @@ Quest 3 controllers (right-handed; left-handed mode swaps them in Settings)
     Seal the tear ............... Hold A
     Recall carried item ......... Y
     Pause ....................... Menu button (left controller)
+    Steps and map ............... The current step and the minimap stay in view (no full map in VR)
+
+While you play
+    The current step of each place is always on screen, and Tab lists them all.
+    Every country hides three postcards (the map counts them). Lamps you light make a pool the
+    Passenger will not enter: light them along your way before you run for a stamp.
 
 
 4. SAFETY AND COMFORT

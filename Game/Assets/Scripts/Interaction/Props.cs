@@ -21,7 +21,7 @@ namespace TwelfthStamp
         {
             base.Awake();
             if (Attach == null) Attach = transform;
-            Prompt = "Place";
+            if (string.IsNullOrEmpty(Prompt) || Prompt == "Use") Prompt = "Place";   // keep a prompt the cell set
         }
 
         public bool Accepts_(Grabbable g) => g != null && Current == null && (Accepts.Count == 0 || Accepts.Contains(g.ItemId));
@@ -80,7 +80,7 @@ namespace TwelfthStamp
             base.Awake();
             if (Target == null) Target = transform;
             m_Base = Target.localRotation;
-            Prompt = "Turn";
+            if (string.IsNullOrEmpty(Prompt) || Prompt == "Use") Prompt = "Turn";    // keep a prompt the cell set
             Apply(true);
         }
 
