@@ -79,3 +79,14 @@ Desktop.ini
 
 # ---- Unity editor caches created at runtime ----
 /Game/DataStore/
+
+# ---- Promo film: raw footage, renders, audio and tool envs stay local (scripts, SRT and manifests are tracked) ----
+/Promo/Production/Capture/
+/Promo/Production/Exports/
+/Promo/Production/tools/venv/
+/Promo/**/node_modules/
+/Promo/**/*.mp4
+/Promo/**/*.mkv
+/Promo/**/*.mov
+/Promo/**/*.wav
+/Promo/**/*.m4a
