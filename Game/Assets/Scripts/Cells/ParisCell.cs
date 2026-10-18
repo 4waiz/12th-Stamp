@@ -338,6 +338,7 @@ namespace TwelfthStamp
         void OnBreach(Tear t)
         {
             if (!IsLive) return;
+            if (Game.Story != null && (Game.Story.Busy || Game.Story.Failing)) return; // mid-travel or already caught: leave the tear to the shift
             // The hand closes around your wrist: sudden death, then Retry at the embankment.
             Hud.I?.ShowCaption("the hand closes around your wrist", 2.5f);
             m_Hand?.Detach();

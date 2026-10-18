@@ -402,7 +402,25 @@ namespace TwelfthStamp
             var tray = props != null ? props.GetComponentsInChildren<Socket>(true).FirstOrDefault(s => s.Accepts.Contains("festival_token")) : null;
             Check(token != null && tray != null, "the festival token and the brass tray are set out on the counter");
             yield return new WaitForSeconds(9f);
-            if (token != null && tray != null) { hand.Grab(token); yield return null; hand.PlaceInto(tray); }
+            // Playtest, 18 Oct ("there was no festival token"): the token glows on the counter until it is in hand, then the
+            // glow moves to the brass tray.
+            var glowT = props != null ? props.Find("ActHereGlow") : null;
+            Check(glowT != null && glowT.gameObject.activeSelf, "the festival token glows on the counter while it is to be paid");
+            if (token != null)
+            {
+                var toToken = token.transform.position - Game.Rig.Head.position;
+                Game.Rig.PlaceAt(Game.Rig.Feet, Quaternion.LookRotation(new Vector3(toToken.x, 0f, toToken.z)).eulerAngles.y);
+                if (Game.Rig is DesktopRig dr2) dr2.SetPitch(Mathf.Atan2(-toToken.y, new Vector2(toToken.x, toToken.z).magnitude) * Mathf.Rad2Deg);
+            }
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("22b_flashback_token");
+            if (token != null && tray != null)
+            {
+                hand.Grab(token);
+                yield return null; yield return null;
+                Check(glowT != null && (glowT.position - tray.transform.position).magnitude < 0.15f, "with the token in hand, the glow moves to the brass tray");
+                hand.PlaceInto(tray);
+            }
             yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.PrologueDone), 60f, "paying with the token completes the purchase and the memory folds away");
             Check(Game.Campaign.HasFlag(StoryFlags.ShopPurchased), "the glasses were bought in Marrakech");
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.ApartmentNormal && !Game.InputLocked, 8f, "back home in the present");

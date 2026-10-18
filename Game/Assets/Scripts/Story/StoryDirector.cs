@@ -144,7 +144,7 @@ namespace TwelfthStamp
         // ------------------------------------------------------------------ travel
         public void TravelThroughTear(CountryDef dest)
         {
-            if (Busy) return;
+            if (Busy || m_Failing) return; // no trip while a catch plays out: its Retry card must stay in front of the player
             if (dest == CountryDatabase.Home) { StartCoroutine(EndingChapter.Run()); return; }
             // Stepping through a doorway tear is a trip into another world, not a cut (playtest: "more dramatic"): a short
             // dimension shift with the doorway still open in front of the player until the swap.
@@ -310,6 +310,7 @@ namespace TwelfthStamp
         /// Nothing can catch the player during the build-up; the old place, its tear and its Passenger go at the swap.</summary>
         IEnumerator ShiftInto(CellId next, float buildUp)
         {
+            if (m_Failing) yield break;
             Busy = true;
             if (Game.Passenger != null) Game.Passenger.Threatening = false;
             Game.Passport?.Close();
@@ -364,7 +365,7 @@ namespace TwelfthStamp
         {
             if (!InCampaign && !Game.IsDemo) return;
             var c = Game.Campaign;
-            if (c == null || m_Failing || amount <= 0f) return;
+            if (c == null || m_Failing || Busy || amount <= 0f) return;
             c.vitality = Mathf.Max(0f, c.vitality - amount);
             if (c.vitality <= 0f) StartCoroutine(FailRoutine(false));
         }
@@ -378,6 +379,10 @@ namespace TwelfthStamp
             if (!InCampaign && !Game.IsDemo) return;
             var c = Game.Campaign;
             if (c == null || m_Failing) return;
+            // Nothing catches the player mid-travel (a cell swap or the dimension shift's build-up). The two used to race when
+            // Paris's hand breached as the player stepped through a doorway tear: the shift carried them on while the Retry
+            // card stayed behind, leaving a dead screen with no card (playtest, 18 Oct).
+            if (Busy) { Debug.Log("[TS-Story] Catch ignored mid-travel (" + cause + ")"); return; }
             c.vitality = 0f;
             Debug.Log("[TS-Story] Caught by the Passenger (" + cause + ")");
             StartCoroutine(FailRoutine(true));

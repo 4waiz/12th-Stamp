@@ -20,6 +20,7 @@ namespace TwelfthStamp
         const float MiniRadius = 118f;      // minimap radius, UI px
         const float MiniMetres = 24f;       // metres from the centre to the rim
         const float FullSize = 860f;        // full map, UI px
+        const float MiniInset = 30f;        // desktop: the minimap's top and right edges from the screen corner, UI px
 
         static readonly Color32 Outside = new Color32(14, 16, 20, 230);
         static readonly Color32 FloorEdge = new Color32(96, 84, 66, 255);
@@ -44,20 +45,25 @@ namespace TwelfthStamp
         RectTransform m_Root, m_Mini, m_MiniRot, m_MiniMap, m_Full, m_FullMap;
         RawImage m_MiniImg, m_FullImg;
         Image m_MiniPlayer, m_FullPlayer, m_MiniNorth;
-        TextMeshProUGUI m_FullTitle, m_FullSteps, m_MiniLabel;
+        TextMeshProUGUI m_FullTitle, m_FullSteps, m_MiniLabel, m_MiniHint;
         readonly List<Image> m_MiniIcons = new List<Image>();
         readonly List<Image> m_FullIcons = new List<Image>();
         readonly List<Image> m_MiniEdge = new List<Image>();
         bool m_FullOpen;
+        float m_MiniFit = 1f;
         Cell m_Cell;
         MapData m_Data;
         static Sprite s_Circle, s_Ring, s_Diamond, s_Arrow, s_Star, s_Dot, s_Card, s_Halo;
         const int PostcardsTotal = 33;   // three in each of the eleven countries
+        static readonly Vector3[] s_Corners = new Vector3[4];
 
         public bool FullOpen => m_FullOpen;
         public string MiniLabel => m_MiniLabel != null ? m_MiniLabel.text : "";
         public bool HasMap => m_Data != null && m_Data.Tex != null;
         public bool MiniShowing => m_Mini != null && m_Mini.gameObject.activeSelf;
+        /// <summary>Desktop, while the minimap shows: it with its label and hint, in screen pixels (the guide's edge marker
+        /// keeps clear of it).</summary>
+        public Rect? MiniScreenRect { get; private set; }
         public string MapSize => HasMap ? m_Data.Tex.width + "x" + m_Data.Tex.height + " px, " + (m_Data.Tex.width / m_Data.Ppm).ToString("0") + " x " + (m_Data.Tex.height / m_Data.Ppm).ToString("0") + " m" : "none";
 
         /// <summary>Opens or closes the full map (M does the same on desktop).</summary>
@@ -90,6 +96,7 @@ namespace TwelfthStamp
             m_Mini.gameObject.SetActive(show && !m_FullOpen);
             m_Full.gameObject.SetActive(show && m_FullOpen);
             if (show && m_FullOpen) Hud.I.HideTitleCard();   // an arrival title would show through the map's panels
+            MiniScreenRect = null;
             if (!show) return;
 
             var feet = Game.Rig.Feet;
@@ -106,6 +113,7 @@ namespace TwelfthStamp
                 m_MiniRot.localRotation = Quaternion.Euler(0f, 0f, yaw);
                 m_MiniNorth.rectTransform.anchoredPosition = Quaternion.Euler(0f, 0f, yaw) * new Vector2(0f, MiniRadius - 2f);
                 PlaceIcons(m_MiniIcons, m_MiniMap, markers, k, -yaw, true, px);
+                if (!vr) FitMinimap();
                 var here = m_Cell != null ? m_Cell.Country : null;
                 m_MiniLabel.text = here == null ? "" : here.Place + (HasPostcards(here.Id) ? "  \u00B7  postcards " + Postcard.CollectedIn(here.Id) + "/3" : "");
             }
@@ -127,6 +135,41 @@ namespace TwelfthStamp
                 m_FullSteps.rectTransform.anchoredPosition = new Vector2(230f, FullSize / 2f - 32f - th);
                 m_FullSteps.rectTransform.sizeDelta = new Vector2(520f, FullSize - 42f - th);
             }
+        }
+
+        /// <summary>
+        /// Desktop. The passport card is pinned to the middle of the right edge, so on a wide, short screen (2560x1080) it
+        /// reaches up into the minimap's column, and a tear's card is taller still. Then the minimap, its label and its hint
+        /// shrink toward the corner, just enough to stay above the card, and grow back when the card goes.
+        /// </summary>
+        void FitMinimap()
+        {
+            float fit = 1f;
+            var card = Hud.I.PassportCard;
+            if (card != null)
+            {
+                var r = Hud.I.CanvasRect(card);
+                float top = m_Root.rect.height / 2f - MiniInset;    // the minimap's top edge, from the canvas centre
+                float drop = MiniRadius * 2f + 49f;                 // from there down to the bottom of the "M map" hint
+                bool column = r.xMax > m_Root.rect.width / 2f - MiniInset - MiniRadius * 2f - 40f;
+                if (column && r.yMax > top - drop - 10f) fit = Mathf.Clamp((top - r.yMax - 10f) / drop, 0.5f, 1f);
+            }
+            // At once when the card appears (it does in one frame), gently when it goes.
+            m_MiniFit = fit < m_MiniFit ? fit : Mathf.MoveTowards(m_MiniFit, fit, Time.unscaledDeltaTime * 1.5f);
+            m_Mini.localScale = new Vector3(m_MiniFit, m_MiniFit, 1f);
+
+            var a = ScreenRect(m_Mini);
+            var l = ScreenRect(m_MiniLabel.rectTransform);
+            a = Rect.MinMaxRect(Mathf.Min(a.xMin, l.xMin), Mathf.Min(a.yMin, l.yMin), Mathf.Max(a.xMax, l.xMax), a.yMax);
+            if (m_MiniHint != null) a.yMin = Mathf.Min(a.yMin, ScreenRect(m_MiniHint.rectTransform).yMin);
+            MiniScreenRect = a;
+        }
+
+        /// <summary>Where a panel on the HUD canvas is in screen pixels (desktop: the canvas is a screen-space overlay).</summary>
+        static Rect ScreenRect(RectTransform rt)
+        {
+            rt.GetWorldCorners(s_Corners);
+            return Rect.MinMaxRect(s_Corners[0].x, s_Corners[0].y, s_Corners[2].x, s_Corners[2].y);
         }
 
         struct Marker
@@ -210,7 +253,7 @@ namespace TwelfthStamp
         {
             return "<color=#8CF2D9>◆</color> next objective   <color=#FFC64D>★</color> stamp / landmark   " +
                    "<color=#85E6CC>○</color> tear seam   <color=#ED6654>●</color> the Passenger\n" +
-                   "<color=#FAEBC2>▭</color> postcard to find   <color=#FFD673>●</color> lit lamp: it will not come into the light";
+                   "<color=#FAEBC2>■</color> postcard to find   <color=#FFD673>●</color> lit lamp: it will not come into the light";
         }
 
         static bool HasPostcards(CountryId id)
@@ -449,8 +492,8 @@ namespace TwelfthStamp
             m_Mini.SetParent(m_Root, false);
             var corner = vr ? new Vector2(0f, 0f) : new Vector2(1f, 1f);
             m_Mini.anchorMin = m_Mini.anchorMax = corner;
-            m_Mini.pivot = new Vector2(0.5f, 0.5f);
-            m_Mini.anchoredPosition = vr ? new Vector2(190f, 190f) : new Vector2(-MiniRadius - 34f, -MiniRadius - 34f);
+            m_Mini.pivot = vr ? new Vector2(0.5f, 0.5f) : Vector2.one;   // desktop: held by its top-right corner, to shrink into it
+            m_Mini.anchoredPosition = vr ? new Vector2(190f, 190f) : new Vector2(-MiniInset, -MiniInset);
             m_Mini.sizeDelta = Vector2.one * (MiniRadius * 2f + 8f);
             var rim = MakeImage("Rim", m_Mini, new Color(0.02f, 0.025f, 0.03f, 0.82f), s_Circle);
             rim.rectTransform.sizeDelta = Vector2.one * (MiniRadius * 2f + 8f);
@@ -482,11 +525,11 @@ namespace TwelfthStamp
             Hud.I.KeepTitleClearOf(m_MiniLabel.rectTransform);
             if (!vr)
             {
-                var hint = Label(m_Mini, 13, new Color(0.62f, 0.62f, 0.6f), TextAlignmentOptions.Center);
-                hint.text = "M  map";
-                hint.rectTransform.anchoredPosition = new Vector2(0f, -MiniRadius - 36f);
-                hint.rectTransform.sizeDelta = new Vector2(200f, 18f);
-                Hud.I.KeepTitleClearOf(hint.rectTransform);
+                m_MiniHint = Label(m_Mini, 13, new Color(0.62f, 0.62f, 0.6f), TextAlignmentOptions.Center);
+                m_MiniHint.text = "M  map";
+                m_MiniHint.rectTransform.anchoredPosition = new Vector2(0f, -MiniRadius - 36f);
+                m_MiniHint.rectTransform.sizeDelta = new Vector2(200f, 18f);
+                Hud.I.KeepTitleClearOf(m_MiniHint.rectTransform);
             }
 
             // Full map (desktop): centre of the screen, steps beside it.

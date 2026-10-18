@@ -50,6 +50,8 @@ namespace TwelfthStamp
         public PlaceGuide Current => m_Guide;
         public bool BriefingShowing => m_Brief != null && m_Brief.gameObject.activeSelf;
         public bool BannerShowing => m_Banner != null && m_Banner.gameObject.activeSelf;
+        /// <summary>Desktop, while the screen marker shows: the space it takes (icon, arrow and name), in screen pixels.</summary>
+        public Rect? MarkerRect { get; private set; }
 
         /// <summary>Closes the arrival briefing (the skip and use inputs do the same).</summary>
         public void DismissBriefing() => m_BriefingUntil = 0f;
@@ -71,6 +73,8 @@ namespace TwelfthStamp
         Transform m_Beacon;
         Material m_BeaconMat;
         static Sprite s_Panel, s_Diamond, s_Chevron;
+        static readonly Vector3[] s_Corners = new Vector3[4];
+        readonly List<Rect> m_Avoid = new List<Rect>(4);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -106,6 +110,7 @@ namespace TwelfthStamp
                 m_Banner.gameObject.SetActive(false);
                 m_Brief.gameObject.SetActive(false);
                 m_Marker.gameObject.SetActive(false);
+                MarkerRect = null;
                 if (m_Beacon != null) m_Beacon.gameObject.SetActive(false);
                 return;
             }
@@ -259,39 +264,73 @@ namespace TwelfthStamp
                 float a = 0.55f + 0.2f * Mathf.Sin(Time.time * Mathf.PI * 0.9f);
                 m_BeaconMat.SetColor("_TintColor", new Color(0.55f, 0.95f, 0.85f, a));
             }
-            // Screen marker (desktop): a diamond over the target with its name and distance, held at the screen edge
-            // when the target is off screen.
-            if (vr || !show) { m_Marker.gameObject.SetActive(false); return; }
+            // Screen marker (desktop): a diamond over the target with its name and distance. When the target is off screen
+            // it waits at the edge pointing the way, far enough in for its name to stay on screen, and clear of the panels
+            // along the edges.
+            if (vr || !show) { m_Marker.gameObject.SetActive(false); MarkerRect = null; return; }
+            float dist = (target.Value - Game.Rig.Feet).magnitude;
+            string label = s.LabelNow != null ? s.LabelNow() : s.Label;
+            m_MarkerLabel.text = (string.IsNullOrEmpty(label) ? "" : label + "\n") + "<size=80%>" + Mathf.RoundToInt(dist) + " m</size>";
+            var size = m_MarkerLabel.GetPreferredValues(m_MarkerLabel.text, 220f, 0f);
+            float px = m_Root.lossyScale.x;                                     // canvas units to screen pixels
+            float half = Mathf.Clamp(size.x / 2f, 24f, 110f) * px;              // its reach either side,
+            float up = 48f * px, down = (22f + size.y) * px;                    // above (icon, arrow) and below (its name)
             var cam = Game.Rig.Cam;
             var sp = cam.WorldToScreenPoint(target.Value + Vector3.up * 0.35f);
             bool behind = sp.z < 0f;
-            var canvasRt = m_Root;
             float sw = Screen.width, sh = Screen.height;
             Vector2 p = new Vector2(sp.x, sp.y);
             if (behind) p = new Vector2(sw - p.x, sh - p.y);
-            float m = 60f;
-            bool off = behind || p.x < m || p.x > sw - m || p.y < m || p.y > sh - m;
+            float mx = Mathf.Max(60f, half + 8f), mb = Mathf.Max(60f, down + 8f), mt = Mathf.Max(60f, up + 8f);
+            bool off = behind || p.x < mx || p.x > sw - mx || p.y < mb || p.y > sh - mt;
             var c = new Vector2(sw / 2f, sh / 2f);
             if (off)
             {
                 var dir = (p - c);
                 if (behind && dir.sqrMagnitude < 1f) dir = Vector2.down;
                 dir.Normalize();
-                float kx = (sw / 2f - m) / Mathf.Max(0.001f, Mathf.Abs(dir.x));
-                float ky = (sh / 2f - m) / Mathf.Max(0.001f, Mathf.Abs(dir.y));
+                float kx = (sw / 2f - mx) / Mathf.Max(0.001f, Mathf.Abs(dir.x));
+                float ky = (dir.y < 0f ? sh / 2f - mb : sh / 2f - mt) / Mathf.Max(0.001f, Mathf.Abs(dir.y));
                 p = c + dir * Mathf.Min(kx, ky);
+                KeepClear(ref p, kx <= ky, half, up, down);
                 m_MarkerArrow.gameObject.SetActive(true);
                 m_MarkerArrow.rectTransform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg - 90f);
             }
             else m_MarkerArrow.gameObject.SetActive(false);
             m_Marker.gameObject.SetActive(true);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRt, p, null, out var local);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(m_Root, p, null, out var local);
             m_Marker.localPosition = local;
-            float dist = (target.Value - Game.Rig.Feet).magnitude;
-            string label = s.LabelNow != null ? s.LabelNow() : s.Label;
-            m_MarkerLabel.text = (string.IsNullOrEmpty(label) ? "" : label + "\n") + "<size=80%>" + Mathf.RoundToInt(dist) + " m</size>";
+            MarkerRect = Rect.MinMaxRect(p.x - half, p.y - down, p.x + half, p.y + up);
             float pulse = 1f + 0.12f * Mathf.Sin(Time.unscaledTime * Mathf.PI * 1.4f);
             m_MarkerIcon.rectTransform.localScale = Vector3.one * pulse;
+        }
+
+        /// <summary>
+        /// Moves a marker held at the screen edge further in, along that edge's normal, until it is clear of the panels
+        /// there: the objectives panel (Tab), the step banner, the passport card and the minimap. Never past the middle.
+        /// </summary>
+        void KeepClear(ref Vector2 p, bool side, float half, float up, float down)
+        {
+            m_Avoid.Clear();
+            AddAvoid(Hud.I.ObjectivesPanel);
+            AddAvoid(BannerShowing ? m_Banner : null);
+            AddAvoid(Hud.I.PassportCard);
+            if (MapView.I != null && MapView.I.MiniScreenRect.HasValue) m_Avoid.Add(MapView.I.MiniScreenRect.Value);
+            float sw = Screen.width, sh = Screen.height, gap = 8f;
+            for (int pass = 0; pass < 2; pass++)
+                foreach (var r in m_Avoid)
+                {
+                    if (!Rect.MinMaxRect(p.x - half - gap, p.y - down - gap, p.x + half + gap, p.y + up + gap).Overlaps(r)) continue;
+                    if (side) p.x = p.x < sw / 2f ? Mathf.Min(r.xMax + half + gap, sw / 2f - half) : Mathf.Max(r.xMin - half - gap, sw / 2f + half);
+                    else p.y = p.y > sh / 2f ? Mathf.Max(r.yMin - up - gap, sh / 2f + up) : Mathf.Min(r.yMax + down + gap, sh / 2f - down);
+                }
+        }
+
+        void AddAvoid(RectTransform rt)
+        {
+            if (rt == null) return;
+            rt.GetWorldCorners(s_Corners);   // desktop: the HUD canvas is a screen-space overlay, so these are screen pixels
+            m_Avoid.Add(Rect.MinMaxRect(s_Corners[0].x, s_Corners[0].y, s_Corners[2].x, s_Corners[2].y));
         }
 
         void BuildBeacon()

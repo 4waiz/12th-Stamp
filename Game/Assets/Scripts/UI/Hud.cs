@@ -544,6 +544,9 @@ namespace TwelfthStamp
         /// <summary>The objectives panel (Tab) while it is open, else null.</summary>
         public RectTransform ObjectivesPanel => m_ObjectivePanel != null && m_ObjectivePanel.gameObject.activeSelf ? m_ObjectivePanel.rectTransform : null;
 
+        /// <summary>The passport or tear card on the right while it is showing, else null.</summary>
+        public RectTransform PassportCard => m_Card != null && m_Card.gameObject.activeSelf ? m_Card.rectTransform : null;
+
         /// <summary>Where a panel on this HUD's canvas is, in canvas units from the canvas centre.</summary>
         public Rect CanvasRect(RectTransform rt)
         {

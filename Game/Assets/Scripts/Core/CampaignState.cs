@@ -81,8 +81,11 @@ namespace TwelfthStamp
         public bool IsDestinationAvailable(CountryId id)
         {
             if (!HasFlag(StoryFlags.SeamRevealed)) return false;
-            if (!HasFlag(StoryFlags.TutorialDone))
-                return id == CountryId.Egypt; // the tutorial teaches one tear, to Egypt
+            // The tutorial teaches one tear, to Egypt. Once the player has reached Egypt the whole passport opens, even if
+            // they left the apartment before verifying its seal: that path never set TutorialDone, which stranded them in
+            // Egypt with nowhere to go (playtest, 18 Oct). The apartment's seal can still be verified on a later visit.
+            if (!HasFlag(StoryFlags.TutorialDone) && !IsVisited(CountryId.Egypt))
+                return id == CountryId.Egypt;
             return true;
         }
 
