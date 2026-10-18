@@ -84,6 +84,29 @@ namespace TwelfthStamp
             Note("glass on screen: x " + x0.ToString("0.00") + "-" + x1.ToString("0.00") + ", y " + y0.ToString("0.00") + "-" + y1.ToString("0.00") + " (" + inside + " samples)");
             Check(inside > 40 && lum > 0.004f, "the reflection in the glass is lit, not black (mean linear luminance " + lum.ToString("0.0000") + ")");
             Check(share > 0.08f, "the player's body shows in the mirror (" + (share * 100f).ToString("0.0") + "% of what the glass shows changes when the body is left out, mean " + diff.ToString("0.0000") + ")");
+
+            // His face is lit in the glass, not a dark shape: the reflection around the face, measured in the capture.
+            var headBone = MirrorAvatar.I != null ? MirrorAvatar.I.HeadBone : null;
+            if (headBone != null && rc != null && drawn != null && drawn.Length == CaptureW * CaptureH)
+            {
+                var look = Vector3.ProjectOnPlane(Game.Rig.Head.forward, Vector3.up).normalized;
+                var face = headBone.position + Vector3.up * 0.09f + look * 0.09f;
+                var fvp = rc.WorldToViewportPoint(face);
+                float faceLum = 0f;
+                int n = 0;
+                int cx = Mathf.RoundToInt(fvp.x * CaptureW - 0.5f), cy = Mathf.RoundToInt(fvp.y * CaptureH - 0.5f);
+                for (int dy = -1; dy <= 1; dy++)
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        int x = cx + dx, y = cy + dy;
+                        if (x < 0 || y < 0 || x >= CaptureW || y >= CaptureH) continue;
+                        var c = drawn[y * CaptureW + x];
+                        faceLum += c.r * 0.299f + c.g * 0.587f + c.b * 0.114f;
+                        n++;
+                    }
+                faceLum = n > 0 ? faceLum / n : 0f;
+                Check(fvp.z > 0f && n > 0 && faceLum > 0.03f, "his face is lit in the mirror, not a dark shape (linear luminance " + faceLum.ToString("0.000") + ")");
+            }
             yield return Shot("20b_bathroom_mirror");
 
             // A step to the side and a turn: the reflection follows the eye.

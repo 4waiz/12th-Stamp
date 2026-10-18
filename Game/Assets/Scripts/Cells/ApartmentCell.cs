@@ -181,6 +181,13 @@ namespace TwelfthStamp
                 PlanarMirror.Attach(mirrorBox.GetComponent<Renderer>(), bath.forward, Corrupted ? 1f : 0f);
             }
             AddPointLight(bath, new Vector3(2.75f, 2.5f, -5.4f), Corrupted ? new Color(0.7f, 0.8f, 0.9f) : new Color(1f, 0.9f, 0.75f), 1.6f, 3.5f);
+            // A light bar over the mirror, as over any basin: the ceiling light sits behind your head there, so without it
+            // your face in the glass was in shadow (nearly black in the reflection). The Margin's copy burns cold.
+            var vanityColor = Corrupted ? new Color(0.72f, 0.84f, 0.92f) : new Color(1f, 0.93f, 0.82f);
+            MeshFactory.Box("VanityLightBar", bath, new Vector3(2.75f, 2.2f, -6.5f), new Vector3(0.62f, 0.06f, 0.09f),
+                Mats.Emissive(new Color(0.9f, 0.9f, 0.88f), vanityColor * 1.8f), false).GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            MeshFactory.Box("VanityLightMount", bath, new Vector3(2.75f, 2.2f, -6.56f), new Vector3(0.68f, 0.08f, 0.03f), metal, false);
+            AddPointLight(bath, new Vector3(2.75f, 2.08f, -6.2f), vanityColor, Corrupted ? 0.9f : 1.3f, 2.8f);
             BathroomInside = new GameObject("BathroomInside").transform;
             BathroomInside.SetParent(bath, false);
             BathroomInside.localPosition = new Vector3(2.75f, 0f, -5.6f);
