@@ -268,13 +268,16 @@ namespace TwelfthStamp
         }
     }
 
-    /// <summary>UAE — The Apartment That Kept You. Tutorial: one tear, the genuine detail, the first threat.</summary>
+    /// <summary>UAE — Whack-a-Ghost. Little sheet ghosts pop out of the furniture in the Margin's copy of the apartment:
+    /// stamp ten of them (Cells/GhostWhack.cs) and the homecoming seal is verified. Then the first threat steps out of the
+    /// bathroom and the tutorial teaches the way out: open the passport, a tear, widen it to a doorway, step through.</summary>
     public class UaeEncounter : Encounter
     {
         ApartmentCell A => (ApartmentCell)Cell;
-        bool m_TraceRevealed, m_ThreatStarted, m_Escaping;
-        // Read-only state for the guide (Guide/GuideBook.cs).
-        public bool TraceShown => m_TraceRevealed;
+        bool m_ThreatStarted, m_Escaping;
+        // Read-only state for the guide (Guide/GuideBook.Uae.cs).
+        public GhostWhack Ghosts => A.Ghosts;
+        public int Stamped => A.Ghosts != null ? A.Ghosts.Hits : 0;
         public bool ThreatStarted => m_ThreatStarted;
         public bool Escaping => m_Escaping;
         float m_ReflectionAlpha;
@@ -283,31 +286,32 @@ namespace TwelfthStamp
 
         public override string Objective => Game.Campaign.IsVerified(CountryId.UAE)
             ? "Open a tear to " + FirstStop + ", widen it to a doorway and step through."
-            : "Open your passport and look through the seam. Find the one thing in this room the copy got right.";
+            : "Whack-a-ghost! Stamp the ghosts popping out of the furniture: look at one while it is up and press " + Hud.KeyTag(Intent.Interact) +
+              ".   Ghosts stamped " + Stamped + " / " + GhostWhack.HitsToWin;
 
         public override void OnEnter(bool firstVisit)
         {
             var c = Game.Campaign;
-            m_TraceRevealed = c.IsVerified(CountryId.UAE);
             m_ThreatStarted = false;
             m_Escaping = false;
             A.ReflectionMat.SetColor("_Color", new Color(0.75f, 0.75f, 0.7f, 0.16f));
             A.ReflectionFigureMat.SetColor("_Color", new Color(0.03f, 0.035f, 0.04f, 0f));
-            if (m_TraceRevealed) A.Trace.Reveal(false); else A.Trace.Hide();
+            A.Trace.Hide(); // the ghosts took the genuine note's place: stamping them verifies the seal
             Game.Tears.Opened -= OnOpened; Game.Tears.Opened += OnOpened;
             Game.Tears.Sealed -= OnSealed; Game.Tears.Sealed += OnSealed;
             Game.Passenger?.Despawn();
-
-            if (!c.HasFlag(StoryFlags.TutorialDone))
+            var ghosts = A.Ghosts;
+            ghosts.Stamped -= OnStamped; ghosts.Stamped += OnStamped;
+            ghosts.Completed -= OnCleared; ghosts.Completed += OnCleared;
+            bool verified = c.IsVerified(CountryId.UAE);
+            if (verified) ghosts.Stop();
+            else
             {
-                Narration.I?.Say("home_04", null, false, null, false, true);
-                if (!c.IsVerified(CountryId.UAE))
-                {
-                    Tutorial.I?.Begin(TutorialStep.OpenPassport, TutorialStep.ChooseDestination, TutorialStep.OpenTear, TutorialStep.Seal);
-                    Narration.I?.Say("tut_passport", null, true);
-                }
-                else BeginEscape();
+                Tutorial.I?.End(); // the objective counts the ghosts; the tutorial checklist comes with the way out
+                ghosts.Begin(firstVisit ? 2f : 1.2f);
+                Hud.I?.ShowToast("Ghosts are popping out of the furniture! Stamp ten of them: look at one while it is up and press " + Hud.KeyTag(Intent.Interact) + ".", 5f);
             }
+            if (!c.HasFlag(StoryFlags.TutorialDone) && verified) BeginEscape();
             else Hud.I?.SetObjective(Objective, false);
         }
 
@@ -315,6 +319,12 @@ namespace TwelfthStamp
         {
             Game.Tears.Opened -= OnOpened;
             Game.Tears.Sealed -= OnSealed;
+            if (A.Ghosts != null)
+            {
+                A.Ghosts.Stamped -= OnStamped;
+                A.Ghosts.Completed -= OnCleared;
+                A.Ghosts.Stop();
+            }
             if (m_Escaping && Game.Campaign.IsVerified(CountryId.UAE))
             {
                 Game.Campaign.SetFlag(StoryFlags.TutorialDone);
@@ -322,18 +332,26 @@ namespace TwelfthStamp
             }
         }
 
+        void OnStamped(GhostWhack g, GhostSpot s)
+        {
+            if (!IsLive) return;
+            Hud.I?.SetObjective(Objective, false);
+            Hud.I?.ShowCaption("STAMPED!   " + g.Hits + " / " + GhostWhack.HitsToWin, 1.4f);
+            if (g.Hits == GhostWhack.HitsToWin / 2) Hud.I?.ShowToast("Halfway! They're getting faster.", 2.5f);
+        }
+
+        void OnCleared(GhostWhack g)
+        {
+            if (!IsLive || Game.Campaign.IsVerified(CountryId.UAE)) return;
+            AudioDirector.I?.Play("seal_verify", Game.Rig != null ? Game.Rig.Head.position : (Vector3?)null, 0.7f);
+            Hud.I?.ShowToast("Ten ghosts stamped! The homecoming seal takes the ink.", 3.5f);
+            Game.Story.VerifyCountry(CountryId.UAE, null);
+        }
+
         void OnOpened(Tear t)
         {
             if (!IsLive) return;
             Game.Campaign.SetFlag(StoryFlags.FirstTearDone);
-            if (!m_TraceRevealed)
-            {
-                // Light from a real remembered place shows what the copy could not forge: Mum's handwriting.
-                m_TraceRevealed = true;
-                A.Trace.Reveal();
-                Narration.I?.Say("tut_verify", null, true);
-                Hud.I?.ShowToast("Warm light falls across the fridge. One note has real handwriting.", 4f);
-            }
         }
 
         void OnSealed(Tear t)
@@ -396,6 +414,7 @@ namespace TwelfthStamp
         {
             Game.Passenger?.Despawn();
             m_ThreatStarted = false;
+            A.Ghosts?.Stop();
         }
     }
 }

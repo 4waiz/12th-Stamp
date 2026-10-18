@@ -80,6 +80,8 @@ namespace TwelfthStamp
         RectTransform m_VitalityPanel;
         CanvasGroup m_VitalityGroup;
         Image m_VitalityFill;
+        readonly Image[] m_Hearts = new Image[StoryDirector.Hearts];
+        static Sprite s_Heart;
         float m_LastVitality = 1f, m_VitalityShowUntil;
 
         // Fed every frame by TearController while a tear is open (or by other holds).
@@ -324,19 +326,26 @@ namespace TwelfthStamp
             KeepTitleClearOf(m_ObjectivePanel.rectTransform);   // Tab, on a narrow screen
             KeepTitleClearOf(m_Card.rectTransform);
 
-            // Vitality (bottom left; fades away while full).
-            m_VitalityPanel = Holder("Vitality", m_Root);
-            Pin(m_VitalityPanel, new Vector2(0f, 0f), new Vector2(0f, 0f), m_Vr ? new Vector2(120, 120) : new Vector2(44, 40), new Vector2(240, 30));
+            // Health: three hearts at the top right, under the minimap (playtest, 18 Oct: "put the health bar as heart
+            // emojis on top right"). A catch by the Passenger costs a heart; the maze's heat and other drains empty them
+            // bit by bit (each heart fills from the bottom).
+            m_VitalityPanel = Holder("Hearts", m_Root);
+            Pin(m_VitalityPanel, new Vector2(1f, 1f), new Vector2(1f, 1f), m_Vr ? new Vector2(-150, -110) : new Vector2(-44, -330), new Vector2(StoryDirector.Hearts * 58f, 52));
             m_VitalityGroup = m_VitalityPanel.gameObject.AddComponent<CanvasGroup>();
             m_VitalityGroup.alpha = 0f;
-            var vl = Label(m_VitalityPanel, 13, Muted, TextAlignmentOptions.BottomLeft);
-            vl.text = "VITALITY"; vl.characterSpacing = 9f; vl.fontStyle = FontStyles.Bold;
-            Pin(vl.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), Vector2.zero, new Vector2(240, 16));
-            var vBg = Rounded("Bg", m_VitalityPanel, new Color(1f, 1f, 1f, 0.12f), 6f);
-            Pin(vBg.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(0, 2), new Vector2(240, 5));
-            m_VitalityFill = MakeImage("Fill", vBg.transform, Ivory);
-            Stretch(m_VitalityFill.rectTransform);
-            m_VitalityFill.type = Image.Type.Filled; m_VitalityFill.fillMethod = Image.FillMethod.Horizontal; m_VitalityFill.sprite = SpriteOf(Tex.White);
+            if (s_Heart == null) s_Heart = SpriteOf(HeartTexture());
+            for (int i = 0; i < StoryDirector.Hearts; i++)
+            {
+                var slot = MakeImage("HeartSlot" + i, m_VitalityPanel, new Color(0.12f, 0.02f, 0.03f, 0.75f));
+                slot.sprite = s_Heart;
+                Pin(slot.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(i * 58f, 0f), new Vector2(50, 46));
+                var fill = MakeImage("Heart" + i, slot.transform, new Color(0.9f, 0.06f, 0.1f));
+                fill.sprite = s_Heart;
+                Stretch(fill.rectTransform);
+                fill.type = Image.Type.Filled; fill.fillMethod = Image.FillMethod.Vertical; fill.fillOrigin = 0;
+                m_Hearts[i] = fill;
+            }
+            m_VitalityFill = m_Hearts[0];
 
             ApplySettings();
         }
@@ -779,12 +788,41 @@ namespace TwelfthStamp
             var c = Game.Campaign;
             bool allowed = playHud && c != null && (Game.Settings?.showVitalityBar ?? true) && Game.Story != null && Game.Story.ShowVitality;
             float v = c != null ? c.vitality : 1f;
-            if (Mathf.Abs(v - m_LastVitality) > 0.0005f) m_VitalityShowUntil = now + 2.5f;
+            if (v < m_LastVitality - 0.05f) m_VitalityShowUntil = now + 0.6f; // a lost heart: the hearts jolt
             m_LastVitality = v;
-            bool visible = allowed && (v < 0.995f || now < m_VitalityShowUntil);
-            m_VitalityGroup.alpha = Mathf.MoveTowards(m_VitalityGroup.alpha, visible ? 1f : 0f, Time.unscaledDeltaTime * 3f);
-            m_VitalityFill.fillAmount = v;
-            m_VitalityFill.color = Color.Lerp(Danger, Ivory, Mathf.InverseLerp(0.15f, 0.7f, v));
+            m_VitalityGroup.alpha = Mathf.MoveTowards(m_VitalityGroup.alpha, allowed ? 1f : 0f, Time.unscaledDeltaTime * 3f);
+            float hearts = v * StoryDirector.Hearts;
+            for (int i = 0; i < m_Hearts.Length; i++)
+            {
+                var h = m_Hearts[i];
+                if (h == null) continue;
+                h.fillAmount = Mathf.Clamp01(hearts - i);
+                // The last heart beats; a fresh hit shakes them.
+                bool last = hearts <= i + 1f && hearts > i;
+                float beat = last && hearts < 1.01f ? 1f + 0.12f * Mathf.Max(0f, Mathf.Sin(now * 7f)) : 1f;
+                float jolt = now < m_VitalityShowUntil ? 1f + 0.25f * (m_VitalityShowUntil - now) : 1f;
+                h.transform.parent.localScale = Vector3.one * beat * jolt;
+            }
+        }
+
+        /// <summary>A heart shape (white on clear) for the health hearts: the classic heart curve, soft-edged.</summary>
+        static Texture2D HeartTexture()
+        {
+            const int n = 64;
+            var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { name = "Heart", wrapMode = TextureWrapMode.Clamp };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float fx = (x + 0.5f) / n * 2.6f - 1.3f, fy = (y + 0.5f) / n * 2.6f - 1.25f;
+                    float a = fx * fx + fy * fy - 1f;
+                    float f = a * a * a - fx * fx * fy * fy * fy; // <= 0 inside
+                    float alpha = Mathf.Clamp01(0.5f - f * 18f);
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
+                }
+            t.SetPixels32(px);
+            t.Apply();
+            return t;
         }
 
         void UpdateContamination()

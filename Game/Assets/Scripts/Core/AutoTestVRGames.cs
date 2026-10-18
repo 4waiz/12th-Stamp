@@ -96,27 +96,27 @@ namespace TwelfthStamp
             Game.Rig.PlaceAt(pz.transform.TransformPoint(new Vector3(0f, 0f, -0.75f)), pz.transform.eulerAngles.y);
             yield return new WaitForSeconds(0.3f);
             VRLook(pz.transform.TransformPoint(new Vector3(0f, 1.6f, -0.75f)), pz.transform.TransformPoint(new Vector3(-0.08f, 0.9f, 0.05f)));
-            int touched = 0, total = 0;
-            for (int s = 0; s < TajJigsaw.N * TajJigsaw.N; s++)
+            int placed = 0;
+            for (int i = 0; i < TajJigsaw.Count; i++)
             {
-                var piece = pz.PieceAt(s);
-                yield return TouchWith(vr, side, piece.transform.position + piece.transform.up * 0.03f);
-                total++;
-                if (hand.Focused == piece) touched++;
+                var piece = pz.Piece(i);
+                yield return TouchWith(vr, side, piece.transform.position + Vector3.up * 0.02f);
+                if (hand.Focused != piece) { Note("VR hand did not focus piece " + i + " (focused " + (hand.Focused != null ? hand.Focused.name : "nothing") + ")"); continue; }
+                hand.PressGrab();
+                if (hand.Held != piece) continue;
+                if (i == 0)
+                {
+                    // Held over the wrong place: nothing happens.
+                    yield return TouchWith(vr, side, pz.Slot(4).transform.position + pz.Slot(4).transform.up * 0.05f);
+                    Check(pz.Slot(4).Current == null && hand.Held == piece, "a piece held over the wrong place does not go in");
+                    yield return Shot("vr05_agra_piece_in_hand");
+                }
+                yield return TouchWith(vr, side, pz.Slot(i).transform.position + pz.Slot(i).transform.up * 0.04f);
+                yield return null;
+                if (pz.Slot(i).Current == piece) placed++;
+                else Note("piece " + i + " not placed: held=" + (hand.Held == piece) + " hold-to-slot=" + Vector3.Distance(hand.HoldPoint.position, pz.Slot(i).transform.position).ToString("0.00") + " piece-to-slot=" + Vector3.Distance(piece.transform.position, pz.Slot(i).transform.position).ToString("0.00") + " parent=" + (piece.transform.parent != null ? piece.transform.parent.name : "-"));
             }
-            Check(touched == total, "VR hand touching each puzzle piece focuses that piece (" + touched + "/" + total + ")");
-            yield return Shot("vr05_agra_hand_on_puzzle");
-            int guard = 0;
-            while (pz.Misplaced > 0 && guard++ < 12)
-            {
-                int s = 0;
-                while (pz.SlotHolding(s) == s) s++;
-                int from = pz.SlotHolding(s);
-                yield return Press(vr, side, pz.PieceAt(s));
-                yield return Press(vr, side, pz.PieceAt(from));
-                yield return new WaitForSeconds(0.35f);
-            }
-            Check(pz.Misplaced == 0, "VR touch-and-trigger swaps put the Taj Mahal picture right");
+            Check(placed == TajJigsaw.Count, "VR hand: each piece taken and brought to its place snaps in (" + placed + "/" + TajJigsaw.Count + ")");
             yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.India), 6f, "the finished picture verifies India (VR)");
             yield return Shot("vr06_agra_solved");
         }
@@ -172,6 +172,145 @@ namespace TwelfthStamp
             Check(hand.Held == claw.Golden, "the cat stays in the hand through the seal verify (" + dist.ToString("0.00") + " m from the eyes; the arm lowers it while the passport is up)");
             Check(Game.Campaign.IsVerified(CountryId.Japan), "taking the cat verifies Japan (desktop)");
             yield return Shot("d01_japan_cat_in_hand");
+        }
+
+        /// <summary>The Taj Mahal puzzle with desktop controls: aim at a piece and E, then aim at its place (it snaps in).</summary>
+        IEnumerator DeskTajFlow()
+        {
+            Note("--- Desktop Taj Mahal puzzle: aim, E, aim at the place ---");
+            var desk = Game.Rig as DesktopRig;
+            if (desk == null) yield break;
+            yield return Enter(CellId.Agra);
+            var ag = (AgraCell)Game.Cells.Active;
+            ag.Hunt.Stop();
+            Game.Passenger.Despawn();
+            var pz = ag.Puzzle;
+            var hand = desk.MainHand;
+            var feet = pz.transform.TransformPoint(new Vector3(0f, 0f, -0.85f));
+            IEnumerator Aim(Vector3 at)
+            {
+                var eye = feet + Vector3.up * DesktopRig.EyeHeight;
+                var d = at - eye;
+                Game.Rig.PlaceAt(feet, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg);
+                desk.SetPitch(-Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg);
+                yield return null; yield return null; yield return null;
+            }
+            Check(pz.Placed == 0, "the Taj Mahal pieces start beside the board");
+            yield return Aim(pz.BoardPosition);
+            yield return Shot("d02_agra_puzzle_start");
+            for (int i = 0; i < TajJigsaw.Count; i++)
+            {
+                var piece = pz.Piece(i);
+                yield return Aim(piece.transform.position);
+                Check(hand.Focused == piece, "desktop aim focuses piece " + i);
+                hand.PressUse();
+                yield return null;
+                Check(hand.Held == piece, "E picks up piece " + i);
+                if (i == 0)
+                {
+                    yield return Aim(pz.Slot(4).transform.position);
+                    Check(hand.Focused != pz.Slot(4), "the wrong place does not take the piece");
+                    yield return Shot("d03_agra_piece_in_hand");
+                }
+                yield return Aim(pz.Slot(i).transform.position);
+                yield return new WaitForSeconds(0.5f);
+                Check(pz.Slot(i).Current == piece, "aimed at its own place, piece " + i + " snaps in");
+            }
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.India), 6f, "the finished picture verifies India (desktop)");
+            yield return Aim(pz.BoardPosition);
+            yield return Shot("d04_agra_puzzle_done");
+        }
+
+        /// <summary>
+        /// The Saudi maze has one clear way through, and a player can actually walk it: the desktop rig is steered from cell
+        /// to cell along the solution with its own movement (TestMove), out through the exit to the portal; then the stamp
+        /// must wait close by, in the ring.
+        /// </summary>
+        IEnumerator MazeWalkFlow()
+        {
+            Note("--- Saudi maze: walk the way out ---");
+            var desk = Game.Rig as DesktopRig;
+            if (desk == null) yield break;
+            yield return Enter(CellId.Riyadh);
+            var ry = (RiyadhCell)Game.Cells.Active;
+            ry.Hunt.Stop();
+            Game.Passenger.Despawn();
+            var m = ry.Maze;
+            int blocked = 0;
+            for (int i = 0; i + 1 < m.Solution.Count; i++)
+            {
+                var a = ry.transform.TransformPoint(m.CellCenter(m.Solution[i]) + Vector3.up);
+                var b = ry.transform.TransformPoint(m.CellCenter(m.Solution[i + 1]) + Vector3.up);
+                if (Physics.SphereCast(a, 0.3f, (b - a).normalized, out _, (b - a).magnitude, 1 << Layers.Default, QueryTriggerInteraction.Ignore)) blocked++;
+            }
+            Check(m.Solution.Count >= 2 && blocked == 0, "the maze's one way out is open all along (" + m.Solution.Count + " cells, " + blocked + " blocked)");
+            // A top-down picture of the maze for review.
+            var camGo = new GameObject("MazeShotCam");
+            var cam = camGo.AddComponent<Camera>();
+            cam.depth = 100;
+            cam.fieldOfView = 55f;
+            var mid = ry.transform.TransformPoint(m.Origin + new Vector3(SandMaze.W * SandMaze.Size / 2f, 0f, SandMaze.H * SandMaze.Size / 2f + 3f));
+            camGo.transform.position = mid + Vector3.up * 26f;
+            camGo.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot("d05_riyadh_maze_top");
+            Destroy(camGo);
+            // Walk it with the rig's own movement.
+            var waypoints = new System.Collections.Generic.List<Vector3>();
+            foreach (var c in m.Solution) waypoints.Add(ry.transform.TransformPoint(m.CellCenter(c)));
+            waypoints.Add(ry.transform.TransformPoint(m.CellCenter(m.Exit) + new Vector3(0f, 0f, SandMaze.Size)));
+            waypoints.Add(ry.transform.TransformPoint(m.PortalLocal + new Vector3(0f, 0f, -2.5f)));
+            int reached = 0;
+            foreach (var w in waypoints)
+            {
+                float t = 0f;
+                while (t < 6f)
+                {
+                    var to = w - Game.Rig.Feet; to.y = 0f;
+                    if (to.magnitude < 0.45f) break;
+                    desk.SetLook(Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg, 0f);
+                    desk.TestMove = new Vector2(0f, 1f);
+                    t += Time.deltaTime;
+                    yield return null;
+                    if (Game.Campaign.IsVerified(CountryId.SaudiArabia)) break;
+                }
+                desk.TestMove = Vector2.zero;
+                var left = w - Game.Rig.Feet; left.y = 0f;
+                if (left.magnitude < 0.6f || Game.Campaign.IsVerified(CountryId.SaudiArabia)) reached++;
+                else
+                {
+                    Note("stuck walking to waypoint " + reached + " (" + left.magnitude.ToString("0.0") + " m short): locks " + Game.InputLocks + ", menu " + Game.InMenu +
+                         ", paused " + Game.Paused + ", busy " + Game.Story.Busy + ", speed " + desk.MoveSpeed.ToString("0.0"));
+                    break;
+                }
+                if (Game.Campaign.IsVerified(CountryId.SaudiArabia)) break;
+            }
+            desk.TestMove = null;
+            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.SaudiArabia), 4f, "walking the maze's way out reaches the portal and verifies Saudi Arabia");
+            yield return WaitUntil(() => Game.Story.WaitingStamp != null, 8f, "the stamp waits after the maze");
+            if (Game.Story.WaitingStamp != null)
+            {
+                var d = Game.Story.WaitingStamp.transform.position - Game.Rig.Feet; d.y = 0f;
+                Check(d.magnitude < 9f, "the stamp waits close by, in the portal (" + d.magnitude.ToString("0.0") + " m)");
+            }
+        }
+
+        /// <summary>After a country's game the stamp waits a few metres from the player, not out at the landmark.</summary>
+        IEnumerator NearStampFlow()
+        {
+            Note("--- The stamp waits close by ---");
+            yield return Enter(CellId.Agra);
+            var ag = (AgraCell)Game.Cells.Active;
+            ag.Hunt.Stop();
+            Game.Passenger.Despawn();
+            Game.Rig.PlaceAt(ag.Puzzle.transform.TransformPoint(new Vector3(0f, 0f, -0.9f)), ag.Puzzle.transform.eulerAngles.y + 180f);
+            yield return null;
+            Game.Story.VerifyCountry(CountryId.India, null);
+            yield return WaitUntil(() => Game.Story.WaitingStamp != null, 8f, "India's stamp comes out");
+            if (Game.Story.WaitingStamp == null) yield break;
+            var d = Game.Story.WaitingStamp.transform.position - Game.Rig.Feet; d.y = 0f;
+            Check(d.magnitude > 2.5f && d.magnitude < 5f, "the stamp waits a few metres away (" + d.magnitude.ToString("0.0") + " m), not out at the Taj Mahal");
+            yield return Shot("d06_agra_stamp_close");
         }
 
         /// <summary>Moves a scripted VR hand so its grab point sits at <paramref name="world"/>, pointing its aim forward.</summary>

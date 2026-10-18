@@ -97,7 +97,11 @@ namespace TwelfthStamp
             if (m_Name == "guide") yield return GuideFlow();   // walkthroughs, markers, maps (AutoTestGuide.cs); not part of "all"
             if (m_Name == "explore") yield return ExploreFlow(); // the expanded countries (AutoTestExplore.cs)
             if (m_Name == "vrgames") yield return VRGamesFlow(); // the claw machine, maze and Taj puzzle with VR hands (AutoTestVRGames.cs)
-            if (m_Name == "deskclaw") yield return DeskClawFlow(); // the claw machine with desktop aim and E (AutoTestVRGames.cs)
+            if (m_Name == "deskclaw") { yield return DeskClawFlow(); yield return DeskTajFlow(); yield return MazeWalkFlow(); yield return NearStampFlow(); } // claw machine, Taj puzzle, maze walk, near stamp with desktop controls (AutoTestVRGames.cs)
+            if (m_Name == "arcade_a") yield return ArcadeAFlow(); // Stop the Clock (London) and Memory Match (Morocco), desktop or VR hands (AutoTestArcadeA.cs)
+            if (m_Name == "arcade_b") yield return ArcadeBFlow(); // New York impostor vote and Rio ring toss, desktop or VR (AutoTestArcadeB.cs)
+            if (m_Name == "arcade_c") yield return ArcadeCFlow(); // Paris bubble shooter + Egypt temple run, desktop or VR hands (AutoTestArcadeC.cs)
+            if (m_Name == "arcade_d") yield return ArcadeDFlow(); // UAE whack-a-ghost, Berlin shooting gallery, desktop or VR hands (AutoTestArcadeD.cs)
             if (m_Name == "all" || m_Name == "lifecycle") yield return LifecycleFlow(); // AutoTestLifecycle.cs
             if (m_Name == "all" || m_Name == "levels") yield return LevelsFlow();       // AutoTestLevels.cs
             if (m_Name == "persist1") yield return Persist1Flow();
@@ -168,152 +172,7 @@ namespace TwelfthStamp
             Check(Branding.I.WelcomeShowing && string.IsNullOrEmpty(MenuSystem.I.CurrentPage), "Back returns to the welcome screen");
         }
 
-        IEnumerator DemoFlow()
-        {
-            Note("--- Judges' demo flow (Paris + Egyptian sunlight) ---");
-            MenuSystem.I.HideAll();
-            Game.Story.StartDemo();
-            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Paris && !Game.Story.Busy, 20f, "demo enters Paris");
-            yield return new WaitForSeconds(1.5f);
-            var paris = (ParisCell)Game.Cells.Active;
-            Check(Game.Passenger.Visible && Game.Passenger.State == PassengerState.Guard, "Passenger guards the desk");
-            Check(paris.Trace.GetPrompt(null) != paris.Trace.Prompt, "trace is blocked while the Passenger is at the desk");
-            yield return Shot("02_paris_arrival");
-            // The body: run down the street through the real movement path (arms pump, head bobs, steps and breathing).
-            if (Game.Rig is DesktopRig runner)
-            {
-                var startFeet = runner.Feet;
-                // Start 2 m short of the guarded desk and run south, away from it, down the whole street (room to run, then walk).
-                runner.PlaceAt(paris.transform.TransformPoint(new Vector3(0.6f, 0f, 3.0f)), 180f);
-                yield return null;
-                runner.TestMove = new Vector2(0f, 1f); runner.TestSprint = true;
-                yield return new WaitForSeconds(1.1f); // mid-run: the street ends about 5 m south of the arrival
-                Note("run check: locks " + Game.InputLocks + ", menu " + Game.InMenu + ", paused " + Game.Paused + ", busy " + Game.Story.Busy +
-                     ", moved " + (runner.Feet - startFeet).magnitude.ToString("0.00") + " m, sprinting " + runner.Sprinting);
-                Check(runner.Sprinting && runner.MoveSpeed > 3f, "Shift-running: the player sprints (" + runner.MoveSpeed.ToString("0.0") + " m/s)");
-                yield return Shot("02b_running_arms");
-                yield return new WaitForSeconds(0.13f);
-                yield return Shot("02c_running_arms");
-                // A few steps at a walk (the hands swing up into the corners), then let go.
-                runner.TestSprint = false;
-                yield return new WaitForSeconds(0.9f);
-                yield return Shot("02d_walking_arms");
-                runner.TestMove = null;
-                yield return new WaitForSeconds(0.8f);
-                Check(runner.MoveSpeed < 1.5f, "letting go: the player slows to a stop");
-                runner.PlaceAt(startFeet, 0f);
-                yield return new WaitForSeconds(0.3f);
-            }
-
-            Game.Passport.Open(HandSide.Desktop);
-            Game.Passport.Select(CountryId.Egypt, true);
-            yield return new WaitForSeconds(0.6f);
-            Check(Game.Passport.IsOpen && Game.Passport.Selected == CountryId.Egypt, "passport open with Egypt selected");
-            yield return Shot("03_passport_open");
-
-            // Negative: with the passport open but aimed at no seam, holding the tear input opens nothing.
-            var seam = paris.DeskSeam;
-            Game.Rig.PlaceAt(paris.TearVantage.position, paris.TearVantage.eulerAngles.y + 120f);
-            yield return null; yield return null;
-            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.3f);
-            Check(Game.Tears.Active == null && !Game.Tears.HasTarget, "no tear opens when no seam is aimed at");
-            // Stand where a player naturally would (south of the desk) and aim at the seam on the poster board: from
-            // here the board, the beam's path and the Passenger at the desk are all in view.
-            var aim = seam.Center - (paris.TearVantage.position + Vector3.up * DesktopRig.EyeHeight); // from the eye, not the feet
-            Game.Rig.PlaceAt(paris.TearVantage.position, Mathf.Atan2(aim.x, aim.z) * Mathf.Rad2Deg);
-            if (Game.Rig is DesktopRig vantageRig) vantageRig.SetPitch(-Mathf.Atan2(aim.y, new Vector2(aim.x, aim.z).magnitude) * Mathf.Rad2Deg);
-            yield return null; yield return null;
-            Check(Game.Tears.HasTarget && Game.Tears.Target == seam, "desk seam targeted from the passport");
-            var toGuard = Game.Passenger.transform.position - Game.Rig.Head.position; toGuard.y = 0f;
-            Check(Vector3.Angle(Game.Rig.Forward, toGuard) < 34f, "the Passenger at the desk is in view while aiming at the seam");
-
-            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.2f);
-            Check(Game.Tears.Active != null && Game.Tears.Active.Destination.Id == CountryId.Egypt, "tear opened to Egypt");
-            Check(Game.Tears.Active != null && Game.Tears.Active.Beam != null, "Egyptian sunlight flows through the tear");
-            yield return new WaitForSeconds(1.2f);
-            yield return Shot("04_slit_sunlight");
-
-            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 1.6f);
-            Check(Game.Tears.Active != null && Game.Tears.Active.Size >= TearSize.Window, "tear widened to a window");
-            yield return WaitUntil(() => Game.Passenger.State == PassengerState.Retreat || !Game.Passenger.Visible, 8f, "sunlight drives the Passenger off the desk");
-            var lightFx = Game.Passenger.GetComponent<PassengerLightFx>();
-            Check(lightFx != null && lightFx.Flinches > 0, "the light visibly hurts it: ash, a hiss and a step back (" + (lightFx != null ? lightFx.Flinches : 0) + " flinches)");
-            yield return Shot("05_window_repel");
-            yield return WaitUntil(() => FindAnyObjectByType<PassengerHand>() != null && FindAnyObjectByType<PassengerHand>().Active, 10f, "a hand comes through the widened tear");
-            var reaching = FindAnyObjectByType<PassengerHand>();
-            Check(reaching != null && reaching.UsesModel, "the hand is built from the modelled Passenger parts");
-            yield return WaitUntil(() => reaching != null && reaching.FingertipsInFront > 0.05f, 3f, "the fingertips are visibly through the tear (in front of its plane)");
-            yield return new WaitForSeconds(0.3f);
-            yield return Shot("06_hand_through_tear");
-
-            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
-            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "tear sealed (one active tear, cleanly closed)");
-            yield return Shot("07_sealed");
-
-            Game.Passport.Close();
-            var desk = paris.DeskRoot.position;
-            Game.Rig.PlaceAt(new Vector3(desk.x, 0f, desk.z - 1.3f), 0f);
-            yield return null;
-            Check(paris.Trace.CanUse(Game.Rig.MainHand) && paris.Trace.GetPrompt(null) == paris.Trace.Prompt, "trace usable after the desk is cleared");
-            paris.Trace.Use(Game.Rig.MainHand);
-            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.France), 4f, "France seal verified");
-            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.CounterfeitRevealed), 8f, "counterfeit HOME stamp revealed");
-            yield return new WaitForSeconds(1.5f);
-            yield return Shot("08_counterfeit_stamp");
-            yield return WaitUntil(() => MenuSystem.I.IsOpen, 16f, "demo results shown");
-            yield return Shot("09_demo_results");
-            Check(!File.Exists(SaveSystem.PathOf(SaveSystem.CampaignFile)) || SaveSystem.WritesSuspended, "demo did not write the campaign save");
-            MenuSystem.I.HideAll();
-        }
-
-        IEnumerator EgyptFlow()
-        {
-            Note("--- Egypt reflector puzzle ---");
-            Game.Story.StopAllCoroutines();
-            Game.Story.StartAt(CellId.Egypt);
-            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Egypt && !Game.Story.Busy, 20f, "enters Egypt");
-            yield return new WaitForSeconds(1.5f);
-            var egypt = (EgyptCell)Game.Cells.Active;
-            yield return Shot("10_egypt_arrival");
-            Check(!egypt.Trace.Revealed, "trace hidden before the puzzle");
-            // Linger: the mummy rises behind you. Turn round and look at it (drain off for the photos).
-            yield return WaitUntil(() => Game.Passenger.Visible, 25f, "the mummy rises behind the player");
-            if (Game.Passenger.Visible)
-            {
-                Game.Passenger.Threatening = false;
-                Note("(Egypt: Passenger drain disabled for the close-up photos)");
-                var toP = Game.Passenger.transform.position - Game.Rig.Feet; toP.y = 0f;
-                if (toP.sqrMagnitude > 0.01f) Game.Rig.PlaceAt(Game.Rig.Feet, Quaternion.LookRotation(toP).eulerAngles.y);
-                yield return new WaitForSeconds(2.5f);
-                yield return Shot("10b_egypt_mummy_rises");
-                yield return PassengerCloseup("10c_egypt_mummy_close");
-                Game.Rig.PlaceAt(egypt.Arrival.position, egypt.Arrival.eulerAngles.y);
-                yield return null;
-            }
-            var hand = Game.Rig.MainHand;
-            // World cues (playtest: "what am I even supposed to do"): the reflector glints until it is turned, and the
-            // false shadow smoulders as the beam swings near it.
-            var cues = (egypt.Encounter as EgyptEncounter)?.Cues;
-            var glint = egypt.transform.Find("ReflectorGlint");
-            Check(cues != null && glint != null && glint.gameObject.activeSelf && !cues.ReflectorTurned, "the bronze reflector glints until it is turned (it is the thing to use here)");
-            var smoulder = egypt.transform.Find("ShadowSmoulder")?.GetComponent<ParticleSystem>();
-            float coldError = cues != null ? cues.AimError : 0f;
-            for (int i = 0; i < 4; i++)
-            {
-                egypt.Reflector.Use(hand);
-                yield return new WaitForSeconds(0.35f);
-                if (i == 0) Check(glint != null && !glint.gameObject.activeSelf, "the glint stops once the reflector has been turned");
-                if (i == 2 && cues != null)
-                    Check(cues.AimError < coldError && cues.AimError < 32f && smoulder != null && smoulder.emission.rateOverTime.constant > 0f,
-                        "the false shadow smoulders as the beam swings near it (aim " + coldError.ToString("0") + " -> " + cues.AimError.ToString("0") + " degrees)");
-            }
-            yield return WaitUntil(() => egypt.Trace.Revealed, 4f, "reflected sunlight burns the wrong shadow and reveals the trace");
-            yield return Shot("11_egypt_trace");
-            egypt.Trace.Use(hand);
-            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.Egypt) && Game.Campaign.HasResource(ResourceId.Sunlight), 4f, "Egypt verified, sunlight resource unlocked");
-            yield return new WaitForSeconds(2f);
-            yield return Shot("12_egypt_verified");
-        }
+        // DemoFlow (France: the bubble shooter) and EgyptFlow (the temple run) live in Core/AutoTestArcadeC.cs.
 
         /// <summary>Screenshot of the Passenger from a couple of metres in front of it (art review, not a check).</summary>
         IEnumerator PassengerCloseup(string shot, float distance = 2.4f)
@@ -450,26 +309,11 @@ namespace TwelfthStamp
             yield return Shot("25_margin_apartment");
 
             var corrupt = (ApartmentCell)Game.Cells.Active;
-            Game.Passport.Open(HandSide.Desktop);
-            Game.Passport.Select(CountryId.Egypt, true);
+            yield return StoryWhack(corrupt); // whack-a-ghost with desktop aim and E: ten stamped verify the UAE (AutoTestArcadeD.cs)
             var seam = corrupt.Seams.First(s => s.Id == "kitchen");
             var stand = seam.Center + seam.Forward * 1.3f;
             var look = seam.Center - stand; look.y = 0;
-            Game.Rig.PlaceAt(new Vector3(stand.x, 0f, stand.z), Quaternion.LookRotation(look).eulerAngles.y);
-            yield return null; yield return null;
-            Check(Game.Tears.HasTarget, "a seam is targeted in the apartment");
-            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.3f);
-            Check(Game.Tears.Active != null, "first tear opened (to Egypt)");
-            yield return WaitUntil(() => corrupt.Trace.Revealed, 3f, "light reveals the genuine note");
-            yield return new WaitForSeconds(1f);
-            yield return Shot("26_first_tear");
-            Game.Rig.PlaceAt(corrupt.Trace.transform.position + new Vector3(0, -1.25f, -1.2f), 0f);
-            yield return null;
-            corrupt.Trace.Use(hand);
-            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.UAE), 4f, "homecoming seal verified via the genuine detail");
-            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
-            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "tutorial tear sealed");
-            yield return WaitUntil(() => Game.Passenger.Visible, 10f, "first controlled threat appears");
+            yield return WaitUntil(() => Game.Passenger.Visible, 14f, "first controlled threat appears");
             yield return new WaitForSeconds(1f);
             yield return Shot("27_first_threat");
 
@@ -527,26 +371,8 @@ namespace TwelfthStamp
             Note("--- Countries: New York, Japan, Riyadh, Agra, Rio, London, Marrakech ---");
             var hand = Game.Rig.MainHand;
 
-            // USA: power the booth, lure the guard off the gate with the noisemaker.
-            yield return Enter(CellId.NewYork);
-            var ny = (NewYorkCell)Game.Cells.Active;
-            yield return Shot("30_newyork");
-            Check(ny.Trace.GetPrompt(null) != ny.Trace.Prompt, "arrival gate blocked while it stands there");
-            yield return PassengerCloseup("30b_newyork_passenger_close", 2.6f);
-            Game.Rig.PlaceAt(ny.Arrival.position, ny.Arrival.eulerAngles.y);
-            yield return null;
-            ny.Breaker.Use(hand);
-            yield return new WaitForSeconds(1f);
-            Check(ny.ScreenGlow.activeSelf, "booth powered; screen shows the double arrival");
-            yield return Shot("31_newyork_screen");
-            hand.Grab(ny.Noisemaker);
-            ny.Noisemaker.OnActivate?.Invoke(ny.Noisemaker, hand);
-            hand.ForceRelease(false);
-            ny.Noisemaker.transform.position = ny.transform.TransformPoint(new Vector3(-4.5f, 0.05f, 5.5f));
-            yield return WaitUntil(() => Game.Passenger.State == PassengerState.Investigate, 4f, "noisemaker draws it off the gate");
-            yield return WaitUntil(() => ny.Trace.GetPrompt(null) == ny.Trace.Prompt, 12f, "arrival gate clear");
-            yield return UseTrace(ny.Trace, CountryId.USA);
-            Check(Game.Campaign.HasResource(ResourceId.Noisemaker), "noisemaker becomes a carried resource");
+            // USA: the space-station arcade: two tasks, the clue, a wrong vote, the impostor voted out (AutoTestArcadeB.cs).
+            yield return CountriesUsa();
 
             // Japan: win the golden lucky cat from the claw machine.
             yield return Enter(CellId.Japan);
@@ -582,79 +408,18 @@ namespace TwelfthStamp
             var ag = (AgraCell)Game.Cells.Active;
             yield return Shot("36_agra");
             Check(ag.Puzzle.Misplaced > 0, "the Taj Mahal puzzle starts scrambled");
-            for (int s = 0; s < TajJigsaw.N * TajJigsaw.N; s++)
-            {
-                int from = ag.Puzzle.SlotHolding(s);
-                if (from != s) { ag.Puzzle.Swap(s, from); yield return new WaitForSeconds(0.4f); }
-            }
+            for (int s = 0; s < TajJigsaw.Count; s++) { hand.Grab(ag.Puzzle.Piece(s)); hand.PlaceInto(ag.Puzzle.Slot(s)); yield return new WaitForSeconds(0.15f); }
             yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.India), 6f, "the finished picture verifies India");
             yield return Shot("37_agra_solved");
 
-            // Brazil: three stamps masked by the drum beat.
-            yield return Enter(CellId.Rio);
-            var rio = (RioCell)Game.Cells.Active;
-            var rioEnc = (RioEncounter)rio.Encounter;
-            Game.Rig.PlaceAt(new Vector3(rio.Plate.position.x, rio.transform.position.y, rio.Plate.position.z - 1.1f), 0f);
-            yield return new WaitForSeconds(0.5f);
-            yield return Shot("38_rio");
-            for (int i = 0; i < 3; i++)
-            {
-                yield return WaitUntil(() => !rioEnc.OnBeat, 2f, "between beats");
-                yield return WaitUntil(() => rioEnc.OnBeat, 2f, "drum beat " + (i + 1));
-                rio.StampPlate.Use(hand);
-                yield return null;
-            }
-            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.Brazil), 5f, "Brazil verified by three masked stamps");
+            // Brazil: five ringers at the carnival ring toss (AutoTestArcadeB.cs).
+            yield return CountriesBrazil();
 
-            // UK: open the tear under the clock chime so the rip is masked.
-            yield return Enter(CellId.London);
-            var lon = (LondonCell)Game.Cells.Active;
-            var lonEnc = (LondonEncounter)lon.Encounter;
-            yield return Shot("39_london");
-            Game.Passport.Open(HandSide.Desktop);
-            Game.Passport.Select(CountryId.Egypt, true);
-            AimAt(lon.CheckpointSeam);
-            yield return null; yield return null;
-            Check(Game.Tears.HasTarget && Game.Tears.Target == lon.CheckpointSeam, "checkpoint seam targeted");
-            yield return WaitUntil(() => lonEnc.Chiming, 20f, "clock chime");
-            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 0.2f);
-            yield return WaitUntil(() => lon.Trace.Revealed, 2f, "tear opened under the chime reveals the trace");
-            yield return new WaitForSeconds(0.6f);
-            yield return Shot("40_london_chime");
-            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
-            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "London tear sealed");
-            Game.Passport.Close();
-            yield return UseTrace(lon.Trace, CountryId.UnitedKingdom);
+            // UK: Stop the Clock (AutoTestArcadeA.cs).
+            yield return CountriesLondon(hand);
 
-            // Morocco: rebuild the counter, fit the calibration insert, hear the optician's notes.
-            yield return Enter(CellId.ShopCorrupt);
-            var shop = (ShopCell)Game.Cells.Active;
-            // Puzzle-logic check only: the observer's drain is switched off so ~40 s of notes can't fail the run.
-            if (Game.Passenger != null) Game.Passenger.Threatening = false;
-            Note("(Marrakech: Passenger drain disabled for this puzzle-logic check)");
-            Game.Rig.PlaceAt(shop.CounterTop.position + new Vector3(0, -1.04f, -1.1f), 0f);
-            yield return new WaitForSeconds(0.5f);
-            yield return Shot("41_marrakech_margin");
-            var mp = shop.transform.Find("MoroccoProps");
-            Check(mp != null, "Marrakech puzzle props built");
-            var ids = new[] { "postcard", "brass_tray", "camera" };
-            for (int i = 0; i < 3 && mp != null; i++)
-            {
-                hand.Grab(Item(mp, ids[i]));
-                hand.PlaceInto(shop.CounterMarks[i].GetComponent<Socket>());
-                yield return null;
-            }
-            yield return WaitUntil(() => Item(mp, "calibration_insert") != null, 4f, "counter rebuilt; the drawer gives up the calibration insert");
-            hand.Grab(Item(mp, "calibration_insert"));
-            var caseSock = mp != null ? mp.GetComponentsInChildren<Socket>(true).FirstOrDefault(s => s.name == "InsertSocket") : null;
-            Check(caseSock != null, "glasses case set out on the counter");
-            if (caseSock != null) hand.PlaceInto(caseSock);
-            yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.OpticianNotesRead), 3f, "insert fitted; hidden notes appear");
-            yield return new WaitForSeconds(2f);
-            yield return Shot("42_marrakech_notes");
-            yield return WaitUntil(() => shop.Trace.Revealed, 90f, "optician's notes read in full; trace revealed");
-            yield return UseTrace(shop.Trace, CountryId.Morocco);
-            Check(Game.Campaign.HasResource(ResourceId.CalibrationInsert), "calibration insert recovered");
+            // Morocco: Memory Match, then the calibration insert and the optician's notes (AutoTestArcadeA.cs).
+            yield return CountriesMorocco(hand);
         }
 
         /// <summary>Diagnostic: where the sunbeam is, how strong, and whether anything blocks it from a point.</summary>
@@ -672,7 +437,7 @@ namespace TwelfthStamp
 
         IEnumerator FinaleFlow()
         {
-            Note("--- Finale: Berlin -> near miss -> real home -> epilogue -> results ---");
+            Note("--- Finale: Berlin -> shooting gallery -> VOID -> near miss -> real home -> epilogue -> results ---");
             var hand = Game.Rig.MainHand;
             yield return Enter(CellId.Berlin, c =>
             {
@@ -696,31 +461,15 @@ namespace TwelfthStamp
             yield return Shot("51_berlin_mimic");
             yield return PassengerCloseup("51b_berlin_mimic_close", 2.6f);
 
-            var noise = Item(b.transform, "noisemaker");
-            Check(noise != null, "the noisemaker from New York is here");
-            if (noise != null)
-            {
-                noise.OnActivate?.Invoke(noise, hand);
-                noise.transform.position = b.transform.TransformPoint(new Vector3(6f, 0.05f, -5.5f));
-            }
-            Game.Passport.Open(HandSide.Desktop);
-            Game.Passport.Select(CountryId.Egypt, true);
-            AimAt(b.LightSeam, 2.2f);
-            yield return null; yield return null;
-            Check(Game.Tears.HasTarget && Game.Tears.Target == b.LightSeam, "seam facing the doors targeted");
-            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 1.6f);
-            Check(Game.Tears.Active != null && Game.Tears.Active.Beam != null, "Egyptian sunlight pours toward the decoy doors");
-            LogBeam(b.DecoyDoors[1].position - b.DecoyDoors[1].forward * 0.35f + Vector3.up * 1.3f);
-            yield return WaitUntil(() => enc.Exposed, 6f, "daylight exposes the forged HOME doors");
-            yield return new WaitForSeconds(1f);
-            yield return Shot("52_berlin_sunlight");
+            // The ghost shooting gallery: the sun torch, five beams of light on its chest (desktop aim and E; AutoTestArcadeD.cs).
+            yield return PlayGallery(b, "52_berlin", false);
+            Check(enc.Exposed, "the Passenger is worn down: the forgery can be cancelled");
 
             hand.Grab(b.VoidStamp);
             b.VoidStamp.OnActivate?.Invoke(b.VoidStamp, hand);
             yield return WaitUntil(() => Game.Campaign.HasFlag(StoryFlags.ForgedCancelled), 3f, "forged HOME stamp cancelled with VOID");
             hand.ForceRelease(false);
-            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
-            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "resource tear sealed before the home tear");
+            Check(Game.Tears.Active == null, "no other tear is open before the home tear");
             Check(Game.Campaign.CanOpenGenuineHome && b.HomeSeam.Revealed, "genuine home can open (11 seals, insert, forgery cancelled)");
 
             AimAt(b.HomeSeam, 2.4f);

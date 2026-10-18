@@ -65,17 +65,14 @@ namespace TwelfthStamp
             ExpectModels(paris, ("VerificationDesk", 1), ("StreetLamp_Paris", 3), ("Landmark_Eiffel", 1));
             yield return Frame(paris, new Vector3(0.9f, 1.6f, 3.6f), new Vector3(0f, 1f, 6f), "m12_paris_desk");
             yield return Frame(paris, new Vector3(0.4f, 1.6f, 0.4f), new Vector3(3.2f, 2.4f, 2.8f), "m13_paris_lamp");
+            yield return Frame(paris, ParisCell.FiringLocal + new Vector3(0f, 1.6f, 0f), ParisCell.FiringLocal + Quaternion.Euler(0f, ParisCell.BubbleYaw, 0f) * Vector3.forward * ParisCell.BubbleRange + Vector3.up * 2f, "m13b_paris_bubbles");
             yield return Landmark(paris, "EiffelSilhouette", 89f, 80f, "m14_paris_eiffel");
 
             var egypt = (EgyptCell)Game.Cells.Activate(CellId.Egypt);
             ExpectModels(egypt, ("Reflector", 1));
-            var turning = egypt.Reflector.Target.Find("Pivot");
-            Check(turning != null, "Egypt: the reflector model's mirror turns with the puzzle pivot");
             EgyptGroundToStamp(egypt);
             yield return Frame(egypt, new Vector3(-1.5f, 1.6f, 3.8f), new Vector3(-2.5f, 1.1f, 1.5f), "m15_egypt_reflector");
-            egypt.Reflector.SetIndex(4);
-            yield return Frame(egypt, new Vector3(-1.5f, 1.6f, 3.8f), new Vector3(-2.5f, 1.1f, 1.5f), "m16_egypt_reflector_turned");
-            egypt.Reflector.SetIndex(0);
+            yield return EgyptRunReview(egypt); // the temple run: gate, a tomb door and its mummy, a fallen stone, coins, the portal (AutoTestArcadeC.cs)
 
             var ny = (NewYorkCell)Game.Cells.Activate(CellId.NewYork);
             ExpectModels(ny, ("Noisemaker", 1), ("Landmark_Liberty", 1));
@@ -208,16 +205,16 @@ namespace TwelfthStamp
         }
 
         /// <summary>
-        /// Open world, Egypt: solid ground every metre along the straight line from the court's sand floor to the stamp spot
-        /// by the pyramids (no gaps, no step the player cannot take), sand underfoot out there, and the spot itself.
+        /// Egypt: solid ground every 25 cm along the straight line from the arrival (the temple run's start) to the stamp spot
+        /// in the portal at its far end (no gaps, no step the player cannot take), sand underfoot there, and the spot itself.
         /// </summary>
         void EgyptGroundToStamp(Cell egypt)
         {
             var site = egypt.GetComponentsInChildren<VistaInfo>(true).FirstOrDefault(i => i.HasStampSpot);
-            if (site == null) { Check(false, "Egypt: the pyramids have a stamp spot"); return; }
+            if (site == null) { Check(false, "Egypt: the temple run's portal has a stamp spot"); return; }
             var space = site.transform.parent != null ? site.transform.parent : egypt.transform;
             var spot = space.TransformPoint(site.StampLocal);
-            var from = egypt.transform.TransformPoint(new Vector3(0f, 0f, 8f)); // the middle of the court's sand floor
+            var from = egypt.Arrival.position; // the start of the temple run
             from.y = spot.y;
             // Every 25 cm, so a dune's slope reads as small rises and only a real ledge shows up as a step the player
             // cannot climb (the VR body steps 30 cm, the desktop one 32 cm).
@@ -233,7 +230,7 @@ namespace TwelfthStamp
                 last = hit.point.y;
                 if (i == samples) underfoot = Surface.Of(hit.collider);
             }
-            Check(gaps == 0 && step <= 0.3f, "Egypt: solid ground all the way from the court to the stamp spot (" + length.ToString("0") + " m every 25 cm, " + gaps + " gaps, largest rise " + (step * 100f).ToString("0") + " cm at z " + stepAt.ToString("0") + ")");
+            Check(gaps == 0 && step <= 0.3f, "Egypt: solid ground all the way down the temple run to the stamp spot (" + length.ToString("0") + " m every 25 cm, " + gaps + " gaps, largest rise " + (step * 100f).ToString("0") + " cm at z " + stepAt.ToString("0") + ")");
             Check(underfoot == "sand", "Egypt: sand underfoot at the stamp spot (" + underfoot + ")");
         }
 

@@ -168,6 +168,7 @@ namespace TwelfthStamp
             {
                 g.transform.position = hit.point + Vector3.up * 0.04f;
                 g.transform.rotation = Quaternion.Euler(0, RayOrigin.eulerAngles.y, 0);
+                g.SyncBody();
             }
             g.Body.isKinematic = false;
             AudioDirector.I?.Play("drop_soft", g.transform.position, 0.6f);

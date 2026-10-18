@@ -138,7 +138,7 @@ namespace TwelfthStamp
     /// <summary>
     /// A Japanese claw machine in the lantern street. Arrow buttons step the claw over a 4 x 3 grid of prizes, DROP lowers
     /// it, grabs whatever is under it and carries it to the chute (front-left); the prize comes out on the tray. One prize
-    /// is the golden lucky cat that opens the way out of Japan.
+    /// is the golden golden passport that opens the way out of Japan.
     /// </summary>
     public class ClawMachine : MonoBehaviour
     {
@@ -149,11 +149,12 @@ namespace TwelfthStamp
         public bool Busy { get; private set; }
         public Grabbable Golden { get; private set; }   // grabbable once it is on the tray
         public bool GoldenOut => Golden != null;
-        public event System.Action<ClawMachine, bool> Delivered;   // true: the golden cat
+        public event System.Action<ClawMachine, bool> Delivered;   // true: the golden passport
         public event System.Action<Grabbable> GoldenTaken;
 
         const float FloorY = 1.03f, CarriageY = 1.86f;
-        Transform m_Carriage, m_Head, m_Cable, m_Bridge;
+        Transform m_Carriage, m_Head, m_Cable, m_Bridge, m_Stick;
+        Vector2 m_Lean;
         readonly List<Transform> m_All = new List<Transform>();
         readonly Transform[] m_Fingers = new Transform[3];
         readonly Dictionary<Vector2Int, Transform> m_Prizes = new Dictionary<Vector2Int, Transform>();
@@ -267,6 +268,13 @@ namespace TwelfthStamp
             Back = MakeButton("Move the claw back", new Vector3(-0.38f, 1.0f, -0.585f), "^", new Color(0.25f, 0.55f, 0.95f));
             Front = MakeButton("Move the claw forward", new Vector3(-0.38f, 1.0f, -0.755f), "v", new Color(0.25f, 0.55f, 0.95f));
             Drop = MakeButton("Drop the claw", new Vector3(0.3f, 1.0f, -0.67f), "DROP", new Color(0.95f, 0.15f, 0.12f), 0.065f);
+            // A ball-top joystick in the middle of the arrow cross: it leans the way the claw moves.
+            m_Stick = new GameObject("Joystick").transform;
+            m_Stick.SetParent(t, false);
+            m_Stick.localPosition = new Vector3(-0.38f, 1.0f, -0.67f);
+            MeshFactory.Cylinder("Gate", t, new Vector3(-0.38f, 0.995f, -0.67f), 0.035f, 0.012f, Mats.Lit(new Color(0.08f, 0.08f, 0.09f), 0.5f), 16, false);
+            MeshFactory.Cylinder("Shaft", m_Stick, Vector3.zero, 0.008f, 0.09f, chrome, 8, false);
+            MeshFactory.Sphere("Ball", m_Stick, new Vector3(0f, 0.1f, 0f), 0.024f, Mats.Emissive(new Color(0.95f, 0.15f, 0.12f), new Color(0.6f, 0.05f, 0.03f)));
             Left.Pressed += _ => Step(-1, 0);
             Right.Pressed += _ => Step(1, 0);
             Back.Pressed += _ => Step(0, 1);
@@ -295,7 +303,7 @@ namespace TwelfthStamp
             return b;
         }
 
-        /// <summary>A fresh game: the claw at home, plush toys in most slots and the golden cat in one of the far ones.</summary>
+        /// <summary>A fresh game: the claw at home, plush toys in most slots and the golden passport in one of the far ones.</summary>
         public void ResetGame()
         {
             StopAllCoroutines();
@@ -359,12 +367,12 @@ namespace TwelfthStamp
 
         Transform MakeLuckyCat(Vector2Int k)
         {
-            var p = new GameObject("GoldenLuckyCat").transform;
+            var p = new GameObject("GoldenPassport").transform;
             p.SetParent(m_PrizeRoot, false);
             p.localPosition = Slot(k.x, k.y) + new Vector3(0f, FloorY, 0f);
             p.localRotation = Quaternion.Euler(0f, 180f, 0f);
             m_All.Add(p);
-            BuildCat(p, m_Gold);
+            BuildPassportPrize(p, m_Gold);
             var glow = new GameObject("Glow").AddComponent<Light>();
             glow.transform.SetParent(p, false);
             glow.transform.localPosition = new Vector3(0f, 0.15f, 0.1f);
@@ -375,6 +383,27 @@ namespace TwelfthStamp
         void Update()
         {
             if (m_Bridge != null && m_Carriage != null) m_Bridge.localPosition = new Vector3(-m_Carriage.localPosition.x, 0.04f, 0f);
+            if (m_Stick != null)
+            {
+                m_Lean = Vector2.MoveTowards(m_Lean, Vector2.zero, Time.deltaTime * 2.5f);
+                m_Stick.localRotation = Quaternion.Euler(m_Lean.y * 22f, 0f, -m_Lean.x * 22f);
+            }
+        }
+
+        /// <summary>The special prize: a golden passport standing on a little plinth, a red seal on its cover.</summary>
+        static void BuildPassportPrize(Transform p, Material gold)
+        {
+            var red = Mats.Emissive(new Color(0.85f, 0.12f, 0.1f), new Color(0.9f, 0.1f, 0.05f));
+            var pages = Mats.Lit(new Color(0.96f, 0.92f, 0.8f), 0.3f);
+            MeshFactory.Box("Plinth", p, new Vector3(0f, 0.015f, 0f), new Vector3(0.13f, 0.03f, 0.09f), Mats.Lit(new Color(0.15f, 0.1f, 0.12f), 0.5f), false);
+            var book = new GameObject("Book").transform;
+            book.SetParent(p, false);
+            book.localPosition = new Vector3(0f, 0.03f, 0f);
+            MeshFactory.Box("Cover", book, new Vector3(0f, 0.08f, 0f), new Vector3(0.11f, 0.16f, 0.022f), gold, false);
+            MeshFactory.Box("Pages", book, new Vector3(0.004f, 0.08f, 0f), new Vector3(0.104f, 0.15f, 0.026f), pages, false);
+            MeshFactory.Cylinder("Seal", book, new Vector3(0f, 0.085f, -0.012f), 0.026f, 0.004f, red, 16, false).transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            var label = TextFactory.World(book, "PASSPORT", 0.012f, new Color(0.35f, 0.2f, 0.02f), TMPro.TextAlignmentOptions.Center, true, 0.1f);
+            label.transform.localPosition = new Vector3(0f, 0.135f, -0.0125f);
         }
 
         static void BuildCat(Transform p, Material gold)
@@ -416,6 +445,7 @@ namespace TwelfthStamp
         public void Step(int dc, int dr)
         {
             if (Busy) return;
+            m_Lean = new Vector2(dc, dr);
             int c = Mathf.Clamp(ClawCol + dc, 0, Cols - 1), r = Mathf.Clamp(ClawRow + dr, 0, Rows - 1);
             if (c == ClawCol && r == ClawRow) { AudioDirector.I?.Play("dial_click", transform.position + Vector3.up, 0.5f, 0.7f); return; }
             StartCoroutine(MoveTo(c, r, 0.3f));
@@ -504,9 +534,9 @@ namespace TwelfthStamp
             if (golden)
             {
                 var col = prize.gameObject.AddComponent<BoxCollider>();
-                col.size = new Vector3(0.18f, 0.28f, 0.18f);
-                col.center = new Vector3(0f, 0.13f, 0f);
-                Golden = PropLibrary.MakeGrabbable(prize.gameObject, "golden_lucky_cat", "Take the golden lucky cat");
+                col.size = new Vector3(0.18f, 0.24f, 0.14f);
+                col.center = new Vector3(0f, 0.11f, 0f);
+                Golden = PropLibrary.MakeGrabbable(prize.gameObject, "golden_passport", "Take the golden passport");
                 Golden.SetHome();
                 Golden.Grabbed += OnGoldenGrabbed;
                 AudioDirector.I?.Play("coin_token", prize.position, 1f);
@@ -514,7 +544,7 @@ namespace TwelfthStamp
             }
             else
             {
-                Hud.I?.ShowToast("Just a plush toy. Not the one you need: aim for the golden lucky cat.", 3f);
+                Hud.I?.ShowToast("Just a plush toy. Not the one you need: aim for the golden passport.", 3f);
                 StartCoroutine(ClearPlush(prize));
             }
             Delivered?.Invoke(this, golden);
@@ -531,16 +561,16 @@ namespace TwelfthStamp
         // could not take it (a catch, a retry) must not leave the cat unable to count later (playtest: it stayed in the air).
         void OnGoldenGrabbed(Grabbable g, Interactor who) => GoldenTaken?.Invoke(g);
 
-        /// <summary>The golden cat is in a hand right now.</summary>
+        /// <summary>The golden passport is in a hand right now.</summary>
         public bool GoldenHeld => Golden != null && Golden.Holder != null;
 
-        /// <summary>Puts a won but untaken golden cat back on the prize tray (after a catch or a retry left it somewhere).</summary>
+        /// <summary>Puts a won but untaken golden passport back on the prize tray (after a catch or a retry left it somewhere).</summary>
         public void ReturnGolden()
         {
             if (Golden != null && Golden.Holder == null) Golden.ReturnHome();
         }
 
-        /// <summary>Where the golden cat is (in the case, on the claw, or on the tray), for the guide.</summary>
+        /// <summary>Where the golden passport is (in the case, on the claw, or on the tray), for the guide.</summary>
         public Vector3 GoldenPosition => Golden != null ? Golden.transform.position : m_GoldenT != null ? m_GoldenT.position : transform.position + Vector3.up;
         public Vector3 ControlsPosition => transform.TransformPoint(new Vector3(-0.1f, 1.0f, -0.67f));
     }
@@ -552,10 +582,10 @@ namespace TwelfthStamp
     /// </summary>
     public class SandMaze : MonoBehaviour
     {
-        public const int W = 8, H = 8;
+        public const int W = 6, H = 6;
         public const float Size = 2.6f, WallH = 2.7f, WallT = 0.3f;
         public Vector3 Origin;   // the south-west corner, in the parent's space
-        public Vector2Int Start = new Vector2Int(3, 0), Exit = new Vector2Int(4, H - 1);
+        public Vector2Int Start = new Vector2Int(2, 0), Exit = new Vector2Int(3, H - 1);
         public readonly List<Vector2Int> Solution = new List<Vector2Int>();
         public readonly List<Transform> Waters = new List<Transform>();
         public Transform Portal;
@@ -611,12 +641,8 @@ namespace TwelfthStamp
                 seen[next.x, next.y] = true;
                 stack.Push(next);
             }
-            // A few extra openings so there is more than one way round (and fewer long dead ends while it follows you).
-            for (int i = 0; i < 6; i++)
-            {
-                int x = rng.Next(W - 1), y = rng.Next(1, H - 1);
-                m_E[x, y] = true;
-            }
+            // A perfect maze: every cell reachable and exactly one way from the start to the exit (playtest, 18 Oct: extra
+            // openings made it read as "no correct path").
             // Solution by breadth-first search.
             var prev = new Dictionary<Vector2Int, Vector2Int>();
             var q = new Queue<Vector2Int>();
@@ -710,6 +736,14 @@ namespace TwelfthStamp
             Wall(new Vector3(exitC.x + 3.3f, 0, yz0), new Vector3(exitC.x + 3.3f, 0, yz1));
             Wall(new Vector3(exitC.x - 3.3f, 0, yz1), new Vector3(exitC.x + 3.3f, 0, yz1));
             BuildPortal(PortalLocal, cap);
+            var beaconMat = Mats.UnlitInstance(new Color(0.55f, 0.9f, 1f, 0.35f), Tex.SoftDot, true, 1.6f);
+            for (int i = 0; i < 2; i++)
+            {
+                var q = MeshFactory.Quad("ExitBeacon" + i, t, 1.6f, 22f, beaconMat, PortalLocal + new Vector3(0f, 11f, 0f), Quaternion.Euler(0f, i * 90f, 0f));
+                q.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+            var exitSign = TextFactory.World(t, "EXIT", 0.6f, new Color(0.6f, 0.95f, 1f), TMPro.TextAlignmentOptions.Center, true, 3f);
+            exitSign.transform.localPosition = CellCenter(Exit) + new Vector3(0f, WallH + 0.7f, Size * 0.5f);
 
             // Lanterns on the walls every few cells so the corridors read at dusk.
             var lampMat = Mats.Emissive(new Color(1f, 0.75f, 0.45f), new Color(2.2f, 1.3f, 0.5f));
@@ -836,25 +870,35 @@ namespace TwelfthStamp
 
     // ====================================================================== India: the Taj Mahal picture puzzle
     /// <summary>
-    /// A 3 x 3 picture puzzle of the Taj Mahal on a table in the garden, the real thing standing at the end of the axis.
-    /// Pick a piece, then pick another to swap them; when every piece is in place the picture is whole.
+    /// A 6-piece picture puzzle of the Taj Mahal on a table in the garden, the real thing standing at the end of the axis.
+    /// The pieces lie on the cloth either side of an empty board; pick one up and put it in its place on the board: only
+    /// the right place takes it, and a piece held near its place snaps in by itself. Six in place and the picture is whole.
     /// </summary>
     public class TajJigsaw : MonoBehaviour
     {
-        public const int N = 3;
-        const float Pitch = 0.27f, PieceSize = 0.262f;
-        readonly Interactable[] m_Pieces = new Interactable[N * N];
-        readonly Material[] m_Mats = new Material[N * N];
-        readonly int[] m_At = new int[N * N];   // m_At[slot] = piece
-        int m_Selected = -1;                    // a slot
-        bool m_Animating;
+        public const int Cols = 3, Rows = 2, Count = Cols * Rows;
+        const float BoardW = 0.66f, BoardH = 0.6f;
+        const float PieceW = BoardW / Cols, PieceH = BoardH / Rows;
+        const float SnapDistance = 0.13f;
+        readonly Grabbable[] m_Pieces = new Grabbable[Count];
+        readonly Socket[] m_Slots = new Socket[Count];
+        readonly Material[] m_Outline = new Material[Count];
+        readonly Vector3[] m_Rest = new Vector3[Count];
+        readonly float[] m_RestYaw = new float[Count];
+        readonly float[] m_Aimed = new float[Count];
         Transform m_Board;
+        bool m_Completing;
         public bool Solved { get; private set; }
         public bool Scrambled { get; private set; }
         public event System.Action<TajJigsaw> Completed;
         public Vector3 BoardPosition => m_Board != null ? m_Board.position : transform.position;
+        public int Placed { get { int n = 0; foreach (var s in m_Slots) if (s != null && s.Current != null) n++; return n; } }
+        public int Misplaced => Count - Placed;
+        public Grabbable Piece(int i) => m_Pieces[i];
+        public Socket Slot(int i) => m_Slots[i];
 
-        static Vector3 SlotPos(int s) => new Vector3((s % N - 1) * Pitch, 0.022f, (1 - s / N) * Pitch);
+        // Slot i: column i % 3 (left to right), row i / 3 (0 = the top half of the picture, the far side of the board).
+        static Vector3 SlotPos(int i) => new Vector3((i % Cols - 1) * PieceW, 0.02f, (0.5f - i / Cols) * PieceH);
 
         public static TajJigsaw Build(Transform parent, Vector3 pos, float yaw)
         {
@@ -873,168 +917,153 @@ namespace TwelfthStamp
             var wood = Mats.Lit(new Color(0.42f, 0.24f, 0.14f), 0.45f, 0f, "wood_dark");
             var cloth = Mats.Lit(new Color(0.55f, 0.08f, 0.1f), 0.2f);
             var brass = Mats.Lit(new Color(0.78f, 0.6f, 0.32f), 0.7f, 0.9f, "metal_brushed");
-            MeshFactory.Box("TableTop", t, new Vector3(0f, 0.8f, 0f), new Vector3(1.2f, 0.05f, 0.85f), wood, true);
-            MeshFactory.Box("Cloth", t, new Vector3(0f, 0.827f, 0f), new Vector3(1.0f, 0.004f, 0.8f), cloth, false);
-            foreach (var x in new[] { -0.54f, 0.54f })
-                foreach (var z in new[] { -0.36f, 0.36f })
+            var backing = Mats.Lit(new Color(0.9f, 0.86f, 0.78f), 0.3f);
+            // A wide table: the board in the middle, three pieces on the cloth either side.
+            MeshFactory.Box("TableTop", t, new Vector3(0f, 0.8f, 0f), new Vector3(1.7f, 0.05f, 0.9f), wood, true);
+            MeshFactory.Box("Cloth", t, new Vector3(0f, 0.827f, 0f), new Vector3(1.6f, 0.004f, 0.84f), cloth, false);
+            foreach (var x in new[] { -0.78f, 0.78f })
+                foreach (var z in new[] { -0.38f, 0.38f })
                     MeshFactory.Box("Leg", t, new Vector3(x, 0.39f, z), new Vector3(0.07f, 0.78f, 0.07f), wood, true);
             var tex = Tex.Art("taj_puzzle");
-            // The board, tipped toward the player: raised so its near edge rests on the cloth (tipped about its centre at
-            // table height, the near row sank into the table), its far edge on the stand.
-            const float tilt = 20f;
-            float rise = 0.44f * Mathf.Sin(tilt * Mathf.Deg2Rad);
+            // The board, tipped toward the player and resting on the cloth (its near edge) and a stand (its far edge).
+            const float tilt = 18f;
+            float rise = (BoardH / 2f + 0.04f) * Mathf.Sin(tilt * Mathf.Deg2Rad);
             m_Board = new GameObject("Board").transform;
             m_Board.SetParent(t, false);
-            m_Board.localPosition = new Vector3(-0.08f, 0.83f + rise + 0.022f, 0.06f);
+            m_Board.localPosition = new Vector3(0f, 0.83f + rise + 0.022f, 0.08f);
             m_Board.localRotation = Quaternion.Euler(-tilt, 0f, 0f);
-            MeshFactory.Box("Frame", m_Board, new Vector3(0f, -0.005f, 0f), new Vector3(0.88f, 0.03f, 0.88f), brass, false);
-            MeshFactory.Box("Bed", m_Board, new Vector3(0f, 0.008f, 0f), new Vector3(0.82f, 0.01f, 0.82f), Mats.Lit(new Color(0.1f, 0.08f, 0.07f), 0.3f), false);
-            MeshFactory.Box("Stand", t, new Vector3(-0.08f, 0.96f, 0.36f), new Vector3(0.6f, 0.27f, 0.05f), wood, false);
-            for (int p = 0; p < N * N; p++)
+            MeshFactory.Box("Frame", m_Board, new Vector3(0f, -0.005f, 0f), new Vector3(BoardW + 0.08f, 0.03f, BoardH + 0.08f), brass, false);
+            MeshFactory.Box("Bed", m_Board, new Vector3(0f, 0.008f, 0f), new Vector3(BoardW + 0.02f, 0.01f, BoardH + 0.02f), Mats.Lit(new Color(0.1f, 0.08f, 0.07f), 0.3f), false);
+            MeshFactory.Box("Stand", t, new Vector3(0f, 0.93f, 0.33f), new Vector3(0.5f, 0.2f, 0.05f), wood, false);
+            for (int i = 0; i < Count; i++)
             {
-                var piece = new GameObject("Piece" + p);
-                piece.transform.SetParent(m_Board, false);
-                int c = p % N, r = p / N;
-                var uv = new Rect(c / (float)N, 1f - (r + 1) / (float)N, 1f / N, 1f / N);
-                m_Mats[p] = Mats.UnlitInstance(Color.white, tex, false, 0.95f);
-                ImageQuad.Make("Image", piece.transform, new Vector3(0f, 0.012f, 0f), PieceSize - 0.006f, PieceSize - 0.006f, uv, m_Mats[p], true);
-                MeshFactory.Box("Backing", piece.transform, new Vector3(0f, 0.004f, 0f), new Vector3(PieceSize, 0.014f, PieceSize), Mats.Lit(new Color(0.9f, 0.86f, 0.78f), 0.3f), false);
-                var col = piece.AddComponent<BoxCollider>();
-                col.size = new Vector3(PieceSize, 0.05f, PieceSize);
-                col.center = new Vector3(0f, 0.01f, 0f);
-                var it = piece.AddComponent<Interactable>();
-                it.Prompt = "Pick up this piece";
-                it.MaxDistance = 2.4f;
-                int id = p;
-                it.OnUse = _ => OnPiece(id);
-                m_Pieces[p] = it;
-                m_At[p] = p;
-                piece.transform.localPosition = SlotPos(p);
+                int c = i % Cols, r = i / Cols;
+                var uv = new Rect(c / (float)Cols, 1f - (r + 1) / (float)Rows, 1f / Cols, 1f / Rows);
+                // The empty place on the board: a faint ghost of its part of the picture, so it is clear where it goes.
+                var slotGo = new GameObject("Place" + i);
+                slotGo.transform.SetParent(m_Board, false);
+                slotGo.transform.localPosition = SlotPos(i);
+                m_Outline[i] = Mats.UnlitInstance(new Color(1f, 1f, 1f, 0.16f), tex, true, 0.9f);
+                ImageQuad.Make("Hint", slotGo.transform, new Vector3(0f, 0.004f, 0f), PieceW - 0.01f, PieceH - 0.01f, uv, m_Outline[i], true);
+                var sc = slotGo.AddComponent<BoxCollider>();
+                sc.isTrigger = true;
+                sc.size = new Vector3(PieceW, 0.06f, PieceH);
+                var sock = slotGo.AddComponent<TajSlot>();
+                sock.Accepts.Add("taj_piece_" + i);
+                sock.LockWhenFilled = true;
+                sock.Prompt = "Put the piece here";
+                sock.MaxDistance = 2.4f;
+                sock.Filled += OnFilled;
+                m_Slots[i] = sock;
+
+                // The piece itself.
+                var piece = new GameObject("TajPiece" + i);
+                piece.transform.SetParent(t, false);
+                MeshFactory.Box("Backing", piece.transform, new Vector3(0f, 0.006f, 0f), new Vector3(PieceW - 0.004f, 0.012f, PieceH - 0.004f), backing, false);
+                ImageQuad.Make("Image", piece.transform, new Vector3(0f, 0.0135f, 0f), PieceW - 0.01f, PieceH - 0.01f, uv, Mats.UnlitInstance(Color.white, tex, false, 0.95f), true);
+                piece.AddComponent<BoxCollider>().size = new Vector3(PieceW, 0.03f, PieceH);
+                var g = PropLibrary.MakeGrabbable(piece, "taj_piece_" + i, "Pick up this piece");
+                g.UsePhysicsOnRelease = false;          // a dropped piece lies where it is put, never rolls off the table
+                g.DesktopHoldEuler = new Vector3(-60f, 0f, 0f); // held up toward the eyes, the picture facing the player
+                g.HoldLocalEuler = new Vector3(-60f, 0f, 0f);
+                m_Pieces[i] = g;
             }
-            // The postcard of the finished picture, propped at the table's corner.
+            // Where the pieces wait: three on the cloth to the left of the board, three to the right, shuffled.
+            var rest = new[] { new Vector3(-0.62f, 0.83f, 0.22f), new Vector3(-0.62f, 0.83f, -0.12f), new Vector3(-0.45f, 0.83f, -0.3f),
+                               new Vector3(0.62f, 0.83f, 0.22f), new Vector3(0.62f, 0.83f, -0.12f), new Vector3(0.45f, 0.83f, -0.3f) };
+            for (int i = 0; i < Count; i++) { m_Rest[i] = rest[i]; m_RestYaw[i] = (i % 2 == 0 ? -1f : 1f) * (8f + 6f * i); }
+            // The postcard of the finished picture, propped on the stand behind the board.
             var card = new GameObject("ReferenceCard").transform;
             card.SetParent(t, false);
-            card.localPosition = new Vector3(0.47f, 0.95f, 0.18f);
-            card.localRotation = Quaternion.Euler(15f, -20f, 0f);
+            card.localPosition = new Vector3(0.62f, 0.95f, 0.36f);
+            card.localRotation = Quaternion.Euler(15f, -15f, 0f);
             MeshFactory.Box("CardBack", card, new Vector3(0f, 0f, 0.004f), new Vector3(0.21f, 0.21f, 0.006f), Mats.Lit(new Color(0.95f, 0.93f, 0.88f), 0.3f), false);
             ImageQuad.Make("CardImage", card, Vector3.zero, 0.19f, 0.19f, new Rect(0, 0, 1, 1), Mats.Unlit(Color.white, tex, false, 0.95f), false);
-            MeshFactory.Box("CardProp", t, new Vector3(0.47f, 0.88f, 0.24f), new Vector3(0.02f, 0.1f, 0.06f), wood, false);
             var lg = new GameObject("TableLamp");
             lg.transform.SetParent(t, false);
             lg.transform.localPosition = new Vector3(0f, 1.9f, -0.4f);
             var l = lg.AddComponent<Light>();
             l.type = LightType.Point; l.color = new Color(1f, 0.82f, 0.6f); l.intensity = 1.2f; l.range = 3f; l.shadows = LightShadows.None;
+            Scramble();
         }
 
-        /// <summary>Mixes the pieces up (at most two left in place).</summary>
+        /// <summary>Every piece back on the cloth beside the board (a fresh puzzle).</summary>
         public void Scramble()
         {
             Solved = false;
             Scrambled = true;
-            m_Selected = -1;
-            int inPlace;
-            do
+            m_Completing = false;
+            var order = new int[Count];
+            for (int i = 0; i < Count; i++) order[i] = i;
+            for (int i = Count - 1; i > 0; i--) { int k = Random.Range(0, i + 1); (order[i], order[k]) = (order[k], order[i]); }
+            for (int i = 0; i < Count; i++)
             {
-                for (int i = 0; i < m_At.Length; i++) m_At[i] = i;
-                for (int i = m_At.Length - 1; i > 0; i--) { int k = Random.Range(0, i + 1); (m_At[i], m_At[k]) = (m_At[k], m_At[i]); }
-                inPlace = 0;
-                for (int i = 0; i < m_At.Length; i++) if (m_At[i] == i) inPlace++;
-            } while (inPlace > 2);
-            Layout();
-            SetUsable(true);
+                var g = m_Pieces[i];
+                if (g == null) continue;
+                if (g.Holder != null) g.Holder.ForceRelease(false);
+                if (g.InSocket != null) g.InSocket.Release(g);
+                g.transform.SetParent(transform, false);
+                g.transform.localPosition = m_Rest[order[i]];
+                g.transform.localRotation = Quaternion.Euler(0f, m_RestYaw[order[i]], 0f);
+                // The cell is built while hidden, before the pieces' Awake has cached their bodies.
+                var rb = g.GetComponent<Rigidbody>();
+                if (rb != null) { rb.isKinematic = true; rb.detectCollisions = true; rb.interpolation = RigidbodyInterpolation.None; rb.position = g.transform.position; rb.rotation = g.transform.rotation; }
+                g.Usable = true;
+                g.SetHome();
+                m_Outline[i].SetColor("_Color", new Color(1f, 1f, 1f, 0.16f));
+            }
         }
 
         /// <summary>The picture whole (already solved on an earlier visit).</summary>
         public void ShowSolved()
         {
-            for (int i = 0; i < m_At.Length; i++) m_At[i] = i;
+            for (int i = 0; i < Count; i++)
+            {
+                var g = m_Pieces[i];
+                if (g == null || m_Slots[i].Current == g) continue;
+                if (g.Holder != null) g.Holder.ForceRelease(false);
+                if (g.InSocket != null) g.InSocket.Release(g);
+                m_Slots[i].Put(g);
+            }
             Solved = true;
             Scrambled = true;
-            m_Selected = -1;
-            Layout();
-            SetUsable(false);
         }
 
-        void SetUsable(bool on) { foreach (var p in m_Pieces) if (p != null) p.Usable = on; }
-
-        void Layout()
+        void OnFilled(Socket s, Grabbable g)
         {
-            for (int s = 0; s < m_At.Length; s++)
-            {
-                var p = m_Pieces[m_At[s]];
-                p.transform.localPosition = SlotPos(s);
-                m_Mats[m_At[s]].SetColor("_Color", Color.white);
-            }
+            int i = System.Array.IndexOf(m_Slots, s);
+            if (i >= 0) m_Outline[i].SetColor("_Color", new Color(1f, 1f, 1f, 0f));
+            AudioDirector.I?.Play("drop_soft", s.transform.position, 0.7f, 1.3f);
+            if (Solved || m_Completing) return;
+            if (Placed < Count) { Hud.I?.ShowCaption("click: the piece fits (" + Placed + "/" + Count + ")", 1.6f); return; }
+            m_Completing = true;
+            Solved = true;
+            Completed?.Invoke(this);
         }
 
-        int SlotOf(int piece) { for (int s = 0; s < m_At.Length; s++) if (m_At[s] == piece) return s; return -1; }
-
-        public int Misplaced { get { int n = 0; for (int i = 0; i < m_At.Length; i++) if (m_At[i] != i) n++; return n; } }
-
-        void OnPiece(int piece)
+        void Update()
         {
-            if (Solved || m_Animating) return;
-            int slot = SlotOf(piece);
-            if (m_Selected < 0)
+            // A piece held close to its own place snaps in by itself (desktop: hold it over its place; VR: bring it near).
+            for (int i = 0; i < Count; i++)
             {
-                m_Selected = slot;
-                m_Pieces[piece].transform.localPosition = SlotPos(slot) + Vector3.up * 0.04f;
-                m_Mats[piece].SetColor("_Color", new Color(1f, 0.9f, 0.55f));
-                AudioDirector.I?.Play("grab", m_Pieces[piece].transform.position, 0.5f);
-                foreach (var p in m_Pieces) p.Prompt = "Swap with this piece";
-                m_Pieces[piece].Prompt = "Put the piece back";
-                return;
+                var g = m_Pieces[i];
+                if (g == null || g.Holder == null || m_Slots[i].Current != null) continue;
+                // Measured from the hand, not the piece: a held body trails the hand by a frame or two.
+                var holdAt = g.Holder.HoldPoint != null ? g.Holder.HoldPoint.position : g.transform.position;
+                var near = Vector3.Distance(holdAt, m_Slots[i].transform.position) < SnapDistance;
+                bool aimed = g.Holder.Focused == m_Slots[i];
+                m_Aimed[i] = aimed ? m_Aimed[i] + Time.deltaTime : 0f;
+                // Aimed at its own place for a moment (the only place that takes it): it snaps in without a press.
+                if (near || m_Aimed[i] > 0.35f) { m_Aimed[i] = 0f; g.Holder.PlaceInto(m_Slots[i]); }
+                else if (aimed) m_Outline[i].SetColor("_Color", new Color(1f, 0.95f, 0.6f, 0.45f + 0.15f * Mathf.Sin(Time.time * 8f)));
+                else m_Outline[i].SetColor("_Color", new Color(1f, 1f, 1f, 0.16f));
             }
-            if (m_Selected == slot)
-            {
-                m_Pieces[piece].transform.localPosition = SlotPos(slot);
-                m_Mats[piece].SetColor("_Color", Color.white);
-                m_Selected = -1;
-                foreach (var p in m_Pieces) p.Prompt = "Pick up this piece";
-                return;
-            }
-            StartCoroutine(SwapRoutine(m_Selected, slot));
         }
+    }
 
-        /// <summary>Swaps the pieces in two slots (tests use it directly).</summary>
-        public void Swap(int a, int b)
-        {
-            if (Solved || m_Animating || a == b) return;
-            StartCoroutine(SwapRoutine(a, b));
-        }
-
-        /// <summary>The slot that currently holds <paramref name="piece"/> (tests and the guide).</summary>
-        public int SlotHolding(int piece) => SlotOf(piece);
-
-        /// <summary>The piece lying in <paramref name="slot"/> now.</summary>
-        public Interactable PieceAt(int slot) => m_Pieces[m_At[slot]];
-
-        IEnumerator SwapRoutine(int a, int b)
-        {
-            m_Animating = true;
-            m_Selected = -1;
-            var pa = m_Pieces[m_At[a]].transform;
-            var pb = m_Pieces[m_At[b]].transform;
-            var fa = pa.localPosition; var fb = pb.localPosition;
-            for (float t = 0f; t < 1f; t += Time.deltaTime / 0.25f)
-            {
-                float lift = Mathf.Sin(t * Mathf.PI) * 0.05f;
-                pa.localPosition = Vector3.Lerp(fa, SlotPos(b), t) + Vector3.up * lift;
-                pb.localPosition = Vector3.Lerp(fb, SlotPos(a), t) + Vector3.up * lift;
-                yield return null;
-            }
-            (m_At[a], m_At[b]) = (m_At[b], m_At[a]);
-            Layout();
-            AudioDirector.I?.Play("drop_soft", pa.position, 0.6f);
-            foreach (var p in m_Pieces) p.Prompt = "Pick up this piece";
-            m_Animating = false;
-            if (Misplaced == 0)
-            {
-                Solved = true;
-                SetUsable(false);
-                Completed?.Invoke(this);
-            }
-            else if (m_At[a] == a || m_At[b] == b) AudioDirector.I?.Play("dial_click", pa.position, 0.6f, 1.4f);
-        }
+    /// <summary>A place on the Taj Mahal board: takes only its own piece.</summary>
+    public class TajSlot : Socket
+    {
+        public override string GetPrompt(Interactor who) => "Put the piece here";
     }
 }

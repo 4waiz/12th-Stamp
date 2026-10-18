@@ -108,22 +108,34 @@ namespace TwelfthStamp
             m_Chroma.active = !s.reducedEffects;
         }
 
+        const float SpookyExposure = 0.12f, SpookySaturation = 14f, SpookyContrast = 9f, SpookyVignette = 0.1f;
+
         void Update()
         {
             if (m_Color == null) return;
             var s = Game.Settings ?? new GameSettings();
             m_Flash = Mathf.MoveTowards(m_Flash, 0f, Time.unscaledDeltaTime * 1.5f);
-            float exposure = m_Preset.PostExposure + s.brightness * 0.75f + m_Flash * 0.8f;
+            // The spooky grade over every place (playtest, 18 Oct: "make everything look scary and spooky"): a little darker,
+            // colder and less saturated, harder contrast, a heavier vignette and film grain. Hearts running low push it further.
+            float exposure = m_Preset.PostExposure - SpookyExposure + s.brightness * 0.75f + m_Flash * 0.8f;
             m_Color.postExposure.value = exposure;
-            m_Color.saturation.value = m_Preset.Saturation - m_Drain * 45f - m_Contamination * 15f;
-            m_Color.contrast.value = m_Preset.Contrast;
-            m_Color.colorFilter.value = Color.Lerp(m_Preset.ColorFilter, new Color(0.75f, 0.85f, 0.85f), m_Drain * 0.4f);
+            m_Color.saturation.value = m_Preset.Saturation - SpookySaturation - m_Drain * 45f - m_Contamination * 15f;
+            m_Color.contrast.value = m_Preset.Contrast + SpookyContrast;
+            var cold = new Color(m_Preset.ColorFilter.r * 0.9f, m_Preset.ColorFilter.g * 0.97f, m_Preset.ColorFilter.b * 1.0f);
+            m_Color.colorFilter.value = Color.Lerp(cold, new Color(0.75f, 0.85f, 0.85f), m_Drain * 0.4f);
+            if (m_Grain != null && m_Grain.active)
+            {
+                m_Grain.intensity.overrideState = true;
+                m_Grain.intensity.value = Game.Mode == GameMode.VR ? 0.12f : 0.32f + m_Drain * 0.3f;
+                m_Grain.response.overrideState = true;
+                m_Grain.response.value = 0.75f;
+            }
             m_Bloom.intensity.overrideState = true;
             m_Bloom.intensity.value = m_Preset.Bloom + m_Flash * 1.5f;
             m_Vignette.intensity.overrideState = true;
-            m_Vignette.intensity.value = Mathf.Clamp01(m_Preset.Vignette + m_Drain * 0.25f + m_Contamination * 0.15f);
+            m_Vignette.intensity.value = Mathf.Clamp01(m_Preset.Vignette + SpookyVignette + m_Drain * 0.25f + m_Contamination * 0.15f);
             m_Vignette.color.overrideState = true;
-            m_Vignette.color.value = Color.Lerp(Color.black, new Color(0.05f, 0.12f, 0.11f), m_Contamination);
+            m_Vignette.color.value = Color.Lerp(Color.Lerp(Color.black, new Color(0.12f, 0f, 0.01f), m_Drain), new Color(0.05f, 0.12f, 0.11f), m_Contamination);
             if (m_Chroma.active)
             {
                 m_Chroma.intensity.overrideState = true;

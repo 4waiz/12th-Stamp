@@ -2,17 +2,18 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>USA / New York — The Last Arrival. Harbour terminal at night; power the security booth, read its
-    /// warning, and use the portable noisemaker to draw the Passenger off the arrival gate.</summary>
+    /// <summary>USA / New York — Spot the Impostor. The harbour terminal's arrival hall has become a space-station arcade:
+    /// three cartoon crewmates on pads, two tiny station tasks, a security screen with the one clue, and a VOTE button in
+    /// front of each crewmate (Cells/NewYorkImpostorGame.cs). Vote the impostor out while the figure hunts the hall.</summary>
     public partial class NewYorkCell : Cell
     {
-        public PushButton Breaker;
         public TMPro.TextMeshPro Screen;
         public GameObject ScreenGlow;
         public Grabbable Noisemaker;
         public Transform Gate;
         public TraceMark Trace;
-        public Vector3 GuardLocal = new Vector3(2.2f, 0f, 5.2f);
+        public ImpostorGame Station;
+        public GhostHunt Hunt;
         /// <summary>The statue's root in the harbour (the vista builds its island round it; the pier runs out to it).</summary>
         static readonly Vector3 LibertyRoot = new Vector3(150f, -1.5f, -70f);
 
@@ -71,7 +72,7 @@ namespace TwelfthStamp
             Landmarks.Liberty(g, LibertyRoot, -60f, Mats.Backdrop(new Color(0.16f, 0.2f, 0.2f), Lighting), Mats.Backdrop(new Color(1f, 0.8f, 0.5f), Lighting, new Color(2f, 1.3f, 0.5f)));
             Landmarks.Skyline(g, new Vector3(0, -2f, 0), 210f, 70f, 70f, 14, Mats.Backdrop(new Color(0.1f, 0.1f, 0.13f), Lighting), Mats.Backdrop(new Color(1f, 0.8f, 0.5f), Lighting, new Color(1.2f, 0.8f, 0.45f)), 31);
 
-            // Arrival gate (the objective) and a luggage carousel.
+            // Arrival gate (the crewmates stand in front of it) and a luggage carousel.
             Gate = new GameObject("ArrivalGate").transform;
             Gate.SetParent(g, false);
             Gate.localPosition = new Vector3(2.2f, 0, 6.2f);
@@ -81,14 +82,14 @@ namespace TwelfthStamp
             MeshFactory.Box("GateSign", Gate, new Vector3(0, 2.8f, -0.05f), new Vector3(2f, 0.4f, 0.06f), Mats.Emissive(new Color(0.1f, 0.12f, 0.1f), new Color(0.25f, 0.6f, 0.4f)), false);
             var sign = TextFactory.World(Gate, "ARRIVALS", 0.18f, new Color(0.85f, 1f, 0.9f), TMPro.TextAlignmentOptions.Center, false, 2f);
             sign.transform.localPosition = new Vector3(0, 2.8f, -0.09f);
+            // The trace stays hidden: voting the impostor out verifies the seal.
             Trace = TraceMark.Create(transform, CountryId.USA, new Vector3(2.2f, 0.02f, 5.5f), Quaternion.identity, 0.55f, true);
-            Trace.Reveal(false);
             var belt = Mats.Lit(new Color(0.12f, 0.12f, 0.13f), 0.4f);
             MeshFactory.Box("Carousel", g, new Vector3(-2.8f, 0.35f, 4.2f), new Vector3(1.4f, 0.7f, 5.5f), metal, true);
             MeshFactory.Box("Belt", g, new Vector3(-2.8f, 0.72f, 4.2f), new Vector3(1.2f, 0.04f, 5.3f), belt, false);
             for (int i = 0; i < 3; i++) Kit.Crate(g, new Vector3(-2.8f, 0.74f, 2.5f + i * 1.6f), i * 20f, new Vector3(0.5f, 0.32f, 0.7f), Mats.Lit(new Color(0.95f, 0.9f, 0.85f), 0.3f, 0f, "leather_navy"));
 
-            // Security booth with breaker, screen and the noisemaker.
+            // Security booth with its screen and the noisemaker (USA's seal grants the noisemaker; Berlin uses it).
             var booth = new GameObject("SecurityBooth").transform;
             booth.SetParent(g, false);
             booth.localPosition = new Vector3(-3.6f, 0, -1.5f);
@@ -102,11 +103,6 @@ namespace TwelfthStamp
             Screen = TextFactory.World(booth, "", 0.016f, new Color(0.1f, 0.18f, 0.12f), TMPro.TextAlignmentOptions.TopLeft, false, 0.4f);
             Screen.transform.localPosition = new Vector3(0.3f, 1.27f, -0.71f);
             Screen.rectTransform.sizeDelta = new Vector2(0.4f, 0.28f);
-            var breaker = MeshFactory.Box("Breaker", booth, new Vector3(-0.93f, 1.1f, 0.2f), new Vector3(0.08f, 0.3f, 0.2f), Mats.Lit(new Color(0.6f, 0.1f, 0.08f), 0.4f), true);
-            Breaker = breaker.AddComponent<PushButton>();
-            Breaker.Prompt = "Switch on the booth power";
-            Breaker.Sound = "lever_clunk";
-            Breaker.OneShot = true;
             var noise = new GameObject("Noisemaker");
             noise.transform.SetParent(booth, false);
             noise.transform.localPosition = new Vector3(-0.35f, 1.04f, -0.45f);
@@ -129,6 +125,20 @@ namespace TwelfthStamp
 
             BuildTerminalDetail(g, concrete, metal, paint, sodium);
 
+            // The game: the space-station arcade in the arrival hall (Cells/NewYorkImpostorGame.cs).
+            Station = ImpostorGame.Build(g);
+            // The figure hunts the hall while the game is played: it walks in off the apron at the south end.
+            Hunt = gameObject.AddComponent<GhostHunt>();
+            Hunt.Cell = this;
+            Hunt.SpawnLocal = new Vector3(-5.2f, 0f, -5.4f);
+            Hunt.RetreatLocal = new Vector3(5.6f, 0f, -5.2f);
+            Hunt.StalkSpeed = 0.55f;
+            Hunt.RushEvery = 14f;
+            Hunt.RushSeconds = 2.2f;
+            Hunt.LoseDistance = 12f;
+            Hunt.RestSeconds = 9f;
+            Hunt.Arrives = "the last arrival walks in off the apron";
+
             AddSeam("arrival", new Vector3(-1f, 0f, -5.4f), 0f);
             AddSeam("pier", new Vector3(6.1f, 0f, 3.5f), -90f);
             AddSeam("hall", new Vector3(-5.6f, 0f, 4.8f), 90f);
@@ -144,8 +154,8 @@ namespace TwelfthStamp
     {
         /// <summary>
         /// The terminal reads as a place: canopy beams, apron markings and bollards, mooring posts and a lifebuoy on the
-        /// harbour edge, a bench, a vending machine, luggage trolleys and stacked bags, and a hazard-striped breaker box the
-        /// eye goes to. The arrivals hall, canopy fittings, baggage claim, quay, ferry and street are in Detail_NewYork.cs.
+        /// harbour edge, a bench, a vending machine, luggage trolleys and stacked bags, and a hazard-striped electrics box on
+        /// the booth. The arrivals hall, canopy fittings, baggage claim, quay, ferry and street are in Detail_NewYork.cs.
         /// </summary>
         void BuildTerminalDetail(Transform g, Material concrete, Material metal, Material paint, Color sodium)
         {
@@ -219,17 +229,13 @@ namespace TwelfthStamp
                 k.Box(frame, bagPos[i] + Vector3.up * 0.5f, new Vector3(0.16f, 0.03f, 0.03f), r);
             }
 
-            // The breaker: a hazard-striped box with a big red lever and a conduit to the booth, so its job is obvious.
-            // Backplate on the booth's west face (x = -4.5) around the red breaker, hazard stripes above and below it.
+            // A hazard-striped electrics plate on the booth's west face (x = -4.5) with a conduit down to the floor.
             var plate = new Vector3(-4.508f, 1.1f, -1.3f);
             k.Box(yellow, plate, new Vector3(0.012f, 0.7f, 0.5f));
             foreach (var y in new[] { -0.29f, 0.27f })
                 for (int i = 0; i < 5; i++) k.Box(black, plate + new Vector3(-0.008f, y, -0.2f + i * 0.1f), new Vector3(0.004f, 0.08f, 0.035f), Quaternion.Euler(35f, 0, 0));
             k.Box(metal, new Vector3(-4.53f, 0.38f, -1.3f), new Vector3(0.05f, 0.76f, 0.05f));   // conduit down the booth
             k.Box(metal, new Vector3(-4.53f, 0.04f, -1.0f), new Vector3(0.05f, 0.05f, 0.65f));   // and along the floor
-            var powerLabel = TextFactory.World(g, "BOOTH POWER", 0.05f, new Color(0.08f, 0.07f, 0.05f), TMPro.TextAlignmentOptions.Center, false, 0.46f);
-            powerLabel.transform.localPosition = plate + new Vector3(-0.012f, 0.27f, 0f);
-            powerLabel.transform.localRotation = Quaternion.Euler(0, 90f, 0); // reads from the west side
 
             BuildPlaceDetail(g, k, concrete, metal, sodium); // canopy fittings and the west side join this batch
             k.Bake(g, "TerminalDetail");
@@ -239,49 +245,104 @@ namespace TwelfthStamp
     public class NewYorkEncounter : Encounter
     {
         NewYorkCell N => (NewYorkCell)Cell;
-        // Read-only state for the guide (Guide/GuideBook.cs).
-        public bool Powered => m_Powered;
+        ImpostorGame S => N.Station;
+        // Read-only state for the guide (Guide/GuideBook.NewYork.cs) and the tests.
+        public bool Solved => m_Solved;
         public bool NoiseOn => m_On;
+        public bool Rushing => m_RushLeft > 0f || m_RushPending;
         AudioSource m_Noise;
-        bool m_On, m_Powered;
-        float m_InvestigateCooldown;
+        bool m_On, m_Solved, m_RushPending;
+        float m_InvestigateCooldown, m_RushLeft;
 
-        public override string Objective => !m_Powered ? "Power the security booth and read its screen." :
-            "Use the noisemaker to draw it away from the arrival gate, then verify the trace at the gate.";
+        public override string Objective => m_Solved ? "The impostor is ejected. Run to your stamp."
+            : !S.TasksDone ? "Space Station Arcade: do the two station tasks (" + (S.WiringDone ? "Fix wiring done" : "Fix wiring") + ", " + (S.CardDone ? "Swipe card done" : "Swipe card") +
+                             "), then read the security screen and vote the impostor out. When the figure comes, run, lose it, then come back."
+            : "The security screen says the impostor has " + ImpostorGame.ClueShort(S.Clue) + ". Press VOTE in front of that crewmate.";
 
         public override void OnEnter(bool firstVisit)
         {
-            m_Powered = N.ScreenGlow.activeSelf;
-            N.Breaker.Pressed -= OnBreaker; N.Breaker.Pressed += OnBreaker;
+            m_Solved = Game.Campaign.IsVerified(CountryId.USA);
             N.Noisemaker.OnActivate = (g, who) => Toggle();
-            N.Trace.BlockedReason = () => PassengerNearGate() ? "It is standing in the arrival gate." : null;
+            S.TaskDone -= OnTask; S.TaskDone += OnTask;
+            S.Voted -= OnVoted; S.Voted += OnVoted;
+            S.ImpostorGone -= OnGone; S.ImpostorGone += OnGone;
+            N.Trace.Hide();
+            m_RushPending = false;
+            m_RushLeft = 0f;
             Game.Passenger?.Despawn();
-            if (!Game.Campaign.IsVerified(CountryId.USA))
-            {
-                var pc = Game.Passenger;
-                pc.GuardPoint = N.transform.TransformPoint(N.GuardLocal);
-                pc.RetreatPoint = N.transform.TransformPoint(new Vector3(-5f, 0f, 7f));
-                pc.Spawn(Cell, N.GuardLocal, 180f, PassengerState.Guard, Disguise.LostLuggage);
-                pc.Threatening = true;
-                pc.WalkSpeed = 0.8f;
-            }
+            if (m_Solved) { S.SetSolved(); N.Hunt.Stop(); return; }
+            S.ResetGame();
+            Hud.I?.ShowToast("The arrival hall is a space-station arcade. One of the three crewmates is an impostor: do the two tasks, read the security screen, vote it out.", 5f);
+            N.Hunt.Begin(firstVisit ? 9f : 6f);
             Hud.I?.SetObjective(Objective, false);
         }
 
         public override void OnExit()
         {
-            N.Breaker.Pressed -= OnBreaker;
+            S.TaskDone -= OnTask;
+            S.Voted -= OnVoted;
+            S.ImpostorGone -= OnGone;
+            N.Hunt.Stop();
+            m_RushPending = false;
+            m_RushLeft = 0f;
             if (m_On) Toggle();
         }
 
-        void OnBreaker(PushButton b)
+        void OnTask(ImpostorGame g, string which)
         {
-            m_Powered = true;
-            AudioDirector.I?.Play("booth_power", b.transform.position, 0.9f);
-            N.ScreenGlow.SetActive(true);
-            N.Screen.text = "<b>FESTIVAL OF PASSPORTS — ARRIVALS</b>\nAL MANSOORI, S.  .....  ARRIVED\nAL MANSOORI, S.  .....  ARRIVED\n<color=#7a1010>2 PASSENGERS  /  1 PASSPORT</color>";
-            Narration.I?.Say("usa_01", null, false, null, false, true);
+            if (!IsLive || m_Solved) return;
+            if (g.TasksDone)
+            {
+                AudioDirector.I?.Play("camera_shutter", g.ScreenPosition, 0.9f);
+                AudioDirector.I?.Play("pp_seam_shimmer", g.ScreenPosition, 0.6f);
+                Hud.I?.ShowToast("Both tasks done. The security screen over the gate shows a clue: the impostor has " + ImpostorGame.ClueShort(g.Clue) + ". Vote it out.", 5f);
+            }
+            else Hud.I?.ShowToast((which == "wiring" ? "Wiring fixed." : "Card accepted.") + " One more task: " + (which == "wiring" ? "Swipe card." : "Fix wiring."), 3f);
             Hud.I?.SetObjective(Objective, false);
+        }
+
+        void OnVoted(ImpostorGame g, int who, bool impostor)
+        {
+            if (!IsLive || m_Solved) return;
+            if (impostor)
+            {
+                m_Solved = true;
+                m_RushPending = false;
+                m_RushLeft = 0f;
+                N.Hunt.Stop();
+                Hud.I?.ShowToast(ImpostorGame.Names[who] + " was the impostor. Ejected!", 3f);
+                return;
+            }
+            Hud.I?.ShowToast(ImpostorGame.Names[who] + " was not the impostor. Something heard the vote and comes running: get away, then vote again.", 4f);
+            Rush();
+        }
+
+        void OnGone(ImpostorGame g)
+        {
+            if (!IsLive) return;
+            AudioDirector.I?.Play("seal_verify", g.ScreenPosition, 0.8f);
+            Game.Story.VerifyCountry(CountryId.USA, null);
+        }
+
+        /// <summary>A wrong vote: the figure rushes the player (it comes in first if it is not here yet).</summary>
+        void Rush()
+        {
+            var pc = Game.Passenger;
+            if (pc == null) return;
+            if (pc.Visible && pc.transform.parent == Cell.transform) StartRush();
+            else { m_RushPending = true; N.Hunt.Begin(0f); }
+        }
+
+        void StartRush()
+        {
+            m_RushPending = false;
+            var pc = Game.Passenger;
+            if (pc == null || !pc.Visible) return;
+            pc.Threatening = true;
+            pc.StartChase();
+            m_RushLeft = 3f;
+            AudioDirector.I?.Play("pass_sting", pc.ChestPosition, 0.8f, 1f, Bus.SFX, true);
+            Hud.I?.ShowCaption("it rushes at you: run", 2f);
         }
 
         void Toggle()
@@ -293,21 +354,25 @@ namespace TwelfthStamp
             Hud.I?.ShowCaption(m_On ? "the noisemaker crackles and warbles" : "the noisemaker falls silent", 2f);
         }
 
-        bool PassengerNearGate()
-        {
-            var pc = Game.Passenger;
-            return pc != null && pc.Visible && Vector3.Distance(pc.transform.position, N.Gate.position) < 2.8f && pc.State != PassengerState.Retreat;
-        }
-
         void Update()
         {
             if (!IsLive || Game.Paused) return;
             var pc = Game.Passenger;
-            if (pc == null || !pc.Visible) return;
-            m_InvestigateCooldown -= Time.deltaTime;
-            if (m_On && m_InvestigateCooldown <= 0f && pc.State != PassengerState.Repelled && pc.State != PassengerState.Retreat)
+            if (pc == null) return;
+            bool here = pc.Visible && pc.transform.parent == Cell.transform;
+            if (m_RushPending && here) StartRush();
+            if (m_RushLeft > 0f)
             {
-                // It always goes to the sound — including to you, if you are holding it.
+                m_RushLeft -= Time.deltaTime;
+                // The rush ends; the hunt takes it back to stalking.
+                if (m_RushLeft <= 0f && !m_Solved && here && pc.State == PassengerState.Chase) pc.SetState(PassengerState.Stalk);
+                return;
+            }
+            if (!here) return;
+            m_InvestigateCooldown -= Time.deltaTime;
+            if (m_On && m_InvestigateCooldown <= 0f && pc.State != PassengerState.Repelled && pc.State != PassengerState.Retreat && pc.State != PassengerState.Chase)
+            {
+                // The noisemaker still lures it to its sound, including to you if you are holding it.
                 pc.Investigate(N.Noisemaker.transform.position, 14f);
                 m_InvestigateCooldown = 1.5f;
             }
@@ -316,13 +381,15 @@ namespace TwelfthStamp
         public void OnVerified()
         {
             if (m_On) Toggle();
-            Hud.I?.ShowToast("Noisemaker kept. Recall it any time: " + Game.Input.Label(Intent.Recall), 4f);
-            var pc = Game.Passenger;
-            if (pc != null && pc.Visible) pc.SetState(PassengerState.Retreat);
+            Hud.I?.ShowToast("The station lets you keep its noisemaker: its sound draws the figure. Recall it any time: " + Game.Input.Label(Intent.Recall), 4f);
         }
 
         public override void ResetLocal()
         {
+            N.Hunt.Stop();
+            Game.Passenger?.Despawn();
+            m_RushPending = false;
+            m_RushLeft = 0f;
             if (m_On) Toggle();
             N.Noisemaker.ReturnHome();
         }

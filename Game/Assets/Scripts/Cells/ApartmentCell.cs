@@ -21,6 +21,7 @@ namespace TwelfthStamp
         public readonly List<Transform> SkylineLayers = new List<Transform>();
         public TraceMark Trace;
         public GameObject GenuineNote;
+        public GhostWhack Ghosts;   // the Margin copy only: the whack-a-ghost game (Cells/GhostWhack.cs)
         public Transform BathroomInside;
         public AudioSource FridgeHum;
 
@@ -247,9 +248,11 @@ namespace TwelfthStamp
             AddSeam("hall", new Vector3(-3.9f, 0f, 1.2f), 90f);
             if (!Corrupted) foreach (var s in Seams) s.Revealed = false;
 
-            // UAE trace: the genuine handwritten note (the copy could not forge handwriting).
+            // UAE trace: the genuine handwritten note (the copy could not forge handwriting). It stays hidden now: in the
+            // Margin copy the seal is won by the whack-a-ghost game, ghosts popping out of the furniture (Cells/GhostWhack.cs).
             Trace = TraceMark.Create(transform, CountryId.UAE, new Vector3(1.0f, 1.25f, 3.24f), Quaternion.identity, 0.24f, false);
             Trace.transform.localRotation = Quaternion.Euler(0, 180, 0);
+            if (Corrupted) Ghosts = GhostWhack.Build(this);
 
             SetArrival(new Vector3(-2.8f, 0f, -2.4f), 60f);
             AddBounds(new Vector3(0, 0, -0.5f), new Vector3(8.8f, 3f, 9f));

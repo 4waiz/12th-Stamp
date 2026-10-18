@@ -4,6 +4,10 @@ THE TWELFTH STAMP
 A first-person survival-puzzle horror game for Meta Quest 3 (as PC VR) and for keyboard and mouse.
 Made for the SHIFT Game Jam, 17-18 October 2026 (theme: Festival of Passports). Version 0.9.0.
 
+CONTENT WARNING: horror for adults. Loud jump scares and screams, growls, breathing close behind you, bone
+cracks and drowning sounds, a figure that stalks and chases you, dark scenes and film grain. No visual gore.
+For fewer, quieter scares and no jump scares, set Scare intensity to Gentle (first-run setup or Settings).
+
 
 1. START THE GAME
 -----------------

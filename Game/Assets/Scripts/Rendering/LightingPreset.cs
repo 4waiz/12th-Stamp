@@ -49,8 +49,9 @@ namespace TwelfthStamp
             RenderSettings.ambientGroundColor = AmbientGround * AmbientIntensity;
             RenderSettings.fog = FogDensity > 0f;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogColor = FogColor;
-            RenderSettings.fogDensity = FogDensity;
+            // A touch more fog everywhere, and a colder, dimmer fill: the spooky grade (see PostFx).
+            RenderSettings.fogColor = Color.Lerp(FogColor, new Color(0.1f, 0.12f, 0.14f), 0.2f);
+            RenderSettings.fogDensity = FogDensity * 1.3f;
             RenderSettings.skybox = null;
             if (sun != null)
             {

@@ -267,8 +267,14 @@ namespace TwelfthStamp
         /// </summary>
         static Vector3 StampSpot(Cell cell)
         {
-            // Out at the landmark when the cell has opened its way there (open world: run to the country's key symbol).
-            if (Landmarks.TryStampSpot(cell, out var landmark)) return landmark;
+            // Close by (playtest, 18 Oct: the stamp out at the landmark was "running for no reason"): a few metres in front
+            // of the player, in the open. A cell's own stamp spot is kept when it is already that close (the Saudi maze's
+            // portal ring, a finish portal).
+            bool spot = Landmarks.TryStampSpot(cell, out var landmark);
+            var fromFeet = landmark - Game.Rig.Feet; fromFeet.y = 0f;
+            if (spot && fromFeet.magnitude < 9f) return landmark;
+            if (TryNearStampSpot(out var near)) return near;
+            if (spot) return landmark;
             var feet = Game.Rig.Feet;
             var pc = Game.Passenger;
             bool hunter = pc != null && pc.Visible && pc.transform.parent == cell.transform;
@@ -284,6 +290,33 @@ namespace TwelfthStamp
                 if (sc > bestScore) { best = p; bestScore = sc; }
             }
             return best + Vector3.up * 1.5f;
+        }
+
+        /// <summary>
+        /// A spot about 3.5 m from the player on open, level ground with nothing in the way, tried straight ahead first and
+        /// then round to the sides and behind; the stamp hangs there at chest height.
+        /// </summary>
+        static bool TryNearStampSpot(out Vector3 spot)
+        {
+            spot = default;
+            var rig = Game.Rig;
+            if (rig == null) return false;
+            var feet = rig.Feet;
+            var fwd = rig.Forward; fwd.y = 0f;
+            fwd = fwd.sqrMagnitude > 0.01f ? fwd.normalized : Vector3.forward;
+            int mask = (1 << Layers.Default) | (1 << Layers.Interactable) | (1 << Layers.Floor);
+            foreach (float dist in new[] { 3.5f, 3.2f })
+                foreach (float ang in new[] { 0f, 30f, -30f, 60f, -60f, 100f, -100f, 140f, -140f, 180f })
+                {
+                    var dir = Quaternion.Euler(0f, ang, 0f) * fwd;
+                    if (Physics.SphereCast(feet + Vector3.up * 1.1f, 0.3f, dir, out _, dist + 0.5f, mask, QueryTriggerInteraction.Ignore)) continue; // a wall or a prop in the way
+                    var p = feet + dir * dist;
+                    if (!Physics.Raycast(p + Vector3.up * 1.4f, Vector3.down, out var hit, 3.5f, mask, QueryTriggerInteraction.Ignore)) continue; // nothing to stand on
+                    if (Mathf.Abs(hit.point.y - feet.y) > 0.5f) continue; // a drop or a step up
+                    spot = hit.point + Vector3.up * 1.45f;
+                    return true;
+                }
+            return false;
         }
 
         /// <summary>The Passenger comes for the player once the stamp is out: the one already here breaks into a run, or
@@ -393,9 +426,52 @@ namespace TwelfthStamp
             // card stayed behind, leaving a dead screen with no card (playtest, 18 Oct).
             if (Busy) { Debug.Log("[TS-Story] Catch ignored mid-travel (" + cause + ")"); return; }
             if (Levels.CurrentIsHarmless) { OnHarmlessCatch(); return; }
+            // Three hearts (playtest, 18 Oct: hearts at the top right, and the enemy must be able to kill you): a catch costs
+            // one and throws it off you; the catch on your last heart is the end. A moment's grace after a hit.
+            if (Time.time - m_LastHurt < HurtGraceSeconds) return;
+            c.vitality = Mathf.Max(0f, c.vitality - 1f / Hearts - 0.002f);
+            if (c.vitality > 0.01f)
+            {
+                m_LastHurt = Time.time;
+                Debug.Log("[TS-Story] Hit by the Passenger (" + cause + "), hearts " + HeartsLeft);
+                StartCoroutine(HurtRoutine());
+                return;
+            }
             c.vitality = 0f;
             Debug.Log("[TS-Story] Caught by the Passenger (" + cause + ")");
             StartCoroutine(FailRoutine(true));
+        }
+
+        public const int Hearts = 3;
+        const float HurtGraceSeconds = 2.5f;
+        float m_LastHurt = -99f;
+
+        /// <summary>Whole hearts left (a part-drained heart counts).</summary>
+        public static int HeartsLeft => Game.Campaign == null ? Hearts : Mathf.Clamp(Mathf.CeilToInt(Game.Campaign.vitality * Hearts - 0.01f), 0, Hearts);
+
+        /// <summary>A hit that is not the last heart: a red flash and a sting, and it recoils from the player for a moment.</summary>
+        IEnumerator HurtRoutine()
+        {
+            var pc = Game.Passenger;
+            if (pc != null && pc.Visible && Game.Rig != null)
+            {
+                var away = pc.transform.position - Game.Rig.Feet; away.y = 0f;
+                away = away.sqrMagnitude > 0.01f ? away.normalized : -Game.Rig.Forward;
+                pc.RetreatPoint = pc.transform.position + away * 9f;
+                pc.RetreatSeconds = 5f;
+                pc.SetState(PassengerState.Retreat);
+            }
+            if (Game.Rig != null) AudioDirector.I?.Play("pass_sting", Game.Rig.Head.position + Game.Rig.Head.forward * 0.6f, 1f, 1.1f, Bus.SFX, true);
+            AudioDirector.Haptic(HandSide.Left, 0.9f, 0.25f);
+            AudioDirector.Haptic(HandSide.Right, 0.9f, 0.25f);
+            int left = HeartsLeft;
+            Hud.I?.ShowToast(left == 1 ? "It got you! One heart left. Run!" : "It got you! " + left + " hearts left. Run!", 3f);
+            Fader.I.SetColor(new Color(0.55f, 0f, 0.02f));
+            Fader.I.FadeTo(0.55f, 0.06f);
+            yield return new WaitForSeconds(0.12f);
+            Fader.I.FadeTo(0f, 0.6f);
+            yield return new WaitForSeconds(0.65f);
+            if (!m_Failing) Fader.I.SetColor(Color.black);
         }
 
         public bool Failing => m_Failing;

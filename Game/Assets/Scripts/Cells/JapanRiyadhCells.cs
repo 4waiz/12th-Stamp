@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>Japan — The Claw Machine. In the lantern street a claw machine holds a golden lucky cat; win it while the
+    /// <summary>Japan — The Claw Machine. In the lantern street a claw machine holds a golden passport; win it while the
     /// lantern figure hunts you (run, lose it, come back), and the gate out of Japan opens.</summary>
     public partial class JapanCell : Cell
     {
@@ -60,7 +60,7 @@ namespace TwelfthStamp
                 ProcessionShadows.Add(s.transform);
             }
 
-            // The claw machine on the left of the street, facing the arrival (Cells/CountryGames.cs). The golden lucky cat
+            // The claw machine on the left of the street, facing the arrival (Cells/CountryGames.cs). The golden passport
             // inside it is the way out of Japan. The trace stays hidden: winning the cat verifies the seal.
             Claw = ClawMachine.Build(g, new Vector3(-2.0f, 0f, 8.2f), 0f);
             Trace = TraceMark.Create(transform, CountryId.Japan, new Vector3(-2.0f, 0.02f, 6.6f), Quaternion.identity, 0.6f, true);
@@ -99,8 +99,8 @@ namespace TwelfthStamp
         public bool Solved => m_Solved;
 
         public override string Objective => m_Solved ? "The gate is open. Run to your stamp at the pagoda."
-            : J.Claw.GoldenOut ? "Take the golden lucky cat from the prize tray."
-            : "Win the golden lucky cat from the claw machine: arrows to line the claw up, then DROP. When the lantern figure comes, run, lose it, then come back.";
+            : J.Claw.GoldenOut ? "Take the golden passport from the prize tray."
+            : "Win the golden passport from the claw machine: arrows to line the claw up, then DROP. When the lantern figure comes, run, lose it, then come back.";
 
         public override void OnEnter(bool firstVisit)
         {
@@ -116,7 +116,7 @@ namespace TwelfthStamp
             if (m_Solved) { J.Claw.SetSolved(); J.Hunt.Stop(); return; }
             if (!J.Claw.GoldenOut) J.Claw.ResetGame();
             else J.Claw.ReturnGolden(); // won earlier but never counted: back on the tray, not left where it was dropped
-            Hud.I?.ShowToast("A claw machine glows in the lantern street. The golden lucky cat inside is your way out of Japan.", 4.5f);
+            Hud.I?.ShowToast("A claw machine glows in the lantern street. The golden passport inside is your way out of Japan.", 4.5f);
             J.Hunt.Begin(firstVisit ? 9f : 6f);
             Hud.I?.SetObjective(Objective, false);
         }
@@ -131,7 +131,7 @@ namespace TwelfthStamp
         void OnDelivered(ClawMachine m, bool golden)
         {
             if (!IsLive || m_Solved) return;
-            if (golden) Hud.I?.ShowToast("The golden lucky cat drops into the prize tray. Grab it!", 3f);
+            if (golden) Hud.I?.ShowToast("The golden passport drops into the prize tray. Grab it!", 3f);
             Hud.I?.SetObjective(Objective, false);
         }
 
@@ -141,7 +141,7 @@ namespace TwelfthStamp
             m_Solved = true;
             J.Hunt.Stop();
             AudioDirector.I?.Play("seal_verify", g.transform.position, 0.7f);
-            Hud.I?.ShowToast("The lucky cat beckons, and the gate at the end of the street answers.", 3.5f);
+            Hud.I?.ShowToast("The golden passport glows, and the gate at the end of the street answers.", 3.5f);
             if (J.Gate != null && !J.Gate.IsOpen)
             {
                 // The way on opens: the end gate swings out onto the lane toward the pagoda.
@@ -184,7 +184,7 @@ namespace TwelfthStamp
         public SandMaze Maze;
         public GhostHunt Hunt;
         public TraceMark Trace;
-        public const float DrainPerSecond = 1f / 42f;
+        public const float DrainPerSecond = 1f / 60f;
 
         protected override void Build()
         {
@@ -217,7 +217,7 @@ namespace TwelfthStamp
             // crosses it with their energy draining (water glasses on the way) while the figure follows through the walls,
             // and the portal past its north end carries them on. The stamp waits in the portal ring, so it is the only
             // stamp spot in this cell.
-            Maze = SandMaze.Build(transform, new Vector3(-10.4f, 0f, -110f), Lighting);
+            Maze = SandMaze.Build(transform, new Vector3(420f, 0f, -8f), Lighting); // far out in open desert: nearer in, unseen city blocks stood inside the maze (playtest: "no correct path")
             foreach (var v in GetComponentsInChildren<VistaInfo>(true)) if (v != Maze.StampSpot) v.HasStampSpot = false;
             Trace = TraceMark.Create(transform, CountryId.SaudiArabia, Maze.PortalLocal + new Vector3(0f, 0.02f, -1.5f), Quaternion.identity, 0.6f, true);
             var start = Maze.CellCenter(Maze.Start);
@@ -225,8 +225,8 @@ namespace TwelfthStamp
             Hunt.Cell = this;
             Hunt.SpawnLocal = start + new Vector3(0f, 0f, -7f);
             Hunt.RetreatLocal = start + new Vector3(6f, 0f, -7f);
-            Hunt.StalkSpeed = 0.5f;
-            Hunt.RushEvery = 0f;           // slow, relentless, straight through the walls
+            Hunt.StalkSpeed = 0.4f;
+            Hunt.RushEvery = 0f;           // one slow ghost, straight through the walls
             Hunt.LoseDistance = 9999f;
             Hunt.Arrives = "something walks through the maze walls behind you";
             AddSeam("arrival", start + new Vector3(0f, 0f, -1.1f), 0f);

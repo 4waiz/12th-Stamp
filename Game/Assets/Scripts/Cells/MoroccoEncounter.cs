@@ -4,20 +4,19 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>Morocco — The Shop That Remembers. Reconstruct the counter, recover the calibration insert, read the
-    /// optician's notes in the glasses case, and learn why the HOME stamp is forged.</summary>
+    /// <summary>Morocco — Memory Match in the shop that remembers. Match the four pairs of cards on the counter (glasses,
+    /// cameras, passports, stamps), recover the calibration insert from the drawer that opens, read the optician's notes
+    /// in the glasses case, and learn why the HOME stamp is forged.</summary>
     public class MoroccoEncounter : Encounter
     {
         ShopCell S => (ShopCell)Cell;
-        // Read-only state for the guide (Guide/GuideBook.cs).
-        public IReadOnlyList<Grabbable> Items => m_Items;   // postcard, brass tray, camera
-        public IReadOnlyList<Socket> Marks => m_Marks;      // their outlines on the counter, same order
+        // Read-only state for the guide (Guide/GuideBook.Morocco.cs) and the tests.
+        public MemoryMatch Memory => m_Game;
         public Grabbable Insert => m_Insert;
         public Socket CaseSocket => m_CaseSocket;
         public bool DrawerOpen => m_DrawerOpen;
         public bool NotesRead => m_NotesRead;
-        Socket[] m_Marks;
-        Grabbable[] m_Items;
+        MemoryMatch m_Game;
         Grabbable m_Insert;
         Socket m_CaseSocket;
         GameObject m_Props, m_Case;
@@ -27,7 +26,7 @@ namespace TwelfthStamp
         bool m_DrawerHomeSet;
 
         public override string Objective =>
-            !m_DrawerOpen ? "Put the counter back the way it was: return the three things to their outlines." :
+            !m_DrawerOpen ? "Memory match on the counter: flip two cards at a time and find all four pairs (glasses, camera, passport, stamp)." :
             !m_NotesRead ? "Take the calibration insert from the drawer and fit it inside the glasses case." :
             "Verify the shop's arrival trace on the counter.";
 
@@ -57,6 +56,8 @@ namespace TwelfthStamp
                 var pool = MeshFactory.Quad("LampPool", S.transform, 1.6f, 1.2f, Mats.Unlit(new Color(1f, 0.78f, 0.5f, 0.22f), Tex.SoftDot, true), new Vector3(0f, 1.046f, 0.1f), Quaternion.Euler(90, 0, 0));
                 pool.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
+            // The old puzzle's outlines on the counter are gone: the cards lie there now.
+            foreach (var mark in S.CounterMarks) if (mark != null) mark.gameObject.SetActive(false);
             if (Game.Campaign.IsVerified(CountryId.Morocco))
             {
                 S.Trace.Reveal(false);
@@ -64,32 +65,27 @@ namespace TwelfthStamp
                 return;
             }
             Narration.I?.Say("mor_01", null, false, null, false, true);
-            if (m_Props != null && (m_DrawerOpen || m_NotesRead || System.Array.Exists(m_Marks, m => m != null && m.Current != null))) ResetPuzzle();
+            if (m_Props != null && (m_DrawerOpen || m_NotesRead || (m_Game != null && m_Game.Flips > 0))) ResetPuzzle();
             if (m_Props == null) BuildPuzzle();
+            Hud.I?.ShowToast("Eight cards lie face down on the counter. Flip two at a time and match all four pairs.", 4.5f);
             Hud.I?.SetObjective(Objective, false);
             m_ThreatStarted = false;
             SpawnObserver();
         }
 
         /// <summary>
-        /// The shop is cached for the session, so a new story (or a loaded save) that has not verified Morocco would find
-        /// the counter already solved. Put it all back: remove the old props and sockets, close the drawer, hide the trace.
+        /// The shop is cached for the session, so a new story (or a loaded save, or a retry) that has not verified Morocco
+        /// would find the game already played. Put it all back: remove the cards, the insert and the case, close the
+        /// drawer, hide the trace.
         /// </summary>
         void ResetPuzzle()
         {
-            if (m_Items != null) foreach (var it in m_Items) if (it != null) Destroy(it.gameObject);
+            StopAllCoroutines();
             if (m_Insert != null) Destroy(m_Insert.gameObject);
             if (m_Props != null) Destroy(m_Props);
-            foreach (var mark in S.CounterMarks)
-            {
-                var sock = mark.GetComponent<Socket>();
-                if (sock != null) DestroyImmediate(sock);
-                var col = mark.GetComponent<BoxCollider>();
-                if (col != null) DestroyImmediate(col);
-            }
             if (m_DrawerHomeSet) S.DrawerRoot.localPosition = m_DrawerHome;
             S.Trace.Hide();
-            m_Props = null; m_Case = null; m_Insert = null; m_CaseSocket = null; m_Items = null; m_Marks = null;
+            m_Props = null; m_Case = null; m_Insert = null; m_CaseSocket = null; m_Game = null;
             m_DrawerOpen = false; m_NotesRead = false;
         }
 
@@ -98,37 +94,12 @@ namespace TwelfthStamp
             if (!m_DrawerHomeSet) { m_DrawerHome = S.DrawerRoot.localPosition; m_DrawerHomeSet = true; }
             m_Props = new GameObject("MoroccoProps");
             m_Props.transform.SetParent(S.transform, false);
-            var ids = new[] { "postcard", "brass_tray", "camera" };
-            var prompts = new[] { "Take the postcard", "Take the brass tray", "Take the camera" };
-            var places = new[] { new Vector3(-6.3f, 1.12f, -1.4f), new Vector3(4.2f, 0.03f, -2.3f), new Vector3(8.4f, 1.72f, -0.5f) };
-            m_Items = new Grabbable[3];
-            m_Marks = new Socket[3];
-            for (int i = 0; i < 3; i++)
-            {
-                GameObject go;
-                if (i == 0) go = PropLibrary.Postcard(m_Props.transform, 2);
-                else if (i == 1)
-                {
-                    go = new GameObject("BrassTray");
-                    go.transform.SetParent(m_Props.transform, false);
-                    MeshFactory.Cylinder("Tray", go.transform, Vector3.zero, 0.09f, 0.012f, Mats.Lit(new Color(0.84f, 0.64f, 0.34f), 0.68f, 0.9f), 24, false);
-                    go.AddComponent<BoxCollider>().size = new Vector3(0.19f, 0.03f, 0.19f);
-                }
-                else go = PropLibrary.VintageCamera(m_Props.transform);
-                go.transform.localPosition = places[i];
-                m_Items[i] = PropLibrary.MakeGrabbable(go, ids[i], prompts[i]);
-                m_Items[i].SetHome();
-                m_Items[i].Grabbed += (g, who) => { if (!m_ThreatStarted) StartThreat(); };
-
-                var mark = S.CounterMarks[i];
-                var col = mark.gameObject.AddComponent<BoxCollider>();
-                col.isTrigger = true; col.size = new Vector3(0.24f, 0.12f, 0.22f); col.center = new Vector3(0, 0.05f, 0);
-                var sock = mark.gameObject.AddComponent<Socket>();
-                sock.Accepts.Add(ids[i]);
-                sock.LockWhenFilled = true;
-                sock.Filled += (s, g) => CheckCounter();
-                m_Marks[i] = sock;
-            }
+            // A baize board on the counter's right-hand half (Cells/MemoryMatch.cs), clear of the display case, the trace
+            // and the spot where the glasses case is set down.
+            m_Game = MemoryMatch.Build(m_Props.transform, new Vector3(0.5f, 1.056f, 0.13f));
+            m_Game.FirstFlip += _ => { if (IsLive && !m_ThreatStarted) StartThreat(); };
+            m_Game.PairChecked += OnPairChecked;
+            m_Game.Completed += _ => OnAllPairs();
             Cell.Recache();
         }
 
@@ -153,9 +124,28 @@ namespace TwelfthStamp
             }
         }
 
-        void CheckCounter()
+        void OnPairChecked(MemoryMatch m, int kind, bool matched)
         {
-            foreach (var m in m_Marks) if (m.Current == null) return;
+            if (!IsLive || m_DrawerOpen) return;
+            if (matched)
+            {
+                if (!m.Solved) Hud.I?.ShowToast("A pair of " + Plural(kind) + "! " + m.MatchedPairs + " / " + MemoryMatch.Pairs, 2.2f);
+                return;
+            }
+            // A wrong guess: the optician comes toward the counter, to the edge of the lamplight.
+            var pc = Game.Passenger;
+            if (pc != null && pc.Visible && m_ThreatStarted && pc.State == PassengerState.Stalk)
+            {
+                pc.Investigate(S.transform.TransformPoint(new Vector3(0.5f, 0f, -2.2f)), 4f);
+                AudioDirector.I?.Play("pass_whisper", pc.ChestPosition, 0.6f);
+                Hud.I?.ShowCaption("glass crunches closer. Stay in the lamplight", 2.5f);
+            }
+        }
+
+        static string Plural(int kind) => kind == 0 ? "glasses" : kind == 1 ? "cameras" : kind == 2 ? "passports" : "stamps";
+
+        void OnAllPairs()
+        {
             if (m_DrawerOpen) return;
             m_DrawerOpen = true;
             StartCoroutine(OpenDrawer());
@@ -176,7 +166,7 @@ namespace TwelfthStamp
             go.AddComponent<BoxCollider>().size = new Vector3(0.12f, 0.02f, 0.16f);
             m_Insert = PropLibrary.MakeGrabbable(go, "calibration_insert", "Take the calibration insert", true);
             m_Insert.SetHome();
-            Hud.I?.ShowToast("A drawer slides open by itself.", 2.5f);
+            Hud.I?.ShowToast("All four pairs! A drawer slides open by itself.", 2.5f);
 
             // The glasses case Saeed has carried since Marrakech, set down on the counter.
             m_Case = PropLibrary.GlassesCase(m_Props.transform, true);
@@ -228,7 +218,6 @@ namespace TwelfthStamp
         {
             Game.Passenger?.Despawn();
             m_ThreatStarted = false;
-            if (m_Items != null) foreach (var it in m_Items) if (it != null && it.InSocket == null) it.ReturnHome();
         }
     }
 }

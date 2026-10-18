@@ -9,7 +9,7 @@ namespace TwelfthStamp
     /// world gives the answer away (Japan's hook, Agra's pedestal, Riyadh's arch) the marker shows it: the player asked
     /// to be told what to do.
     /// </summary>
-    public static class GuideBook
+    public static partial class GuideBook
     {
         public static PlaceGuide For(Cell cell)
         {
@@ -161,188 +161,11 @@ namespace TwelfthStamp
             return g;
         }
 
-        // ------------------------------------------------------------------ UAE: the Margin apartment (the tutorial)
-        static PlaceGuide Uae(ApartmentCell a)
-        {
-            const CountryId id = CountryId.UAE;
-            var enc = a.Encounter as UaeEncounter;
-            var g = new PlaceGuide
-            {
-                Title = "The Margin · The Apartment That Kept You",
-                Briefing = "Your apartment, copied. Almost everything here is a forgery; one detail is genuine. Your passport can open tears into other countries, and light from them shows what is real.",
-                Danger = "Soon something made of glass steps out of the bathroom. It is slow, but it kills at a touch: keep away from it and leave through a tear.",
-            };
-            Func<bool> traced = () => Verified(id) || (enc != null && enc.TraceShown) || (a.Trace != null && a.Trace.Revealed);
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Open your passport  " + Key(Intent.Passport),
-                Hint = "Your passport is your key to every country. " + (Vr ? "Press X on the left controller." : "Press F."),
-                Done = () => PassportOpen || traced(),
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Aim at a seam (a faint glowing line on the wall) and hold  " + Key(Intent.Tear) + "  to open a tear to Egypt",
-                Hint = "Look at the window, the kitchen wall or the hall with the passport open: a seam lights up when you aim at it. Hold " + Key(Intent.Tear) + " until it opens.",
-                Done = traced,
-                Target = () => NearestSeam(a),
-                Label = "Seam",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Egypt's light falls on the fridge. Find the one note with real handwriting and press your passport to it  " + Use,
-                Hint = "The genuine note glows on the fridge door. Stand in front of it and press " + Use + ".",
-                Done = () => Verified(id),
-                Target = () => Pos(a.Trace),
-                Label = "Genuine note",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Seal the tear: hold  " + Key(Intent.Seal),
-                Hint = "Tears let things through. Close it before anything notices: hold " + Key(Intent.Seal) + ".",
-                Done = () => !TearOpen || (enc != null && enc.ThreatStarted),
-                Target = () => TearAt,
-                Label = "Tear",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Get out: open a tear to Egypt at any seam, widen it to a <b>doorway</b> (keep holding  " + Key(Intent.Tear) + ") and walk through",
-                Hint = "Don't let the glass figure reach you. Any seam works; the tear is a doorway once it is tall enough to walk into.",
-                Done = () => false,
-                Target = () => TearOpen ? TearAt : NearestSeam(a),
-                Label = "Way out",
-            });
-            g.Alert = () => PassengerAlert(6f, "It is close. Move away and open your way out.");
-            return g;
-        }
+        // UAE, the Margin apartment's whack-a-ghost: Guide/GuideBook.Uae.cs.
 
-        // ------------------------------------------------------------------ Egypt
-        static PlaceGuide Egypt(EgyptCell e)
-        {
-            const CountryId id = CountryId.Egypt;
-            var enc = e.Encounter as EgyptEncounter;
-            EgyptCues.Nudges = false;   // the guide says it: the beam's real target is the shadow, not the figure
-            var g = new PlaceGuide
-            {
-                Title = "Egypt · The Sun Without a Shadow",
-                Briefing = "In this courtyard one shadow points <b>toward</b> the sun. It is false, and the real arrival trace is hidden under it.",
-                Danger = "After a while a figure wrapped in linen rises from the sand behind you. Light only <b>holds it back</b>; it is not the target. Burn the shadow, or run (" + RunKey + ").",
-            };
-            Func<bool> revealed = () => Verified(id) || (enc != null && enc.Revealed);
-            Func<Vector3> shadow = () => e.transform.TransformPoint(e.ShadowTargetLocal);
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Turn the bronze reflector  " + Use + "  to swing its sunbeam",
-                Hint = "The reflector is the bronze mirror on its stand in the courtyard. Stand next to it and press " + Use + ".",
-                Done = () => revealed() || (enc != null && enc.Cues != null && enc.Cues.ReflectorTurned),
-                Target = () => e.Reflector.transform.position,
-                Label = "Reflector",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Aim the beam at the <b>wrong shadow</b> by the pillar (it points at the sun). Keep turning  " + Use + "  until it smoulders and burns away",
-                Hint = "Each press turns the mirror 15 degrees; watch the bright streak on the paving. The shadow sparks as the beam gets close and burns when it is on it. The figure from the sand is not the target: light only holds it back.",
-                Done = revealed,
-                Target = () => shadow(),
-                Progress = () =>
-                {
-                    if (enc == null) return -1f;
-                    float warm = enc.Cues != null ? Mathf.Clamp01(1f - enc.Cues.AimError / 32f) * 0.35f : 0f;
-                    return Mathf.Max(enc.BurnProgress, warm);
-                },
-                Label = "Wrong shadow",
-            });
-            g.Steps.Add(TraceStep(id, () => e.Trace, "where the shadow was"));
-            g.Steps.Add(StampStep(id, "the wrapped figure"));
-            g.Steps.Add(TravelStep(e));
-            g.Alert = () => PassengerAlert(12f, "The wrapped figure is close. Light only holds it back: burn the shadow by the pillar, or run (" + RunKey + ").");
-            return g;
-        }
+        // Egypt, the temple run: Guide/GuideBook.Egypt.cs.
 
-        // ------------------------------------------------------------------ France: Paris
-        static PlaceGuide Paris(ParisCell p)
-        {
-            const CountryId id = CountryId.France;
-            var enc = p.Encounter as ParisEncounter;
-            bool sun = Game.Campaign != null && Game.Campaign.HasResource(ResourceId.Sunlight);
-            var g = new PlaceGuide
-            {
-                Title = "France · The Street That Folds",
-                Briefing = "A figure in a raincoat stands at the verification desk, right on top of the trace. It hates sunlight" +
-                           (sun ? ", and you carry Egypt's." : ". You don't have Egypt's sunlight yet, but a tear held open long enough brings out something it fears more."),
-                Danger = "It kills at a touch. A tear left open too long rips wide open, and here that kills too: seal tears once they have done their job (hold " + Key(Intent.Seal) + ").",
-            };
-            Func<bool> cleared = () => Verified(id) || (enc != null && (enc.Cleared || enc.HandShown)) || (p.Trace != null && p.Trace.BlockedReason != null && p.Trace.BlockedReason() == null);
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Stand at the marked spot facing the festival poster board, open your passport  " + Key(Intent.Passport) + "  and choose <b>Egypt</b>  " + Key(Intent.Destination),
-                Hint = "The poster board stands beside the desk. From the marked spot it is straight ahead; with the passport open, pick Egypt with " + Key(Intent.Destination) + ".",
-                Done = () => cleared() || (PassportOpen && Game.Passport.Selected == CountryId.Egypt && Dist(p.TearVantage.position) < 2.5f) || TearOpen,
-                Target = () => p.TearVantage.position,
-                Label = "Stand here",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Aim at the poster board's seam and hold  " + Key(Intent.Tear) + "  to open a tear to Egypt. Widen it until the sunlight drives the figure off the desk",
-                Hint = "The tear's sunbeam shines from the board toward the desk. The wider the tear, the stronger the light. Keep holding " + Key(Intent.Tear) + ".",
-                Done = cleared,
-                Target = () => p.DeskSeam != null ? p.DeskSeam.Center : (Vector3?)null,
-                Label = "Seam",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Seal the tear before it rips: hold  " + Key(Intent.Seal),
-                Hint = "Something reaches through tears that stay open. Sealing it is safe; the light has done its job.",
-                Done = () => Verified(id) || !TearOpen,
-                Target = () => TearAt,
-                Label = "Tear",
-            });
-            g.Steps.Add(TraceStep(id, () => p.Trace, "on the desk's ledger"));
-            g.Steps.Add(StampStep(id));
-            g.Steps.Add(TravelStep(p));
-            g.Alert = () => FirstOf(TearAlert, () => PassengerAlert(8f, "The figure is close. Keep the sunlight between you."));
-            return g;
-        }
-
-        // ------------------------------------------------------------------ USA: New York
-        static PlaceGuide NewYork(NewYorkCell n)
-        {
-            const CountryId id = CountryId.USA;
-            var enc = n.Encounter as NewYorkEncounter;
-            var g = new PlaceGuide
-            {
-                Title = "United States · The Last Arrival",
-                Briefing = "Someone with lost luggage guards the arrival gate, standing on the trace. The security booth has power, a screen, and something that makes noise.",
-                Danger = "It guards the gate and kills at a touch, but it is curious: noise draws it away.",
-            };
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Switch on the security booth's power  " + Use,
-                Hint = "The breaker is on the booth's west side, under the yellow hazard plate.",
-                Done = () => Verified(id) || (enc != null && enc.Powered),
-                Target = () => Pos(n.Breaker),
-                Label = "Booth power",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Take the noisemaker from the booth  " + Grab,
-                Done = () => Verified(id) || Holding(n.Noisemaker) || (enc != null && enc.NoiseOn),
-                Target = () => Pos(n.Noisemaker),
-                Label = "Noisemaker",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Switch it on (" + Activate + ") and put it down far from the gate, then step back",
-                Hint = "Set it down on the other side of the hall, away from the gate. While it warbles the figure goes to investigate it. If you keep holding it, it comes to you.",
-                Done = () => Verified(id) || (n.Trace != null && n.Trace.BlockedReason != null && n.Trace.BlockedReason() == null && enc != null && enc.NoiseOn && !Holding(n.Noisemaker)),
-                Target = () => Holding(n.Noisemaker) ? W(n, -4.5f, 0.05f, 5.5f) : Pos(n.Noisemaker),
-                Label = "Put it here",
-            });
-            g.Steps.Add(TraceStep(id, () => n.Trace, "at the arrival gate"));
-            g.Steps.Add(StampStep(id));
-            g.Steps.Add(TravelStep(n));
-            g.Alert = () => PassengerAlert(6f, "It is close. Back off and let the noise do the work.");
-            return g;
-        }
+        // France, the bubble shooter over the Seine: Guide/GuideBook.Paris.cs.
 
         // ------------------------------------------------------------------ Japan
         static PlaceGuide Japan(JapanCell j)
@@ -352,13 +175,13 @@ namespace TwelfthStamp
             var g = new PlaceGuide
             {
                 Title = "Japan · The Claw Machine",
-                Briefing = "A claw machine glows in the lantern street. The golden lucky cat inside it is your way out of Japan: win it and the gate at the end of the street opens.",
+                Briefing = "A claw machine glows in the lantern street. The golden passport inside it is your way out of Japan: win it and the gate at the end of the street opens.",
                 Danger = "The lantern figure comes in through the gate while you play, and now and then it rushes. Run down the street until it loses you, then come back to the machine.",
             };
             Func<bool> solved = () => Verified(id) || (enc != null && enc.Solved);
             g.Steps.Add(new GuideStep
             {
-                Text = "Line the claw up over the <b>golden lucky cat</b> with the arrow buttons, then press <b>DROP</b>  " + Use,
+                Text = "Line the claw up over the <b>golden passport</b> with the joystick buttons, then press <b>DROP</b>  " + Use,
                 Hint = "Each arrow moves the claw one place. Under the cat, press DROP: the claw grabs it and carries it to the chute. A plush toy is the wrong prize; try again.",
                 Done = () => solved() || (j.Claw != null && j.Claw.GoldenOut),
                 Target = () => j.Claw != null ? j.Claw.ControlsPosition : (Vector3?)null,
@@ -366,10 +189,10 @@ namespace TwelfthStamp
             });
             g.Steps.Add(new GuideStep
             {
-                Text = "Take the golden lucky cat from the prize tray  " + Grab,
+                Text = "Take the golden passport from the prize tray  " + Grab,
                 Done = solved,
                 Target = () => j.Claw != null ? j.Claw.GoldenPosition : (Vector3?)null,
-                Label = "Lucky cat",
+                Label = "Golden passport",
             });
             g.Steps.Add(StampStep(id, "the lantern figure"));
             g.Steps.Add(TravelStep(j));
@@ -440,8 +263,8 @@ namespace TwelfthStamp
             Func<bool> solved = () => Verified(id) || (enc != null && enc.Solved);
             g.Steps.Add(new GuideStep
             {
-                Text = "Solve the Taj Mahal puzzle: pick a piece, then another to swap them  " + Use,
-                Hint = "The postcard on the table shows the finished picture: sky and minarets at the top, the dome in the middle, the pool and cypress trees at the bottom.",
+                Text = "Put the 6 Taj Mahal pieces on the board: pick one up  " + Use + "  and aim at its place (it snaps in)",
+                Hint = "Each place on the board shows a faint ghost of its part of the picture, and only the right piece goes in. The postcard behind the board shows the finished picture.",
                 Done = solved,
                 Target = () => a.Puzzle != null ? a.Puzzle.BoardPosition : (Vector3?)null,
                 Label = "Puzzle",
@@ -452,187 +275,10 @@ namespace TwelfthStamp
             return g;
         }
 
-        // ------------------------------------------------------------------ Brazil: Rio
-        static PlaceGuide Rio(RioCell r)
-        {
-            const CountryId id = CountryId.Brazil;
-            var enc = r.Encounter as RioEncounter;
-            var g = new PlaceGuide
-            {
-                Title = "Brazil · The Carnival Without Breathing",
-                Briefing = "A frozen carnival. The float's shadow moves on its own and listens. Only the drum beat hides a stamp's sound.",
-                Danger = "A stamp or a tear off the beat wakes the float's shadow: it slides toward you and drains you while it touches you.",
-            };
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Go to the stamp plate in front of the float",
-                Done = () => Verified(id) || (r.StampPlate != null && Dist(r.StampPlate.transform.position) < 2.2f) || (enc != null && enc.Hits > 0),
-                Target = () => Pos(r.StampPlate),
-                Label = "Stamp plate",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Stamp the plate  " + Use + "  exactly on the drum beat, <b>three times in a row</b> (the ring turns green on the beat)",
-                Hint = "Watch the beater and the ring: press the moment the ring is smallest and green. An early or late stamp resets the count.",
-                Done = () => Verified(id),
-                Target = () => Pos(r.StampPlate),
-                Progress = () => enc != null ? enc.Hits / 3f : -1f,
-                Label = "On the beat",
-            });
-            g.Steps.Add(StampStep(id, "the float's shadow"));
-            g.Steps.Add(TravelStep(r));
-            g.Alert = () => enc != null && enc.AlertSeconds > 0f ? "The float's shadow heard you. Step away from it and wait for the beat." : null;
-            return g;
-        }
+        // USA (New York) and Brazil (Rio): Guide/GuideBook.NewYork.cs and Guide/GuideBook.Rio.cs.
 
-        // ------------------------------------------------------------------ United Kingdom: London
-        static PlaceGuide London(LondonCell l)
-        {
-            const CountryId id = CountryId.UnitedKingdom;
-            var enc = l.Encounter as LondonEncounter;
-            var g = new PlaceGuide
-            {
-                Title = "United Kingdom · The Minute Before Midnight",
-                Briefing = "The river is frozen at the minute before midnight, and something in a clock coat is listening. Every 16 seconds the clock chimes; only the chime hides the sound of a tear.",
-                Danger = "It kills at a touch. A tear opened off the chime draws it straight to you: seal it and wait for the next chime.",
-            };
-            Func<bool> revealed = () => Verified(id) || (l.Trace != null && l.Trace.Revealed);
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Open your passport  " + Key(Intent.Passport) + "  and aim at the seam on the brick wall by the checkpoint",
-                Hint = "The seam is on the wall to the left of the promenade, near the checkpoint kiosk. Any destination will do.",
-                Done = () => revealed() || (PassportOpen && Game.Tears != null && Game.Tears.Target == l.CheckpointSeam),
-                Target = () => l.CheckpointSeam != null ? l.CheckpointSeam.Center : (Vector3?)null,
-                Label = "Checkpoint seam",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Wait for the chime (the bell glows just before), then open the tear  " + Key(Intent.Tear) + "  while it rings",
-                Hint = "Keep aiming at the seam. The meter fills toward the next chime; start holding " + Key(Intent.Tear) + " as the bell rings.",
-                Done = revealed,
-                Target = () => l.CheckpointSeam != null ? l.CheckpointSeam.Center : (Vector3?)null,
-                Progress = () => enc == null ? -1f : enc.Chiming ? 1f : Mathf.Clamp01(1f - enc.SecondsToChime / LondonCell.ChimeInterval),
-                LabelNow = () => enc == null ? "Seam" : enc.Chiming ? "NOW" : "Chime in " + Mathf.CeilToInt(enc.SecondsToChime) + " s",
-            });
-            g.Steps.Add(TraceStep(id, () => l.Trace, "on the promenade"));
-            g.Steps.Add(StampStep(id, "the figure in the clock coat"));
-            g.Steps.Add(TravelStep(l));
-            g.Alert = () => PassengerAlert(7f, "It is coming to the sound. Seal the tear and wait for the chime.");
-            return g;
-        }
+        // United Kingdom (London) and Morocco: Guide/GuideBook.London.cs and Guide/GuideBook.Morocco.cs.
 
-        // ------------------------------------------------------------------ Morocco: the corrupted shop
-        static PlaceGuide Morocco(ShopCell s)
-        {
-            const CountryId id = CountryId.Morocco;
-            var enc = s.Encounter as MoroccoEncounter;
-            var g = new PlaceGuide
-            {
-                Title = "Morocco · The Shop That Remembers",
-                Briefing = "The optician's shop, as it was the day you bought the glasses. Three things have left the counter; put them back and the shop gives up its secret.",
-                Danger = "The optician stalks the aisles once you pick something up and kills at a touch. The lamplight around the counter keeps it away.",
-            };
-            string[] names = { "postcard", "brass tray", "camera" };
-            Func<int> placed = () =>
-            {
-                if (enc == null || enc.Marks == null) return 0;
-                int n = 0;
-                foreach (var m in enc.Marks) if (m != null && m.Current != null) n++;
-                return n;
-            };
-            Func<bool> drawer = () => Verified(id) || (enc != null && enc.DrawerOpen);
-            Func<int> nextItem = () =>
-            {
-                if (enc == null || enc.Marks == null || enc.Items == null) return -1;
-                for (int i = 0; i < enc.Marks.Count && i < enc.Items.Count; i++)
-                    if (enc.Marks[i] != null && enc.Marks[i].Current == null) return i;
-                return -1;
-            };
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Return the three things to their outlines on the counter: the postcard, the brass tray and the camera  " + Grab,
-                Hint = "They are down the aisles: the postcard on a rack to the west, the tray on the floor to the east, the camera on a high shelf at the far east end. Carry each to its outline and press " + Use + ".",
-                Done = drawer,
-                Target = () =>
-                {
-                    int i = nextItem();
-                    if (i < 0) return null;
-                    var item = enc.Items[i];
-                    return Holding(item) ? enc.Marks[i].transform.position : Pos(item);
-                },
-                LabelNow = () =>
-                {
-                    int i = nextItem();
-                    if (i < 0) return "";
-                    return Holding(enc.Items[i]) ? names[i] + "'s outline" : names[i];
-                },
-                Progress = () => placed() / 3f,
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Take the calibration insert from the drawer  " + Grab + "  and fit it inside the glasses case on the counter  " + Use,
-                Done = () => Verified(id) || (enc != null && enc.NotesRead) || (Game.Campaign != null && Game.Campaign.HasFlag(StoryFlags.OpticianNotesRead)),
-                Target = () => enc == null ? null : enc.Insert != null && !Holding(enc.Insert) ? Pos(enc.Insert) : Pos(enc.CaseSocket),
-                LabelNow = () => enc != null && enc.Insert != null && Holding(enc.Insert) ? "Glasses case" : "Insert",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Listen to the optician's notes. The trace appears on the counter when they end",
-                Done = () => Verified(id) || (s.Trace != null && s.Trace.Revealed),
-                Target = () => s.CounterTop != null ? s.CounterTop.position : (Vector3?)null,
-                Label = "Counter",
-            });
-            g.Steps.Add(TraceStep(id, () => s.Trace, "on the counter"));
-            g.Steps.Add(StampStep(id, "the optician"));
-            g.Steps.Add(TravelStep(s));
-            g.Alert = () => PassengerAlert(7f, "The optician is close. Get back into the lamplight by the counter.");
-            return g;
-        }
-
-        // ------------------------------------------------------------------ Germany: Berlin, the finale
-        static PlaceGuide Berlin(BerlinCell b)
-        {
-            const CountryId id = CountryId.Germany;
-            var enc = b.Encounter as BerlinEncounter;
-            var g = new PlaceGuide
-            {
-                Title = "Germany · The Departure That Never Happened",
-                Briefing = "The way home is here, and so is a forged one. Validate every seal, expose the forgery in real daylight, cancel the forged HOME stamp, then open the genuine way home.",
-                Danger = "Once the seals are validated it guards the way home. Noise draws it; a home tear left open pulls it to the threshold.",
-            };
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Validate the eleven seals at the registration plinth  " + Use + "  (you need the other ten seals and Morocco's calibration insert)",
-                Hint = "If the plinth says something is missing, go back for it: open your passport and tear a way to the countries you haven't verified.",
-                Done = () => Verified(id),
-                Target = () => Pos(b.Plinth),
-                Label = "Plinth",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Draw it away with the noisemaker, then open a tear to <b>Egypt</b> at the seam facing the doors: sunlight exposes the forgery",
-                Hint = "Stand east of the seam facing the doors, choose Egypt in your passport and widen the tear until the light falls on the middle door.",
-                Done = () => enc != null && enc.Exposed,
-                Target = () => b.LightSeam != null ? b.LightSeam.Center : (Vector3?)null,
-                Label = "Seam facing the doors",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Take the VOID stamp  " + Grab + "  and use it (" + Activate + ") to cancel the forged HOME seal",
-                Done = () => Game.Campaign != null && Game.Campaign.HasFlag(StoryFlags.ForgedCancelled),
-                Target = () => Holding(b.VoidStamp) ? (Vector3?)null : Pos(b.VoidStamp),
-                Label = "VOID stamp",
-            });
-            g.Steps.Add(new GuideStep
-            {
-                Text = "Seal the sunlight tear (hold  " + Key(Intent.Seal) + "), then open the real way home on the <b>blank wall</b>, widen it to a doorway and step through",
-                Hint = "Not the door that looks like home. The genuine seam is on the blank wall; be quick, it walks to an open home tear.",
-                Done = () => false,
-                Target = () => b.HomeSeam != null ? b.HomeSeam.Center : (Vector3?)null,
-                Label = "The way home",
-            });
-            g.Alert = () => FirstOf(TearAlert, () => PassengerAlert(7f, "It guards the way home. Use the noise to pull it away."));
-            return g;
-        }
+        // Germany, Berlin, the finale's shooting gallery: Guide/GuideBook.Berlin.cs.
     }
 }

@@ -47,6 +47,8 @@ namespace TwelfthStamp
             g.transform.SetParent(Attach, false);
             g.transform.localPosition = Vector3.zero;
             g.transform.localRotation = Quaternion.identity;
+            g.Body.interpolation = RigidbodyInterpolation.None;
+            g.SyncBody();
             if (LockWhenFilled) g.Usable = false;
             AudioDirector.I?.Play("place_socket", Attach.position, 0.8f);
             Filled?.Invoke(this, g);

@@ -44,7 +44,7 @@ namespace TwelfthStamp
             yield return Shot("62_easy_japan");
             Game.Story.Kill("autotest");
             yield return null;
-            Check(!Game.Story.Failing && c.vitality > 0f && !MenuSystem.I.IsOpen, "on Easy the Passenger cannot catch the player");
+            Check(!Game.Story.Failing && c.vitality > 0f && !MenuSystem.I.IsOpen && StoryDirector.HeartsLeft == StoryDirector.Hearts - 1, "on Easy a catch costs one heart, not the run");
             Game.Story.VerifyCountry(CountryId.Japan, null);
             yield return WaitUntil(() => c.IsVerified(CountryId.Japan), 6f, "Japan verified");
             Check(c.TargetCount == 3 && c.TargetVerifiedCount == 1, "progress counts 1 / 3");

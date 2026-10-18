@@ -6,8 +6,8 @@ namespace TwelfthStamp
 {
     /// <summary>
     /// --autotest=guide: every place has a walkthrough. Arriving shows the briefing; then the step banner, a marker on the
-    /// first target and the minimap with its map; the full map opens on M. Egypt is played through: turning the
-    /// reflector onto the false shadow moves the guide on to the trace, and verifying moves it on to the stamp. At any window
+    /// first target and the minimap with its map; the full map opens on M. Egypt is played through: crossing the temple
+    /// run's finish line verifies it and moves the guide on to the stamp. At any window
     /// size: the minimap keeps clear of the passport card and a tear's taller card, and a marker held at the screen edge
     /// keeps clear of the objectives panel. Screenshots of each. Desktop only.
     /// </summary>
@@ -78,34 +78,8 @@ namespace TwelfthStamp
             yield return Shot("g_marker_tab");
             Hud.I.ToggleObjectives();
 
-            // Egypt, played through.
-            yield return Enter(CellId.Egypt);
-            Guide.I.DismissBriefing();
-            var e = (EgyptCell)Game.Cells.Active;
-            yield return new WaitForSeconds(0.3f);
-            Check(Guide.I.StepIndex == 0, "Egypt starts on the reflector step");
-            bool burning = false;
-            for (int i = 0; i < e.Reflector.Steps && !burning; i++)
-            {
-                e.Reflector.SetIndex(i, true);
-                yield return new WaitForSeconds(0.35f);
-                var r = e.WrongShadow.GetComponent<Renderer>();
-                burning = !e.WrongShadow.gameObject.activeSelf || r.sharedMaterial.GetColor("_Color").a < 0.7f;
-            }
-            Check(burning, "a reflector angle puts the beam on the false shadow");
-            yield return Shot("g_Egypt_burning");
-            int traceStep = Guide.I.Current.Steps.FindIndex(s => s.Label == "Trace");
-            int stampStep = Guide.I.Current.Steps.FindIndex(s => s.Label == "Stamp");
-            yield return WaitUntil(() => Guide.I.StepIndex == traceStep, 6f, "the shadow burns away and the guide moves on to the trace");
-            yield return new WaitForSeconds(0.3f);
-            yield return Shot("g_Egypt_trace");
-            e.Trace.Use(Game.Rig.MainHand);
-            yield return WaitUntil(() => Game.Campaign.IsVerified(CountryId.Egypt), 6f, "pressing the passport to the trace verifies Egypt");
-            yield return WaitUntil(() => Guide.I.StepIndex == stampStep && Game.Story.WaitingStamp != null, 8f, "the guide moves on to the stamp");
-            yield return new WaitForSeconds(0.4f);
-            yield return Shot("g_Egypt_stamp");
-            Check(Guide.I.Target.HasValue && Game.Story.WaitingStamp != null && (Guide.I.Target.Value - Game.Story.WaitingStamp.transform.position).magnitude < 0.5f,
-                "the marker is on the stamp");
+            // Egypt, played through: the temple run (AutoTestArcadeC.cs).
+            yield return GuideEgyptRun();
 
             // A tear's card (gauges, contamination, more rows) is taller than the passport's: the minimap keeps clear of it too.
             yield return Enter(CellId.ApartmentCorrupt);

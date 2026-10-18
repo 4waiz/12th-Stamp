@@ -45,9 +45,9 @@ namespace TwelfthStamp
         {
             // Lantern street, the Agra garden and the Riyadh festival: the prettiest places, each a single light-or-optics
             // puzzle with no resource to fetch first.
-            new LevelDef { Id = LevelId.Easy, Number = "Level 1", Difficulty = "Easy", Accent = Green, Harmless = true, EndsInVictoryGround = true,
+            new LevelDef { Id = LevelId.Easy, Number = "Level 1", Difficulty = "Easy", Accent = Green, EndsInVictoryGround = true,
                 Countries = new[] { CountryId.Japan, CountryId.India, CountryId.SaudiArabia },
-                Blurb = "Japan, India and Saudi Arabia. Gentle puzzles; nothing can catch you." },
+                Blurb = "Japan, India and Saudi Arabia. Gentle games, three hearts: don't let it catch you." },
             // Egypt's sunlight is carried on to Paris; New York, Rio and London are chases timed on sound; Marrakech closes it.
             new LevelDef { Id = LevelId.Medium, Number = "Level 2", Difficulty = "Medium", Accent = Amber, EndsInVictoryGround = true,
                 Countries = new[] { CountryId.Egypt, CountryId.France, CountryId.USA, CountryId.Brazil, CountryId.UnitedKingdom, CountryId.Morocco },

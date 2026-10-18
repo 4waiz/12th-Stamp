@@ -62,55 +62,8 @@ namespace TwelfthStamp
             Game.Story.ReturnToMenu();
             yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Menu, 10f, "back to the menu from the story");
 
-            Note("--- Sudden death and retry (Paris demo) ---");
-            Game.Story.StartDemo();
-            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Paris && !Game.Story.Busy, 20f, "demo re-enters Paris");
-            yield return new WaitForSeconds(1.2f);
+            yield return ParisLifecycleCases(); // the demo: a catch and Retry, then the negative cases (AutoTestArcadeC.cs)
             var pc = Game.Passenger;
-            Check(pc.Visible && pc.Threatening, "the Passenger is guarding and threatening");
-            // It comes for the player on the open street (towards the arrival point, clear of the desk): it runs them down,
-            // and on contact it lunges and has them at once (no slow drain).
-            var openSide = Game.Cells.Active.Arrival.position - pc.transform.position; openSide.y = 0f;
-            openSide = openSide.sqrMagnitude > 0.01f ? openSide.normalized : -pc.transform.forward;
-            var stand = pc.transform.position + openSide * 3.2f;
-            Game.Rig.PlaceAt(new Vector3(stand.x, pc.transform.position.y, stand.z), Quaternion.LookRotation(-openSide).eulerAngles.y);
-            yield return null;
-            pc.StartChase();
-            float Gap() { var d = pc.transform.position - Game.Rig.Feet; d.y = 0f; return d.magnitude; }
-            yield return WaitUntil(() => Gap() < pc.DrainRange, 5f, "the Passenger runs the player down");
-            float caughtAt = Time.realtimeSinceStartup;
-            yield return WaitUntil(() => MenuSystem.I.IsOpen && MenuSystem.I.CurrentPage == "The Margin takes hold", 4f, "reaching the player kills at once: the failure card appears");
-            Check(Time.realtimeSinceStartup - caughtAt < 2.5f, "death is sudden (under 2.5 s from contact to the failure card)");
-            yield return new WaitForSecondsRealtime(0.6f);
-            Check(Fader.I.Alpha < 0.5f, "the failure card is not hidden behind the death fade (fade " + Fader.I.Alpha.ToString("0.00") + ")");
-            yield return Shot("L1_failure_card");
-            yield return Press("Retry from checkpoint");
-            yield return WaitUntil(() => Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Paris && !Game.Story.Busy && !MenuSystem.I.IsOpen, 10f, "Retry restarts at the embankment");
-            yield return new WaitForSeconds(1.0f);
-            Check(Mathf.Approximately(Game.Campaign.vitality, 1f) && Game.Passenger.Visible && Game.Passenger.State == PassengerState.Guard && !Game.Campaign.IsVerified(CountryId.France),
-                "after Retry: full vitality, the Passenger back at the desk, France not verified");
-
-            Note("--- Negative cases (Paris demo) ---");
-            var paris = (ParisCell)Game.Cells.Active;
-            Check(!paris.Trace.CanUse(Game.Rig.MainHand) || paris.Trace.GetPrompt(null) != paris.Trace.Prompt, "the trace refuses verification while it guards the desk");
-            paris.Trace.Use(Game.Rig.MainHand);
-            yield return new WaitForSeconds(0.4f);
-            Check(!Game.Campaign.IsVerified(CountryId.France), "a blocked verification does not succeed");
-            // Wrong destination: a tear to Japan at the desk seam brings no sunlight, so the guard stays.
-            Game.Passport.Open(HandSide.Desktop);
-            Game.Passport.Select(CountryId.Japan, true);
-            var seam = paris.DeskSeam;
-            var aim = seam.Center - (paris.TearVantage.position + Vector3.up * DesktopRig.EyeHeight); // from the eye, not the feet
-            Game.Rig.PlaceAt(paris.TearVantage.position, Mathf.Atan2(aim.x, aim.z) * Mathf.Rad2Deg);
-            if (Game.Rig is DesktopRig r1) r1.SetPitch(-Mathf.Atan2(aim.y, new Vector2(aim.x, aim.z).magnitude) * Mathf.Rad2Deg);
-            yield return null; yield return null;
-            yield return Hold(dt => Game.Tears.HoldWiden(dt, HandSide.Desktop), 1.1f);
-            Check(Game.Tears.Active != null && Game.Tears.Active.Destination.Id == CountryId.Japan && Game.Tears.Active.Beam == null, "a tear to the wrong country opens with no sunlight");
-            yield return new WaitForSeconds(1.2f);
-            Check(Game.Passenger.State == PassengerState.Guard, "without sunlight the Passenger is not driven off the desk");
-            yield return Hold(dt => Game.Tears.HoldSeal(dt, HandSide.Desktop), 0.9f);
-            yield return WaitUntil(() => Game.Tears.Active == null, 2f, "the wrong tear seals");
-            Game.Passport.Close();
 
             Note("--- Pause during a threat ---");
             pc = Game.Passenger;
@@ -163,24 +116,9 @@ namespace TwelfthStamp
             yield return new WaitForSeconds(1.0f);
             int passengers = FindObjectsByType<PassengerController>(FindObjectsSortMode.None).Length;
             int hands = FindObjectsByType<PassengerHand>(FindObjectsSortMode.None).Count(h => h.Active);
-            Check(passengers == 1 && hands == 0 && Game.Passenger.Visible && Game.Passenger.State == PassengerState.Guard, "revisiting Paris: one Passenger, guarding the desk, no stray hands");
+            Check(passengers <= 1 && hands == 0 && ParisFreshOnRevisit(), "revisiting Paris: at most one Passenger, no stray hands, a fresh bubble board with its hunt armed");
 
-            Note("--- Morocco with the threat ON (the counter lamp keeps it back) ---");
-            yield return Enter(CellId.ShopCorrupt);
-            var shop = (ShopCell)Game.Cells.Active;
-            Game.Rig.PlaceAt(shop.CounterTop.position + new Vector3(0, -1.04f, -1.1f), 0f);
-            yield return new WaitForSeconds(0.6f);
-            var mp = shop.transform.Find("MoroccoProps");
-            Check(Game.Passenger.Visible && Game.Passenger.Threatening, "Morocco: the observer is present and threatening");
-            var first = mp != null ? mp.GetComponentsInChildren<Grabbable>(true).FirstOrDefault(g => g.ItemId == "postcard") : null;
-            if (first != null) { hand.Grab(first); yield return null; hand.PlaceInto(shop.CounterMarks[0].GetComponent<Socket>()); }
-            Check(Game.Passenger.State == PassengerState.Stalk || Game.Passenger.State == PassengerState.Chase || Game.Passenger.State == PassengerState.Repelled || Game.Passenger.State == PassengerState.Retreat, "taking an item sets it stalking");
-            float survive = 0f;
-            while (survive < 14f && !Game.Story.Failing) { survive += Time.deltaTime; yield return null; }
-            Check(!Game.Story.Failing, "standing in the counter lamp's light, the player is not caught (14 s with the threat on)");
-            Note("Morocco light check: ambient " + RenderSettings.ambientSkyColor + ", lamp " + (shop.Lamp != null ? shop.Lamp.intensity.ToString("0.00") : "none") +
-                 ", fade " + Fader.I.Alpha.ToString("0.00") + ", brightness " + Game.Settings.brightness.ToString("0.00"));
-            yield return Shot("L2_morocco_threat_on");
+            yield return LifecycleMorocco(hand); // Morocco with the threat ON (AutoTestArcadeA.cs)
 
             Note("--- Verify, run for the stamp, shift into the next country (Japan -> Saudi Arabia) ---");
             yield return Enter(CellId.Japan, c => { c.Verify(CountryId.Egypt); c.Verify(CountryId.France); c.Verify(CountryId.USA); });
@@ -217,6 +155,7 @@ namespace TwelfthStamp
             Check(!Game.Story.Failing && Game.Campaign.vitality > 0f, "a catch during the shift's build-up is ignored");
             yield return WaitUntil(() => !Game.Story.Busy && Game.Cells.Active != null && Game.Cells.Active.Id == CellId.Egypt, 12f, "the shift still completes into Egypt");
             Check(!MenuSystem.I.IsOpen, "no failure card is left behind after the trip");
+            Game.Campaign.vitality = 1f / StoryDirector.Hearts; // on the last heart
             Game.Story.Kill("test: caught in Egypt");
             Game.Story.TravelThroughTear(CountryDatabase.ByCell(CellId.Paris));
             yield return null;

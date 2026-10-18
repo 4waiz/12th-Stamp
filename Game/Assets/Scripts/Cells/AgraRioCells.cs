@@ -99,7 +99,7 @@ namespace TwelfthStamp
         public bool Solved => m_Solved;
 
         public override string Objective => m_Solved ? "The picture is whole. Run to your stamp at the Taj Mahal."
-            : "Solve the Taj Mahal picture puzzle on the table: pick a piece, then another to swap them (the postcard shows the finished picture). When the figure comes, run, lose it, then come back.";
+            : "Put the Taj Mahal picture together on the table: pick up each of the 6 pieces and bring it to its place on the board, where it snaps in. When the figure comes, run, lose it, then come back.";
 
         public override void OnEnter(bool firstVisit)
         {
@@ -138,13 +138,14 @@ namespace TwelfthStamp
         }
     }
 
-    /// <summary>Brazil / Rio — The Carnival Without Breathing. Everything is frozen except one drum. Stamp only on the
-    /// beat so the drum masks the sound from the float's moving shadow. Off-beat stamps are recoverable mistakes.</summary>
+    /// <summary>Brazil / Rio — Carnival Ring Toss. The carnival is frozen except one drum; a ring toss stall stands on the
+    /// avenue in front of the float (Cells/RioRingToss.cs). Land five rings on the sliding bottles while the figure hunts
+    /// the avenue (run, lose it, come back) and the stall gives you your passport stamp.</summary>
     public partial class RioCell : Cell
     {
-        public Transform Beater, Ring, FloatShadow, Plate;
-        public Material RingMat;
-        public Interactable StampPlate;
+        public Transform Beater, FloatShadow;
+        public RingToss Toss;
+        public GhostHunt Hunt;
         public const float BeatInterval = 1.25f;
         public TraceMark Trace;
 
@@ -215,20 +216,23 @@ namespace TwelfthStamp
             main.startColor = new ParticleSystem.MinMaxGradient(confettiColours) { mode = ParticleSystemGradientMode.RandomColor };
             main.startSize = new ParticleSystem.MinMaxCurve(0.018f, 0.04f);
 
-            // The stamp plate with its rhythm ring.
-            Plate = new GameObject("StampPlate").transform;
-            Plate.SetParent(g, false);
-            Plate.localPosition = new Vector3(-1.2f, 0f, 7.0f);
-            MeshFactory.Box("PlateBase", Plate, new Vector3(0, 0.5f, 0), new Vector3(0.7f, 1f, 0.5f), concrete, true);
-            MeshFactory.Box("Plate", Plate, new Vector3(0, 1.02f, 0), new Vector3(0.5f, 0.04f, 0.35f), Mats.Lit(new Color(0.76f, 0.58f, 0.3f), 0.7f, 0.9f), false);
-            RingMat = Mats.UnlitInstance(new Color(0.95f, 0.85f, 0.6f, 0.8f), Tex.Ring, true, 1.4f);
-            Ring = MeshFactory.Quad("RhythmRing", Plate, 0.6f, 0.6f, RingMat, new Vector3(0, 1.05f, 0), Quaternion.Euler(90, 0, 0)).transform;
-            var col = Plate.gameObject.AddComponent<BoxCollider>(); col.center = new Vector3(0, 1.05f, 0); col.size = new Vector3(0.6f, 0.2f, 0.45f);
-            StampPlate = Plate.gameObject.AddComponent<Interactable>();
-            StampPlate.Prompt = "Stamp (on the drum beat)";
-            Trace = TraceMark.Create(transform, CountryId.Brazil, Plate.localPosition + new Vector3(0, 1.045f, 0), Quaternion.identity, 0.3f, true);
-            // The float's shadow that moves on its own.
-            FloatShadow = MeshFactory.Quad("FloatShadow", g, 2.6f, 1.6f, Mats.UnlitInstance(new Color(0f, 0f, 0f, 0.65f), Tex.SoftDot, true, 1f), new Vector3(0, 0.013f, 4f), Quaternion.Euler(90, 0, 0)).transform;
+            // The game: a carnival ring toss stall on the avenue in front of the float (Cells/RioRingToss.cs). The trace
+            // stays hidden: five ringers verify the seal. No new lights: the carnival's meshes keep exactly their eight.
+            Toss = RingToss.Build(g, new Vector3(-0.4f, 0f, 2.6f), 0f);
+            Trace = TraceMark.Create(transform, CountryId.Brazil, new Vector3(-0.4f, 0.02f, 1.6f), Quaternion.identity, 0.3f, true);
+            // The float's shadow that moves on its own (between the stall and the float).
+            FloatShadow = MeshFactory.Quad("FloatShadow", g, 2.6f, 1.6f, Mats.UnlitInstance(new Color(0f, 0f, 0f, 0.65f), Tex.SoftDot, true, 1f), new Vector3(0, 0.013f, 7.4f), Quaternion.Euler(90, 0, 0)).transform;
+            // The figure hunts the avenue while the stall is played: it comes in from the arrival plaza.
+            Hunt = gameObject.AddComponent<GhostHunt>();
+            Hunt.Cell = this;
+            Hunt.SpawnLocal = new Vector3(3.9f, 0f, -3.8f);
+            Hunt.RetreatLocal = new Vector3(-3.9f, 0f, 11.5f);
+            Hunt.StalkSpeed = 0.55f;
+            Hunt.RushEvery = 14f;
+            Hunt.RushSeconds = 2.4f;
+            Hunt.LoseDistance = 12f;
+            Hunt.RestSeconds = 9f;
+            Hunt.Arrives = "one of the frozen dancers is walking";
 
             BuildCarnivalDetail(g, floatRoot);
             AddSeam("arrival", new Vector3(0f, 0f, -5.6f), 0f);
@@ -243,99 +247,73 @@ namespace TwelfthStamp
     public class RioEncounter : Encounter
     {
         RioCell R => (RioCell)Cell;
-        // Read-only state for the guide (Guide/GuideBook.cs).
-        public int Hits => m_Hits;                  // masked stamps in a row (3 verifies)
-        public float AlertSeconds => m_Alert;       // the float's shadow is hunting while > 0
+        // Read-only state for the guide (Guide/GuideBook.Rio.cs) and the tests.
+        public bool Solved => m_Solved;
+        public int Score => R.Toss != null ? R.Toss.Score : 0;
+        bool m_Solved;
         float m_Clock;
-        int m_Hits;
-        bool m_Done;
-        float m_ShadowTarget;
-        float m_Alert;
 
-        public override string Objective => "Stamp the plate only on the drum beat. Three masked stamps verify the seal (" + m_Hits + "/3).";
+        public override string Objective => m_Solved ? "Five ringers! Run to your passport stamp."
+            : "Carnival ring toss: aim over the counter and throw rings onto the sliding bottles (" + Score + "/" + RingToss.Target + "). When the figure comes, run, lose it, then come back.";
 
         public override void OnEnter(bool firstVisit)
         {
-            m_Done = Game.Campaign.IsVerified(CountryId.Brazil);
-            R.StampPlate.OnUse = OnStamp;
-            R.StampPlate.Usable = !m_Done;
-            Game.Tears.Opened -= OnTear; Game.Tears.Opened += OnTear;
-            Game.Passenger?.Despawn();
-            if (m_Done) { R.Trace.Reveal(false); return; }
+            m_Solved = Game.Campaign.IsVerified(CountryId.Brazil);
+            R.Toss.Scored -= OnScored; R.Toss.Scored += OnScored;
             R.Trace.Hide();
-            m_Hits = 0;
-            Narration.I?.Say("bra_01", null, false, null, false, true);
+            Game.Passenger?.Despawn();
+            if (m_Solved) { R.Toss.SetSolved(); R.Hunt.Stop(); return; }
+            R.Toss.ResetGame();
+            Narration.I?.Say("bra_01", null, false, null, false, true); // "holding its breath, except the drum": still true
+            Hud.I?.ShowToast("A ring toss stall on the frozen carnival avenue. Land five rings on the sliding bottles to win your passport stamp.", 4.5f);
+            R.Hunt.Begin(firstVisit ? 10f : 6f);
             Hud.I?.SetObjective(Objective, false);
         }
 
-        public override void OnExit() => Game.Tears.Opened -= OnTear;
-
-        float Phase => (m_Clock % RioCell.BeatInterval) / RioCell.BeatInterval;
-        public bool OnBeat => Phase < 0.14f || Phase > 0.9f;
-
-        void OnTear(Tear t)
+        public override void OnExit()
         {
-            if (!IsLive || m_Done) return;
-            if (!OnBeat) Alert("The rip carries across the silent avenue.");
+            R.Toss.Scored -= OnScored;
+            R.Hunt.Stop();
         }
 
-        void OnStamp(Interactor who)
+        void OnScored(RingToss t, int row)
         {
-            if (m_Done) return;
-            if (OnBeat)
+            if (!IsLive || m_Solved) return;
+            if (!t.Won)
             {
-                m_Hits++;
-                AudioDirector.I?.Play("stamp_hit", R.Plate.position, 0.35f);
-                AudioDirector.Haptic(who != null ? who.Side : HandSide.Desktop, 0.5f, 0.06f);
-                Hud.I?.ShowToast("Masked by the drum. (" + m_Hits + "/3)", 1.4f);
-                if (m_Hits >= 3)
-                {
-                    m_Done = true;
-                    R.StampPlate.Usable = false;
-                    Game.Story.VerifyCountry(CountryId.Brazil, null);
-                }
+                Hud.I?.ShowToast("Ringer! " + t.Score + " / " + RingToss.Target, 1.6f);
+                Hud.I?.SetObjective(Objective, false);
+                return;
             }
-            else
-            {
-                AudioDirector.I?.Play("stamp_hit", R.Plate.position, 1f, 0.9f, Bus.SFX, true);
-                m_Hits = 0;
-                Alert("Too early. The stamp echoes, and the float's shadow turns toward you.");
-            }
-            Hud.I?.SetObjective(Objective, false);
-        }
-
-        void Alert(string text)
-        {
-            m_Alert = 5f;
-            Hud.I?.ShowToast(text, 3f);
-            if (Game.Settings.scareIntensity > 0) AudioDirector.I?.Play("pass_sting", R.FloatShadow.position, 0.5f, 1f, Bus.SFX, true);
+            m_Solved = true;
+            R.Hunt.Stop();
+            AudioDirector.I?.Play("seal_verify", t.TargetsPosition, 0.8f);
+            AudioDirector.I?.Play("clock_chime", t.TargetsPosition, 0.6f, 1.4f);
+            PostFx.I?.Flash(0.3f);
+            Hud.I?.ShowToast("Five ringers! The stall's bell rings: the stamp is yours.", 3.5f);
+            Game.Story.VerifyCountry(CountryId.Brazil, null);
         }
 
         void Update()
         {
             if (!IsLive) return;
             float dt = Time.deltaTime;
+            // The one running drum keeps its beat (scenery now).
             float before = m_Clock % RioCell.BeatInterval;
             m_Clock += dt;
             float after = m_Clock % RioCell.BeatInterval;
-            if (after < before)
-            {
-                AudioDirector.I?.Play("drum_hit", R.Beater.position, 1f);
-                if (Game.Settings.reducedEffects == false) PostFx.I?.Flash(0.05f);
-            }
-            // Beater swing and the shrinking ring cue (closes exactly on the beat).
-            R.Beater.localRotation = Quaternion.Euler(0, 0, Mathf.Lerp(-35f, 0f, Mathf.Pow(Phase, 4f)));
-            float ringScale = Mathf.Lerp(2.2f, 0.6f, Phase);
-            R.Ring.localScale = Vector3.one * ringScale;
-            R.RingMat.SetColor("_Color", OnBeat ? new Color(0.6f, 1f, 0.8f, 0.95f) : new Color(0.95f, 0.85f, 0.6f, 0.6f));
-            // The shadow drifts on its own; after an alert it slides toward the player, then loses interest.
-            m_Alert = Mathf.Max(0f, m_Alert - dt);
-            var target = m_Alert > 0f && Game.Rig != null ? R.transform.InverseTransformPoint(Game.Rig.Feet) : new Vector3(Mathf.Sin(Time.time * 0.21f) * 2.5f, 0f, 6f + Mathf.Cos(Time.time * 0.17f) * 3f);
-            var p = R.FloatShadow.localPosition;
-            p = Vector3.MoveTowards(p, new Vector3(target.x, 0.013f, target.z), dt * (m_Alert > 0f ? 1.2f : 0.4f));
-            R.FloatShadow.localPosition = p;
-            if (m_Alert > 0f && Game.Rig != null && Vector3.Distance(R.FloatShadow.position, Game.Rig.Feet) < 1.1f)
-                Game.Story.DrainVitality(0.08f * dt);
+            if (after < before) AudioDirector.I?.Play("drum_hit", R.Beater.position, 0.8f);
+            float phase = after / RioCell.BeatInterval;
+            R.Beater.localRotation = Quaternion.Euler(0, 0, Mathf.Lerp(-35f, 0f, Mathf.Pow(phase, 4f)));
+            // The float's shadow drifts on its own between the stall and the float.
+            var target = new Vector3(Mathf.Sin(Time.time * 0.21f) * 2.2f, 0.013f, 7.9f + Mathf.Cos(Time.time * 0.17f) * 1.1f);
+            R.FloatShadow.localPosition = Vector3.MoveTowards(R.FloatShadow.localPosition, target, dt * 0.4f);
+        }
+
+        public override void ResetLocal()
+        {
+            R.Hunt.Stop();
+            Game.Passenger?.Despawn();
         }
     }
 }

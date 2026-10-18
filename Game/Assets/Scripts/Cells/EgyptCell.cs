@@ -2,16 +2,16 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>Egypt — The Sun Without a Shadow. Exhibition courtyard, pyramids far off, sand drifting upward,
-    /// and one shadow that points at the sun. Turning the reflector burns it away; the reflector then feeds
-    /// sunlight to any tear opened to Egypt.</summary>
+    /// <summary>Egypt — The Temple Run. The player arrives at the foot of a long walled causeway east of the old exhibition
+    /// courtyard (Cells/EgyptRun.cs) and runs it north toward the pyramids: three lanes, mummies bursting out of tomb
+    /// doors, fallen stones to go round, passport coins to collect, and a portal at the far end where the stamp waits.
+    /// Verifying Egypt still grants Egyptian sunlight for tears opened here. The courtyard, the oasis camp and the desert
+    /// stay as the open world west of the run's forecourt.</summary>
     public class EgyptCell : Cell
     {
-        public StepRotator Reflector;
-        public LightCone ReflectorBeam;
-        public Transform WrongShadow;
         public TraceMark Trace;
-        public Vector3 ShadowTargetLocal = new Vector3(3.15f, 0.05f, 5.2f);
+        public TempleRun Run;
+        public GhostHunt Hunt;
         public Vector3 MirrorLocal = new Vector3(-2.5f, 0f, 1.5f);
 
         protected override void Build()
@@ -63,7 +63,7 @@ namespace TwelfthStamp
                 MonumentKit.Palm(g, pos, h, seed, trunk, frond, deadFrond, dates);
             // Low dunes beyond the walls give the sand depth between the courtyard and the pyramids.
             var duneMat = Mats.Lit(new Color(0.9f, 0.76f, 0.55f), 0.1f, 0f, "sand_ripples");
-            foreach (var (c, sz) in new[] { (new Vector3(14f, -1.6f, 26f), new Vector3(30f, 4.5f, 14f)), (new Vector3(-15f, -1.8f, 28f), new Vector3(26f, 5f, 14f)) })
+            foreach (var (c, sz) in new[] { (new Vector3(14f, -1.6f, 26f), new Vector3(20f, 4.5f, 14f)), (new Vector3(-15f, -1.8f, 28f), new Vector3(26f, 5f, 14f)) }) // the east one ends west of the temple run
             {
                 var dune = MeshFactory.Sphere("Dune", g, c, 1f, duneMat, 24, 12);
                 dune.transform.localScale = sz;
@@ -85,19 +85,28 @@ namespace TwelfthStamp
             BuildCourtDetail(g, sandstone, trim, wood, bronze);
             Expand_Egypt.Build(this, g); // the oasis camp east of the court (Cells/Expand_Egypt.cs)
 
-            // The plain pillar and its wrong shadow (pointing toward the sun, south-west).
+            // The plain pillar in the courtyard (scenery now).
             MeshFactory.Box("Pillar", g, new Vector3(4.2f, 1.6f, 6.4f), new Vector3(0.5f, 3.2f, 0.5f), sandstone, true, 3.5f);
             MeshFactory.Box("PillarCap", g, new Vector3(4.2f, 3.27f, 6.4f), new Vector3(0.66f, 0.14f, 0.66f), trim, false, 3.5f);
-            var shadowMat = Mats.UnlitInstance(new Color(0.05f, 0.04f, 0.03f, 0.75f), Tex.SoftDot, true, 1f);
-            var shadow = MeshFactory.Quad("WrongShadow", transform, 1.0f, 3.2f, shadowMat, new Vector3(0, 0, 0), Quaternion.Euler(90, 0, 0));
-            shadow.transform.localPosition = ShadowTargetLocal;
-            shadow.transform.localRotation = Quaternion.Euler(90f, 32f + 180f, 0f);
-            shadow.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            WrongShadow = shadow.transform;
 
-            Trace = TraceMark.Create(transform, CountryId.Egypt, ShadowTargetLocal + Vector3.up * 0.02f, Quaternion.identity, 0.55f, true);
+            // The temple run, east of the oasis camp: the arrival is its forecourt and the stamp waits in its portal, so that
+            // is the only stamp spot in the cell. The trace stays (hidden): crossing the finish line verifies the seal.
+            Run = TempleRun.Build(transform, Lighting);
+            foreach (var v in GetComponentsInChildren<VistaInfo>(true)) if (v != Run.StampSpot) v.HasStampSpot = false;
+            Trace = TraceMark.Create(transform, CountryId.Egypt, TempleRun.PortalLocal + new Vector3(0f, 0.02f, -2.5f), Quaternion.identity, 0.55f, true);
+            // The wrapped figure rises out of the sand by the forecourt and follows the runner slowly; the mummies are the
+            // main hazard.
+            Hunt = gameObject.AddComponent<GhostHunt>();
+            Hunt.Cell = this;
+            Hunt.SpawnLocal = new Vector3(30.5f, -0.06f, -12.5f);
+            Hunt.RetreatLocal = new Vector3(30.5f, -0.06f, -2.5f);
+            Hunt.SpawnState = PassengerState.Rise;
+            Hunt.StalkSpeed = 0.42f;
+            Hunt.RushEvery = 0f;
+            Hunt.LoseDistance = 9999f;
+            Hunt.Arrives = "linen rustles in the sand behind you";
 
-            // The reflector: a bronze mirror on a pivot stand.
+            // The bronze reflector on its stand: an exhibit in the courtyard now (it no longer turns).
             var stand = new GameObject("ReflectorStand").transform;
             stand.SetParent(g, false);
             stand.localPosition = MirrorLocal;
@@ -129,37 +138,21 @@ namespace TwelfthStamp
                 MeshFactory.FromBuilder("Mirror", mirror, mirrorMat, pivot);
                 MeshFactory.Box("Yoke", pivot, new Vector3(0, -0.5f, 0), new Vector3(0.95f, 0.06f, 0.06f), bronze, false);
             }
+            pivot.localRotation = Quaternion.Euler(0f, 35f, 0f); // turned toward the court's gate, as it was left
             var col = pivot.gameObject.AddComponent<BoxCollider>();
             col.size = new Vector3(1.0f, 1.0f, 0.2f);
-            Reflector = pivot.gameObject.AddComponent<StepRotator>();
-            Reflector.Target = pivot;
-            Reflector.Axis = Vector3.up;
-            Reflector.StepDegrees = 15f;
-            Reflector.Steps = 24;
-            Reflector.Prompt = "Turn the reflector";
-            Reflector.MaxDistance = 2.8f;
 
-            var beamGo = new GameObject("ReflectedSunlight");
-            beamGo.transform.SetParent(pivot, false);
-            beamGo.transform.localPosition = new Vector3(0, 0, 0.06f);
-            beamGo.transform.localRotation = Quaternion.Euler(5f, 0, 0);
-            ReflectorBeam = beamGo.AddComponent<LightCone>();
-            ReflectorBeam.Length = 9.5f;
-            ReflectorBeam.StartRadius = 0.42f;
-            ReflectorBeam.EndRadius = 0.9f;
-            ReflectorBeam.Sunlight = true;
-            ReflectorBeam.OwnerCell = this;
-            ReflectorBeam.Build(new Color(1f, 0.85f, 0.6f), 1.3f);
-            ReflectorBeam.SetStrength(1f);
-
-            // Sand drifting upward (the one dominant impossible event besides the shadow).
+            // Sand drifting upward over the old court, and along the run.
             Kit.Weather(g, new Vector3(0, 0.3f, 2f), new Vector3(16f, 0.2f, 16f), false, new Color(0.95f, 0.82f, 0.6f, 0.65f), 90f, 0.35f, true);
+            Kit.Weather(g, new Vector3(TempleRun.RunX, 0.3f, 40f), new Vector3(6f, 0.2f, 90f), false, new Color(0.95f, 0.82f, 0.6f, 0.55f), 70f, 0.35f, true);
 
-            AddSeam("arrival", new Vector3(0f, 0.03f, -6.5f), 0f);
+            // Seams: behind the arrival in the run's forecourt, in the old court, and in the portal yard at the far end.
+            AddSeam("arrival", new Vector3(TempleRun.RunX, TempleRun.FloorY, -16.45f), 0f);
             AddSeam("court", new Vector3(-6.6f, 0.03f, 2.4f), 90f);
-            SetArrival(new Vector3(0f, 0.03f, -5.4f), 0f);
-            // Open world: out through the pylon gate (or the open east side) across the sand to the pyramids, where the
-            // country's stamp waits once the seal is verified. The court walls still frame the puzzle.
+            AddSeam("finish", new Vector3(TempleRun.RunX - TempleRun.HalfW + 0.05f, TempleRun.FloorY, TempleRun.Z1 + 3.2f), 90f);
+            SetArrival(TempleRun.StartLocal, 0f);
+            // Open world: the run's forecourt opens west onto the sand (the court, the oasis camp and the dunes); the
+            // causeway itself is walled, so the only way into the portal yard is down it.
             AddBounds(new Vector3(11f, 0, 56f), new Vector3(76f, 8f, 146f), 8f);
             Landmarks.MarkReachable(this);
 
@@ -169,7 +162,7 @@ namespace TwelfthStamp
         /// <summary>
         /// The courtyard as a festival pavilion that has stood in the sun for a season: a processional path to the gate,
         /// two plain obelisks, sand drifted against the walls, fallen drums and rubble, storage jars, a rope line round the
-        /// covered exhibits and the pavilion's placard. Nothing sits on the puzzle line (reflector, pillar, wrong shadow).
+        /// covered exhibits and the pavilion's placard.
         /// </summary>
         void BuildCourtDetail(Transform g, Material sandstone, Material trim, Material wood, Material bronze)
         {
@@ -261,169 +254,95 @@ namespace TwelfthStamp
         }
     }
 
+    /// <summary>
+    /// Egypt: the temple run. Crossing the finish line before the portal verifies Egypt (which grants Egyptian sunlight)
+    /// and the stamp waits in the portal's ring. The wrapped figure follows slowly from behind while the run is on.
+    /// </summary>
     public class EgyptEncounter : Encounter
     {
         EgyptCell E => (EgyptCell)Cell;
-        float m_Burn;
-        float m_MummyTimer;
-        bool m_MummySpawned, m_Revealed, m_LookedAtShadow;
-        Material m_ShadowMat;
+        bool m_Solved;
 
-        /// <summary>The false shadow has burned away and the arrival trace shows (guide/state).</summary>
-        public bool Revealed => m_Revealed;
-        /// <summary>0..1: how far the reflected sun has burned the false shadow (guide/state).</summary>
-        public float BurnProgress => m_Burn;
-        /// <summary>The wrapped figure has risen out of the sand (guide/state).</summary>
-        public bool MummyRisen => m_MummySpawned;
-        /// <summary>World cues for the puzzle: reflector glint, smouldering shadow, aim error (see EgyptCues).</summary>
-        public EgyptCues Cues { get; private set; }
+        // Read-only state for the guide (Guide/GuideBook.Egypt.cs) and the tests.
+        public bool Solved => m_Solved;
+        public TempleRun Run => E.Run;
+
+        public override string Objective
+        {
+            get
+            {
+                if (m_Solved) return "Step into the portal: your stamp is waiting in the ring.";
+                var r = E.Run;
+                return "Temple run: run the causeway north to the portal. Change lanes to dodge the mummies that burst out of the tombs, go round the fallen stones, " +
+                       "and collect passport coins (" + (r != null ? r.Coins : 0) + " / " + (r != null ? r.CoinTotal : 0) + "). Something follows you from behind: keep moving.";
+            }
+        }
 
         public override void OnEnter(bool firstVisit)
         {
-            if (Cues == null) Cues = gameObject.AddComponent<EgyptCues>();
-            m_ShadowMat = E.WrongShadow.GetComponent<Renderer>().sharedMaterial;
-            bool verified = Game.Campaign.IsVerified(CountryId.Egypt);
-            E.Reflector.Changed -= OnTurned; E.Reflector.Changed += OnTurned;
-            m_MummySpawned = false; m_MummyTimer = 0f; m_Burn = 0f;
-            Cues.Setup(E, this);
-            if (verified)
-            {
-                m_Revealed = true;
-                E.WrongShadow.gameObject.SetActive(false);
-                E.Trace.Reveal(false);
-                Game.Passenger?.Despawn();
-                return;
-            }
-            m_Revealed = false;
-            E.WrongShadow.gameObject.SetActive(true);
-            m_ShadowMat.SetColor("_Color", new Color(0.05f, 0.04f, 0.03f, 0.75f));
+            m_Solved = Game.Campaign.IsVerified(CountryId.Egypt);
+            var run = E.Run;
+            foreach (var v in E.GetComponentsInChildren<VistaInfo>(true)) if (v != run.StampSpot) v.HasStampSpot = false;
+            Landmarks.MarkReachable(E, true);
+            run.CoinTaken -= OnCoin; run.CoinTaken += OnCoin;
+            run.Struck -= OnStruck; run.Struck += OnStruck;
             E.Trace.Hide();
-            Narration.I?.Say("egy_01", null, false, null, false, true);
             Game.Passenger?.Despawn();
+            if (m_Solved) { run.ShowFinished(); E.Hunt.Stop(); return; }
+            run.ResetRun();
+            run.Live = true;
+            Game.Story?.RestoreVitality(1f);
+            Hud.I?.ShowToast("A temple causeway runs north to a portal. Run it: dodge the mummies, go round the stones, grab the passport coins.", 4.5f);
+            E.Hunt.Begin(firstVisit ? 8f : 6f);
+            Hud.I?.SetObjective(Objective, false);
         }
 
         public override void OnExit()
         {
-            E.Reflector.Changed -= OnTurned;
-            if (Game.Passenger != null && Game.Passenger.Visible) Game.Passenger.Despawn();
+            if (E.Run != null) { E.Run.Live = false; E.Run.CoinTaken -= OnCoin; E.Run.Struck -= OnStruck; }
+            E.Hunt.Stop();
         }
 
-        void OnTurned(StepRotator r, int index)
+        void OnCoin(TempleRun r)
         {
-            if (!IsLive) return;
-            if (!m_MummySpawned && !Game.Campaign.IsVerified(CountryId.Egypt)) m_MummyTimer = Mathf.Max(m_MummyTimer, 14f);
+            if (!IsLive || m_Solved) return;
+            Hud.I?.SetObjective(Objective, false);
+            if (r.Coins == 10 || r.Coins == 20 || r.Coins == r.CoinTotal) Hud.I?.ShowToast(r.Coins + " passport coins!", 1.8f);
+        }
+
+        void OnStruck(TempleRun r)
+        {
+            if (!IsLive || m_Solved) return;
+            if (r.Hits == 1) Hud.I?.ShowToast("A mummy's grip drains your energy. Change lanes before they reach you; the coins steady you.", 3.5f);
         }
 
         void Update()
         {
-            if (!IsLive || Game.Paused) return;
-            if (Game.Campaign.IsVerified(CountryId.Egypt)) return;
-
-            // "That shadow is pointing at the sun."
-            if (!m_LookedAtShadow && Game.Rig != null)
-            {
-                var to = E.WrongShadow.position - Game.Rig.Head.position;
-                if (to.magnitude < 10f && Vector3.Angle(Game.Rig.Head.forward, to) < 18f)
-                {
-                    m_LookedAtShadow = true;
-                    Narration.I?.Say("egy_02", null, false, null, false, true);
-                }
-            }
-
-            // The wrapped Passenger rises out of the sand behind the player (telegraphed, slow, repelled by light).
-            m_MummyTimer += Time.deltaTime;
-            if (!m_MummySpawned && m_MummyTimer > 18f && Game.Story != null && Game.Story.ThreatAllowed) SpawnMummy();
-
-            // Reflected sunlight on the wrong shadow burns it away and reveals the arrival trace.
-            if (!m_Revealed)
-            {
-                var beam = E.ReflectorBeam.transform;
-                var to = E.transform.TransformPoint(E.ShadowTargetLocal) - beam.position;
-                to.y = 0;
-                var f = beam.forward; f.y = 0;
-                bool aligned = Vector3.Angle(f, to) < 8.5f;
-                m_Burn = Mathf.MoveTowards(m_Burn, aligned ? 1f : 0f, Time.deltaTime / (aligned ? 1.1f : 3f));
-                m_ShadowMat.SetColor("_Color", new Color(0.05f + m_Burn * 0.6f, 0.04f + m_Burn * 0.35f, 0.03f, 0.75f * (1f - m_Burn)));
-                if (aligned && Random.value < Time.deltaTime * 3f) AudioDirector.I?.Play("sun_sizzle", E.WrongShadow.position, 0.5f, Random.Range(0.9f, 1.15f));
-                if (m_Burn >= 1f)
-                {
-                    m_Revealed = true;
-                    E.WrongShadow.gameObject.SetActive(false);
-                    E.Trace.Reveal();
-                    Hud.I?.ShowToast("The false shadow burns away. Something was underneath.", 3f);
-                    Narration.I?.Say("tut_verify", null, true, null, false, true);
-                    PostFx.I?.Flash(0.6f);
-                }
-            }
+            if (!IsLive || m_Solved || Game.Rig == null || Game.Story == null || Game.Story.Busy || Game.Story.Failing) return;
+            var feet = E.transform.InverseTransformPoint(Game.Rig.Feet);
+            if (TempleRun.Finished(feet)) Solve();
         }
 
-        void SpawnMummy()
+        void Solve()
         {
-            m_MummySpawned = true;
-            var rig = Game.Rig;
-            var local = RiseSpot(rig);
-            var pc = Game.Passenger;
-            pc.RetreatPoint = E.transform.TransformPoint(new Vector3(-5.5f, 0.03f, 6.5f));
-            pc.RetreatSeconds = 12f;
-            pc.Spawn(Cell, local, rig.Head.eulerAngles.y, PassengerState.Rise, Disguise.ExhibitLinen);
-            pc.Threatening = true;
-            Hud.I?.ShowCaption("linen rustles in the sand behind you", 3.5f);
-            AudioDirector.I?.Play("pass_whisper", E.transform.TransformPoint(local) + Vector3.up, 0.9f);
-            Narration.I?.Say("tut_danger", null, true, null, false, true);
-        }
-
-        /// <summary>
-        /// Where the wrapped figure rises: about five metres behind the player, inside the court. Clamping "behind" to the
-        /// walls could put it on top of a player standing by a wall (with sudden death that killed without warning), so try
-        /// a fan of directions and take the one with the most room, preferring behind.
-        /// </summary>
-        Vector3 RiseSpot(PlayerRig rig)
-        {
-            var feet = E.transform.InverseTransformPoint(rig.Feet); feet.y = 0f;
-            var fwd = E.transform.InverseTransformDirection(rig.Forward); fwd.y = 0f;
-            if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
-            fwd.Normalize();
-            var best = feet; float bestScore = float.MinValue;
-            for (int i = 0; i < 12; i++)
-            {
-                float a = 180f + (i % 2 == 0 ? 1f : -1f) * ((i + 1) / 2) * 30f;
-                var p = feet + Quaternion.Euler(0f, a, 0f) * fwd * 5f;
-                p.x = Mathf.Clamp(p.x, -5.8f, 5.8f); p.z = Mathf.Clamp(p.z, -5.6f, 7f); p.y = 0f;
-                var d = p - feet;
-                float score = Mathf.Min(d.magnitude, 4.5f) * 2f - Vector3.Dot(d.normalized, fwd);
-                if (score > bestScore) { bestScore = score; best = p; }
-            }
-            best.y = 0.03f;
-            return best;
+            m_Solved = true;
+            E.Run.Live = false;
+            E.Hunt.Stop();
+            AudioDirector.I?.Play("seal_verify", E.Run.Portal.position, 0.8f);
+            Hud.I?.ShowToast("You made it! " + E.Run.Coins + " of " + E.Run.CoinTotal + " passport coins. The portal is open: step into it.", 4f);
+            Game.Story.VerifyCountry(CountryId.Egypt, null);
         }
 
         public void OnVerified()
         {
-            var pc = Game.Passenger;
-            if (pc != null && pc.Visible) StartCoroutine(Collapse(pc));
             Hud.I?.ShowToast("Egyptian sunlight will now pour through any tear you open to Egypt.", 4.5f);
-        }
-
-        System.Collections.IEnumerator Collapse(PassengerController pc)
-        {
-            pc.SetState(PassengerState.Retreat);
-            yield return new WaitForSeconds(1.2f);
-            AudioDirector.I?.Play("pass_creak_3", pc.ChestPosition, 0.8f);
-            float t = 0f;
-            while (t < 1f && pc.Visible)
-            {
-                t += Time.deltaTime / 1.2f;
-                pc.Body.RiseAmount = 1f - t;
-                yield return null;
-            }
-            pc.Despawn();
         }
 
         public override void ResetLocal()
         {
-            m_MummySpawned = false;
-            m_MummyTimer = 6f;
+            E.Hunt.Stop();
             Game.Passenger?.Despawn();
+            if (E.Run != null) E.Run.Live = false;
         }
     }
 }

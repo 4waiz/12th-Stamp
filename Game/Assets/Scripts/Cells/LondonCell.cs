@@ -2,16 +2,16 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>United Kingdom / London — The Minute Before Midnight. The arrival trace only shows in light from another
-    /// place; opening a tear is loud. Prepare the passport and open the tear while the clock chime masks it.</summary>
+    /// <summary>United Kingdom / London — Stop the Clock. Big Ben's clock face stands on the promenade at one minute to
+    /// midnight, its needle spinning: press the big red button while the needle is in the green zone, three times in a row,
+    /// while the figure in the clock coat hunts the river walk (run, lose it, come back).</summary>
     public partial class LondonCell : Cell
     {
         public SeamAnchor CheckpointSeam;
         public TraceMark Trace;
         public Transform MinuteHand, BellPivot;
-        public Material ChimeGlow;
-        public const float ChimeInterval = 16f;
-        public const float ChimeWindow = 3.2f;
+        public StopTheClock Clock;
+        public GhostHunt Hunt;
 
         protected override void Build()
         {
@@ -70,15 +70,27 @@ namespace TwelfthStamp
             BellPivot.localPosition = new Vector3(0, 3.2f, 0);
             MeshFactory.Frustum("Bell", BellPivot, new Vector3(0, -0.45f, 0), 0.32f, 0.12f, 0.45f, Mats.Lit(new Color(0.65f, 0.5f, 0.28f), 0.7f, 0.9f), 18);
             MeshFactory.Box("BellFrame", kiosk, new Vector3(0, 3.25f, 0), new Vector3(0.9f, 0.06f, 0.06f), metal, false);
-            ChimeGlow = Mats.UnlitInstance(new Color(0.95f, 0.85f, 0.55f, 0f), Tex.SoftDot, true, 1.5f);
-            ChimeGlow.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
-            MeshFactory.Quad("ChimeGlow", kiosk, 1.4f, 1.4f, ChimeGlow, new Vector3(1.3f, 2.2f, 0), Quaternion.Euler(0, -90, 0));
 
             BuildEmbankmentDetail(g, kiosk, granite, brick);
 
             CheckpointSeam = AddSeam("checkpoint", new Vector3(-4.3f, 0f, 3f), 90f);
             AddSeam("arrival", new Vector3(0f, 0f, -6.6f), 0f);
+            // The game here (Cells/StopTheClock.cs): Big Ben's clock face on a stand in the middle of the promenade, facing
+            // the arrival, with the red STOP button on a lectern in front. Stopping it verifies the seal; the trace stays hidden.
+            Clock = StopTheClock.Build(g, new Vector3(0.7f, 0f, 4.3f), 0f);
             Trace = TraceMark.Create(transform, CountryId.UnitedKingdom, new Vector3(-1.2f, 0.02f, 3.0f), Quaternion.identity, 0.55f, true);
+            // The figure in the clock coat comes down the river walk from the north, past the clock on the river side (in
+            // view from the button, and close enough to the arrival that it does not lose a player who has not moved yet).
+            Hunt = gameObject.AddComponent<GhostHunt>();
+            Hunt.Cell = this;
+            Hunt.SpawnLocal = new Vector3(2.6f, 0f, 11f);
+            Hunt.RetreatLocal = new Vector3(2.6f, 0f, 15f);
+            Hunt.StalkSpeed = 0.55f;
+            Hunt.RushEvery = 14f;
+            Hunt.RushSeconds = 2.2f;
+            Hunt.LoseDistance = 17f;
+            Hunt.RestSeconds = 9f;
+            Hunt.Arrives = "the figure in the clock coat walks out of the fog";
             SetArrival(new Vector3(0f, 0f, -5.6f), 0f);
             // Bounds: BuildBridgeWalk adds one box round the promenade and the way over the bridge to the far embankment,
             // and keeps the promenade's river-side limit.
@@ -90,76 +102,103 @@ namespace TwelfthStamp
     public class LondonEncounter : Encounter
     {
         LondonCell L => (LondonCell)Cell;
-        // Read-only state for the guide (Guide/GuideBook.cs).
-        public float SecondsToChime => UntilChime;
-        float m_Clock;
-        bool m_Revealed;
+        bool m_Solved;
+        float m_RushLeft, m_BellSwing;
 
-        public override string Objective => "Have your passport ready. Open a tear at the checkpoint seam while the clock chimes, so the rip is masked.";
+        // Read-only state for the guide (Guide/GuideBook.London.cs).
+        public bool Solved => m_Solved;
+        public int Hits => L.Clock != null ? L.Clock.Hits : 0;
 
-        public bool Chiming => (m_Clock % LondonCell.ChimeInterval) < LondonCell.ChimeWindow;
-        float UntilChime => LondonCell.ChimeInterval - (m_Clock % LondonCell.ChimeInterval);
+        public override string Objective => m_Solved ? "The clock has stopped at midnight. Run to your stamp across the bridge."
+            : "Stop the clock: press the big red button when the spinning needle is in the green zone, three times in a row. When the figure in the clock coat comes, run, lose it, then come back.";
 
         public override void OnEnter(bool firstVisit)
         {
-            m_Revealed = Game.Campaign.IsVerified(CountryId.UnitedKingdom);
-            m_Clock = LondonCell.ChimeWindow + 2f;
-            Game.Tears.Opened -= OnTear; Game.Tears.Opened += OnTear;
-            Game.Passenger?.Despawn();
-            if (m_Revealed) { L.Trace.Reveal(false); return; }
+            m_Solved = Game.Campaign.IsVerified(CountryId.UnitedKingdom);
+            L.Clock.Pressed -= OnPressed; L.Clock.Pressed += OnPressed;
+            L.Clock.Completed -= OnStopped; L.Clock.Completed += OnStopped;
             L.Trace.Hide();
+            Game.Passenger?.Despawn();
+            m_RushLeft = 0f;
+            if (m_Solved) { L.Clock.ShowStopped(); L.Hunt.Stop(); return; }
             Narration.I?.Say("uk_01", null, false, null, false, true);
-            var pc = Game.Passenger;
-            pc.GuardPoint = L.transform.TransformPoint(new Vector3(2.5f, 0f, 9f));
-            pc.RetreatPoint = L.transform.TransformPoint(new Vector3(2f, 0f, 10.5f));
-            pc.Spawn(Cell, new Vector3(2.5f, 0f, 9f), 200f, PassengerState.Observe, Disguise.ClockCoat);
-            pc.Threatening = true;
-            pc.WalkSpeed = 0.75f;
+            L.Clock.ResetGame();
+            Hud.I?.ShowToast("Big Ben's clock face spins on the promenade. Press the red STOP button when the needle is in the green zone: three in a row.", 4.5f);
+            L.Hunt.Begin(firstVisit ? 9f : 6f);
             Hud.I?.SetObjective(Objective, false);
         }
 
-        public override void OnExit() => Game.Tears.Opened -= OnTear;
-
-        void OnTear(Tear t)
+        public override void OnExit()
         {
-            if (!IsLive || m_Revealed) return;
-            if (t.Anchor != L.CheckpointSeam) return;
-            if (Chiming)
+            L.Clock.Pressed -= OnPressed;
+            L.Clock.Completed -= OnStopped;
+            L.Hunt.Stop();
+            m_RushLeft = 0f;
+        }
+
+        void OnPressed(StopTheClock c, bool hit)
+        {
+            if (!IsLive || m_Solved) return;
+            if (hit)
             {
-                m_Revealed = true;
-                L.Trace.Reveal();
-                Hud.I?.ShowToast("The chime swallows the sound. Light from elsewhere falls on the promenade.", 3.5f);
-                Narration.I?.Say("tut_verify", null, true, null, false, true);
+                m_BellSwing = 1.2f;
+                if (c.Hits < StopTheClock.HitsToWin) Hud.I?.ShowToast("Hit! " + c.Hits + " / " + StopTheClock.HitsToWin + ". The needle speeds up and the green shrinks.", 2.5f);
+                return;
+            }
+            Hud.I?.ShowToast("Missed! Back to 0 / " + StopTheClock.HitsToWin + ". The buzzer carries down the river...", 3f);
+            // The buzzer gives you away: the figure rushes at you if it is out, or comes now if it was not.
+            var pc = Game.Passenger;
+            if (pc != null && pc.Visible && pc.transform.parent == L.transform && Game.Story != null && !Game.Story.Busy && !Game.Story.Failing)
+            {
+                pc.StartChase();
+                m_RushLeft = 2.2f;
+                AudioDirector.I?.Play("pass_sting", pc.ChestPosition, 0.8f);
+                Hud.I?.ShowCaption("it heard the buzzer and rushes at you: run", 2.5f);
             }
             else
             {
-                Hud.I?.ShowToast("The rip echoes across the frozen water. It heard you. Seal it and wait for the chime.", 4f);
-                Game.Passenger?.Investigate(t.OpeningCenter, 10f);
-                t.SetPassengerPressure(0.7f);
+                L.Hunt.Begin(1.2f);
+                Hud.I?.ShowCaption("something down the river heard the buzzer", 2.5f);
             }
+        }
+
+        void OnStopped(StopTheClock c)
+        {
+            if (!IsLive || m_Solved) return;
+            m_Solved = true;
+            m_RushLeft = 0f;
+            m_BellSwing = 3f;
+            L.Hunt.Stop();
+            AudioDirector.I?.Play("seal_verify", c.FaceCenter, 0.7f);
+            Hud.I?.ShowToast("You stopped the clock! Midnight at last, and the river starts to move again.", 3.5f);
+            Game.Story.VerifyCountry(CountryId.UnitedKingdom, null);
         }
 
         void Update()
         {
             if (!IsLive) return;
-            float before = m_Clock % LondonCell.ChimeInterval;
-            m_Clock += Time.deltaTime;
-            float after = m_Clock % LondonCell.ChimeInterval;
-            if (after < before)
+            float dt = Time.deltaTime;
+            if (m_RushLeft > 0f)
             {
-                AudioDirector.I?.Play("clock_chime", L.BellPivot.position, 1f);
-                Hud.I?.ShowCaption("the clock chimes", 2.5f);
+                // Only the rush a miss started is called off; the stamp chase after the win is the story's.
+                m_RushLeft -= dt;
+                var pc = Game.Passenger;
+                if (m_RushLeft <= 0f && !m_Solved && pc != null && pc.Visible && pc.State == PassengerState.Chase) pc.SetState(PassengerState.Stalk);
             }
-            // Anticipation: the bell draws back and the minute hand strains in the last seconds before the chime.
-            float until = UntilChime;
-            float pull = until < 3f ? (3f - until) / 3f : 0f;
-            float swing = Chiming ? Mathf.Sin(after * 6f) * 18f * (1f - after / LondonCell.ChimeWindow) : -pull * 14f;
-            L.BellPivot.localRotation = Quaternion.Euler(swing, 0, 0);
-            L.MinuteHand.localRotation = Quaternion.Euler(-6f + (pull > 0 ? Mathf.Sin(Time.time * 40f) * pull * 1.5f : 0f), -90, 0);
-            L.ChimeGlow.SetColor("_Color", new Color(0.95f, 0.85f, 0.55f, Chiming ? 0.55f * (1f - after / LondonCell.ChimeWindow) : pull * 0.15f));
-            if (!m_Revealed && pull > 0.01f && until < 2.95f && until > 2.85f) Hud.I?.ShowToast("Get ready...", 1.5f);
+            // The checkpoint bell answers each hit.
+            if (L.BellPivot != null)
+            {
+                if (m_BellSwing > 0f) m_BellSwing -= dt;
+                float k = Mathf.Clamp01(m_BellSwing / 1.2f);
+                L.BellPivot.localRotation = Quaternion.Euler(Mathf.Sin(Time.time * 6f) * 16f * k, 0f, 0f);
+            }
         }
 
-        public override void ResetLocal() => Game.Passenger?.Despawn();
+        public override void ResetLocal()
+        {
+            L.Hunt.Stop();
+            m_RushLeft = 0f;
+            Game.Passenger?.Despawn();
+        }
     }
 }

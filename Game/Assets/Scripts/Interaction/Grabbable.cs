@@ -66,9 +66,14 @@ namespace TwelfthStamp
             Holder = who;
             Body.isKinematic = true;
             Body.detectCollisions = false;
+            // No interpolation while held: an interpolated body overrides the transform with its own last physics pose, so
+            // the item trailed the hand and, once let go, could stay drawn (and hit-tested) where it was last held
+            // (playtest, 18 Oct: the claw machine's prize floating in mid-air, "not attached to my hand").
+            Body.interpolation = RigidbodyInterpolation.None;
             transform.SetParent(holdPoint, true);
             transform.localPosition = HoldLocalPosition;
             transform.localRotation = Quaternion.Euler(desktop ? DesktopHoldEuler : HoldLocalEuler);
+            SyncBody();
             Grabbed?.Invoke(this, who);
             AudioDirector.I?.Play("grab", transform.position, 0.6f);
         }
@@ -81,6 +86,9 @@ namespace TwelfthStamp
             transform.SetParent(cell != null ? cell.transform : null, true);
             Body.detectCollisions = true;
             Body.isKinematic = !(keepPhysics && UsePhysicsOnRelease);
+            SyncBody();
+            // Smooth only while physics moves it (a throw or a drop); a resting item stays exactly where it is put.
+            Body.interpolation = Body.isKinematic ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
             if (!Body.isKinematic) Body.linearVelocity = Vector3.ClampMagnitude(velocity, 4f);
             Released?.Invoke(this);
         }
@@ -96,6 +104,16 @@ namespace TwelfthStamp
             transform.localRotation = m_HomeRot;
             Body.isKinematic = true;
             Body.detectCollisions = true;
+            Body.interpolation = RigidbodyInterpolation.None;
+            SyncBody();
+        }
+
+        /// <summary>Moves the physics body to where the transform was just put (scripted moves of a body).</summary>
+        public void SyncBody()
+        {
+            if (Body == null) return;
+            Body.position = transform.position;
+            Body.rotation = transform.rotation;
         }
 
         void Update()

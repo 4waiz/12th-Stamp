@@ -4,11 +4,12 @@ using UnityEngine;
 namespace TwelfthStamp
 {
     /// <summary>
-    /// France / Paris — The Street That Folds. A rainy Seine embankment on festival night; the signature encounter.
+    /// France / Paris — Bubbles over the Seine. A rainy Seine embankment on festival night (the judges' demo country).
     /// Layout (cell-local, metres): the street runs north (+Z) between Haussmann blocks on the west and the river
-    /// parapet on the east. The festival checkpoint (desk under an awning) stands at z = 6 with the Passenger guarding
-    /// it. The seam for borrowed light is on the festival poster board north-west of the desk, angled so that from the
-    /// approach the tear, the sunbeam and the Passenger are all in one view.
+    /// parapet on the east. A huge bubble board (Cells/ParisBubbles.cs) floats over the river just past the parapet,
+    /// facing the street, with the Eiffel Tower off to its left across the water; the player shoots from a glowing ring on
+    /// the pavement 2.3 m in front of it. Clearing the bubbles verifies France while the figure in the raincoat hunts the
+    /// street (it comes down from the north end). The festival desk, the poster board and their seams stay as scenery.
     /// </summary>
     public partial class ParisCell : Cell
     {
@@ -21,6 +22,14 @@ namespace TwelfthStamp
         public Vector3 RetreatLocal = new Vector3(-2.6f, 0f, 10.6f);
         public static readonly Vector3 BoardLocal = new Vector3(-2.2f, 0f, 8.0f);
         public const float BoardYaw = 120f;
+        /// <summary>The bubble shooter over the river, the ring the player shoots from, and the hunt while it is played.</summary>
+        public BubbleBoard Bubbles;
+        public Transform FiringSpot;
+        public GhostHunt Hunt;
+        public static readonly Vector3 FiringLocal = new Vector3(3.0f, 0f, 2.0f);
+        public const float BubbleYaw = 80f, BubbleRange = 2.3f;
+        Material m_RingMat;
+        public Material FiringRingMat => m_RingMat;
 
         protected override void Build()
         {
@@ -131,8 +140,8 @@ namespace TwelfthStamp
             UrbanKit.Litter(g, new Vector3(0.3f, 0f, 3.6f), new Vector2(3.4f, 2.4f), 7, 12, System.Array.FindAll(prints, t => t != null));
             UrbanKit.Banner(g, new Vector3(3.62f, 0.98f, -1.2f), -90f, 2.4f, 0.9f, canvas, metal, "FESTIVAL OF PASSPORTS", "PARIS  ·  CHECKPOINT");
 
+            // The trace stays (other code reads it) but hidden: the bubble board verifies France.
             Trace = TraceMark.Create(transform, CountryId.France, transform.InverseTransformPoint(ledgerTop.position) + Vector3.up * 0.003f, Quaternion.identity, 0.2f, true);
-            Trace.Reveal(false);
 
             Kit.LampPost(g, new Vector3(-2.75f, 0.12f, -2f), new Color(1f, 0.75f, 0.45f), 2.4f, metal, out _, "StreetLamp_Paris");
             Kit.LampPost(g, new Vector3(3.2f, 0f, 2.8f), new Color(1f, 0.75f, 0.45f), 2.4f, metal, out _, "StreetLamp_Paris");
@@ -179,13 +188,50 @@ namespace TwelfthStamp
             TearVantage.localPosition = new Vector3(-0.3f, 0f, 2.8f);
             var toBoard = BoardLocal - TearVantage.localPosition; toBoard.y = 0f;
             TearVantage.localRotation = Quaternion.LookRotation(toBoard.normalized, Vector3.up);
-            SetArrival(new Vector3(0.6f, 0f, -2.6f), 0f);
+            BuildBubbleGame(g);
+            // Arrive looking up the street with the bubble board glowing over the river ahead and to the right.
+            SetArrival(new Vector3(0.6f, 0f, -2.6f), 35f);
             // One box round the street, the river walk, the bridge and the far bank up to the stamp (x -6..104, z -8.25..142,
             // walls from y -2.5 to 9.5 so they hold at street, quay and bank level; the south wall is where it always was).
             AddBounds(new Vector3(49f, -2.5f, 66.875f), new Vector3(110f, 6f, 150.25f), 12f);
 
             SetEncounter(gameObject.AddComponent<ParisEncounter>());
             Expand_France.Build(this, g); // the Cour du Douzième south of the street (after AddBounds: it shortens the south bound)
+        }
+
+        /// <summary>
+        /// The bubble shooter: the board floats over the Seine 2.3 m past the firing ring on the pavement (desktop reach is
+        /// 3.2 m), turned a little north of east so the Eiffel Tower shows past its left edge; its bottom clears the
+        /// parapet so the launcher is in plain view. The hunt comes down the street from its north end.
+        /// </summary>
+        void BuildBubbleGame(Transform g)
+        {
+            var fwd = Quaternion.Euler(0f, BubbleYaw, 0f) * Vector3.forward;
+            Bubbles = BubbleBoard.Build(transform, FiringLocal + fwd * BubbleRange + Vector3.up * 2.0f, BubbleYaw);
+            Bob.Add(Bubbles.transform, 0.025f, 4.2f, 0.4f); // it floats
+            FiringSpot = new GameObject("BubbleFiringSpot").transform;
+            FiringSpot.SetParent(transform, false);
+            FiringSpot.localPosition = FiringLocal;
+            FiringSpot.localRotation = Quaternion.Euler(0f, BubbleYaw, 0f);
+            Bubbles.FiringSpot = FiringSpot;
+            m_RingMat = Mats.UnlitInstance(new Color(1f, 0.78f, 0.55f, 0.7f), Tex.Ring, true, 1.6f);
+            var ring = MeshFactory.Quad("FiringRing", FiringSpot, 1.0f, 1.0f, m_RingMat, new Vector3(0f, 0.018f, 0f), Quaternion.Euler(90f, 0f, 0f));
+            ring.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            // A small brass plate at the parapet says what the board is for.
+            MeshFactory.Box("ShootPlate", g, new Vector3(3.64f, 1.06f, 0.75f), new Vector3(0.03f, 0.15f, 1.3f), Mats.Lit(new Color(0.12f, 0.1f, 0.08f), 0.5f, 0.6f), false);
+            var plate = TextFactory.World(transform, "TIREZ ICI  ·  SHOOT FROM HERE", 0.07f, new Color(1f, 0.88f, 0.66f), TMPro.TextAlignmentOptions.Center, true, 1.2f);
+            plate.transform.localPosition = new Vector3(3.62f, 1.06f, 0.75f); // beside the ring, below the line of sight
+            plate.transform.localRotation = Quaternion.Euler(0f, 90f, 0f); // reads from the street
+            Hunt = gameObject.AddComponent<GhostHunt>();
+            Hunt.Cell = this;
+            Hunt.SpawnLocal = new Vector3(-1.2f, 0f, 11.2f);
+            Hunt.RetreatLocal = new Vector3(1.2f, 0f, 11.7f);
+            Hunt.StalkSpeed = 0.55f;
+            Hunt.RushEvery = 13f;
+            Hunt.RushSeconds = 2.2f;
+            Hunt.LoseDistance = 12f;
+            Hunt.RestSeconds = 9f;
+            Hunt.Arrives = "a figure in a raincoat walks out of the rain at the end of the street";
         }
     }
 
@@ -203,156 +249,101 @@ namespace TwelfthStamp
         }
     }
 
+    /// <summary>
+    /// France: the bubble shooter over the Seine. Clear the board's target (or every bubble) to verify France; the figure in
+    /// the raincoat hunts the street meanwhile (GhostHunt, as in Japan: it stalks, rushes now and then, loses you when you
+    /// run far, comes back). In the judges' demo, verifying France ends the demo (StoryDirector).
+    /// </summary>
     public class ParisEncounter : Encounter
     {
         ParisCell P => (ParisCell)Cell;
-        // Read-only state for the guide (Guide/GuideBook.cs).
-        public bool Cleared => m_Cleared;            // the guard left the desk while a tear was open
-        public bool HandShown => m_HandShown;        // its hand came through the tear
-        public float RespawnIn => m_RespawnTimer;    // seconds until it comes back after a seal (< 0: not waiting)
-        PassengerHand m_Hand;
-        float m_WindowTime;
-        bool m_HandShown, m_LightTaught, m_Cleared;
-        float m_RespawnTimer = -1f;
+        bool m_Solved;
+        int m_Announced;
 
-        public PassengerHand Hand => m_Hand;
+        // Read-only state for the guide (Guide/GuideBook.Paris.cs) and the tests.
+        public bool Solved => m_Solved;
+        public BubbleBoard Board => P.Bubbles;
+
+        public override string Objective
+        {
+            get
+            {
+                if (m_Solved) return Game.IsDemo ? "Bravo! France is verified." : "Bravo! Run to your France stamp by the Eiffel Tower.";
+                var b = P.Bubbles;
+                string shoot = Game.Mode == GameMode.VR ? "aim at the board and pull the trigger" : "aim at the board and press " + Game.Input.Label(Intent.Interact);
+                return "Bubble shooter over the Seine: stand on the glowing ring by the river wall, " + shoot + ". Three or more of a colour pop, and bubbles cut loose drop. " +
+                       "Cleared " + (b != null ? b.Cleared : 0) + " / " + (b != null ? b.Target : 18) + ". When the figure in the raincoat comes, run, lose it, come back.";
+            }
+        }
 
         public override void OnEnter(bool firstVisit)
         {
-            m_HandShown = false; m_WindowTime = 0f; m_Cleared = false; m_RespawnTimer = -1f;
-            if (m_Hand == null) m_Hand = PassengerHand.Create(transform);
-            m_Hand.Detach();
-            var tears = Game.Tears;
-            tears.SizeChanged -= OnSize; tears.SizeChanged += OnSize;
-            tears.Sealed -= OnSealed; tears.Sealed += OnSealed;
-            tears.Breached -= OnBreach; tears.Breached += OnBreach;
-            tears.Opened -= OnOpened; tears.Opened += OnOpened;
+            m_Solved = Game.Campaign.IsVerified(CountryId.France);
+            var b = P.Bubbles;
+            b.Changed -= OnChanged; b.Changed += OnChanged;
+            b.Completed -= OnCompleted; b.Completed += OnCompleted;
+            P.Trace.BlockedReason = null;
+            P.Trace.Hide();
+            Game.Passenger?.Despawn();
+            if (m_Solved) { b.ShowSolved(); P.Hunt.Stop(); return; }
+            b.ResetGame();
+            m_Announced = 0;
+            Hud.I?.ShowToast("A bubble board floats over the Seine. Shoot matching colours: clear " + b.Target + " bubbles to escape France.", 4.5f);
+            P.Hunt.Begin(firstVisit ? 9f : 6f);
+            Hud.I?.SetObjective(Objective, false);
+            // The demo sets its own line just after the arrival: put the game's back on top of it.
+            if (Game.IsDemo) StartCoroutine(DemoBrief());
+        }
 
-            P.Trace.BlockedReason = () => !m_Cleared && PassengerAtDesk() ? "It is standing at the desk. Drive it away first." : null;
-            if (!Game.Campaign.IsVerified(CountryId.France))
-            {
-                SpawnGuard();
-                Narration.I?.Say("par_01", null, false, null, false, true);
-                if (Game.Campaign.HasResource(ResourceId.Sunlight))
-                    Narration.I?.Say("tut_danger", null, true, null, false, true);
-                else
-                    Hud.I?.ShowToast("Its back is to the light. Egypt's reflector could help, if it were turned.", 4f);
-            }
-            else Game.Passenger?.Despawn();
+        System.Collections.IEnumerator DemoBrief()
+        {
+            yield return null;
+            yield return new WaitForSeconds(0.25f);
+            if (!IsLive || m_Solved) yield break;
+            Hud.I?.SetObjective(Objective, false);
+            Hud.I?.ShowToast("Judges' demo: walk to the glowing ring by the river and shoot the bubbles. Clear " + P.Bubbles.Target + " to verify France.", 5f);
         }
 
         public override void OnExit()
         {
-            var tears = Game.Tears;
-            if (tears != null) { tears.SizeChanged -= OnSize; tears.Sealed -= OnSealed; tears.Breached -= OnBreach; tears.Opened -= OnOpened; }
-            m_Hand?.Detach();
+            if (P.Bubbles != null) { P.Bubbles.Changed -= OnChanged; P.Bubbles.Completed -= OnCompleted; }
+            P.Hunt.Stop();
         }
 
-        void SpawnGuard()
+        void OnChanged(BubbleBoard b)
         {
-            var pc = Game.Passenger;
-            pc.GuardPoint = transform.TransformPoint(P.GuardLocal);
-            pc.RetreatPoint = transform.TransformPoint(P.RetreatLocal);
-            pc.RetreatSeconds = 26f;
-            pc.Spawn(Cell, P.GuardLocal, 180f, PassengerState.Guard, Disguise.RainCoat);
-            pc.Threatening = true;
-        }
-
-        bool PassengerAtDesk()
-        {
-            var pc = Game.Passenger;
-            if (pc == null || !pc.Visible) return false;
-            return Vector3.Distance(pc.transform.position, P.DeskRoot.position) < 2.3f && pc.State != PassengerState.Retreat;
-        }
-
-        void OnOpened(Tear t)
-        {
-            if (!IsLive) return;
-            if (t.Destination.Id == CountryId.Egypt && t.Beam != null && !m_LightTaught)
+            if (!IsLive || m_Solved) return;
+            Hud.I?.SetObjective(Objective, false);
+            // A word at a third and two thirds of the way.
+            int third = Mathf.Max(1, b.Target / 3);
+            int step = Mathf.Min(2, b.Cleared / third);
+            if (step > m_Announced)
             {
-                m_LightTaught = true;
-                Narration.I?.Say("tut_light", null, true, null, false, true);
+                m_Announced = step;
+                Hud.I?.ShowToast(step == 1 ? "Formidable! " + b.Cleared + " cleared." : "Almost there: " + b.Cleared + " of " + b.Target + ".", 2.2f);
             }
         }
 
-        void OnSize(Tear t, TearSize size)
+        void OnCompleted(BubbleBoard b)
         {
-            if (!IsLive) return;
-            if (size == TearSize.Window) Narration.I?.Say("tut_widen", null, true, null, false, true);
+            if (!IsLive || m_Solved) return;
+            m_Solved = true;
+            P.Hunt.Stop();
+            AudioDirector.I?.Play("seal_verify", b.CentreWorld, 0.8f);
+            Hud.I?.ShowToast("Bravo! The bubbles are cleared and France lets you go.", 3.5f);
+            Game.Story.VerifyCountry(CountryId.France, null);
         }
 
         void Update()
         {
-            if (!IsLive || Game.Paused) return;
-            var tear = Game.Tears.Active;
-            var pc = Game.Passenger;
-
-            if (m_RespawnTimer > 0f)
-            {
-                m_RespawnTimer -= Time.deltaTime;
-                if (m_RespawnTimer <= 0f && !Game.Campaign.IsVerified(CountryId.France))
-                {
-                    pc.Spawn(Cell, P.RetreatLocal, 180f, PassengerState.Retreat, Disguise.RainCoat);
-                    pc.RetreatSeconds = 22f;
-                    pc.Threatening = true;
-                }
-            }
-
-            if (tear == null || tear.Closing) { m_WindowTime = 0f; return; }
-            if (pc != null && pc.State == PassengerState.Retreat) m_Cleared = true;
-
-            // A wide opening invites it back through the Margin: its hand comes through the tear.
-            if (tear.Size >= TearSize.Window) m_WindowTime += Time.deltaTime;
-            if (!m_HandShown && !Game.Campaign.IsVerified(CountryId.France) && tear.Size >= TearSize.Window && (m_WindowTime > 3.2f || tear.Contamination > 0.45f))
-            {
-                m_HandShown = true;
-                if (pc != null && pc.Visible)
-                {
-                    AudioDirector.I?.Play("pass_creak_2", pc.ChestPosition, 0.8f);
-                    pc.Despawn();
-                }
-                m_Hand.Attach(tear);
-                tear.SetPassengerPressure(0.6f);
-                Narration.I?.Say("par_02", null, false, null, true);
-                Narration.I?.Say("tut_seal", null, true, null, false, true);
-                AudioDirector.I?.Play("pass_sting", tear.OpeningCenter, 0.75f, 1f, Bus.SFX, true);
-            }
-            if (m_HandShown && m_Hand.Active)
-                m_Hand.SetProgress(Mathf.InverseLerp(0.25f, 1f, tear.Contamination));
-        }
-
-        void OnSealed(Tear t)
-        {
-            if (!IsLive) return;
-            if (m_HandShown && m_Hand != null && m_Hand.Active)
-            {
-                m_Hand.Recoil();
-                Hud.I?.ShowToast("Sealed. It's caught on the other side.", 3f);
-                Game.Story?.RestoreVitality(0.15f);
-                m_Cleared = true;
-                m_RespawnTimer = 14f; // it comes back, but gives you time to verify
-            }
-            m_HandShown = false;
-        }
-
-        void OnBreach(Tear t)
-        {
-            if (!IsLive) return;
-            if (Game.Story != null && (Game.Story.Busy || Game.Story.Failing)) return; // mid-travel or already caught: leave the tear to the shift
-            // The hand closes around your wrist: sudden death, then Retry at the embankment.
-            Hud.I?.ShowCaption("the hand closes around your wrist", 2.5f);
-            m_Hand?.Detach();
-            Game.Tears.Close(false);
-            m_HandShown = false;
-            m_Cleared = false;
-            Game.Story?.Kill("pulled through the tear");
+            if (P.FiringRingMat != null)
+                P.FiringRingMat.SetColor("_Color", new Color(1f, 0.78f, 0.55f, m_Solved ? 0.15f : 0.45f + 0.25f * Mathf.Sin(Time.time * 3f)));
         }
 
         public override void ResetLocal()
         {
-            m_Hand?.Detach();
-            m_HandShown = false; m_Cleared = false; m_WindowTime = 0f; m_RespawnTimer = -1f;
-            if (!Game.Campaign.IsVerified(CountryId.France)) SpawnGuard();
+            P.Hunt.Stop();
+            Game.Passenger?.Despawn();
         }
     }
 }

@@ -4,8 +4,9 @@ using UnityEngine;
 
 namespace TwelfthStamp
 {
-    /// <summary>Germany / Berlin — The Departure That Never Happened. The finale: validate the eleven seals, expose and
-    /// cancel the forged HOME stamp, and open the real way home on the wall that looked blank.</summary>
+    /// <summary>Germany / Berlin — The Departure That Never Happened, and the Ghost Shooting Gallery. The finale: validate
+    /// the eleven seals, wear the Passenger down with beams of light from the sun torch (Cells/GhostGallery.cs), cancel the
+    /// forged HOME stamp with VOID, and escape through the real way home on the wall that looked blank.</summary>
     public partial class BerlinCell : Cell
     {
         public TraceMark Plinth;
@@ -16,6 +17,7 @@ namespace TwelfthStamp
         public Grabbable VoidStamp;
         public Transform NoisemakerSpot, BlankWall;
         public Material BlankWallOutline;
+        public GhostGallery Gallery;
 
         protected override void Build()
         {
@@ -89,8 +91,15 @@ namespace TwelfthStamp
             }
             Plinth = TraceMark.Create(transform, CountryId.Germany, new Vector3(0, 1.07f, 1.5f), Quaternion.identity, 0.5f, true);
             Plinth.Prompt = "Validate the eleven seals";
+            // The base's collider rounds up over the plinth's top and hid the trace from the desktop view: its box is lifted
+            // clear of it (a hand-height block over the seal ring), so a look at the top of the plinth reaches it.
+            var plinthCol = Plinth.GetComponent<BoxCollider>();
+            if (plinthCol != null) { plinthCol.size = new Vector3(0.5f, 0.5f, 0.5f); plinthCol.center = new Vector3(0f, 0.2f, 0f); }
+            // The shooting gallery (Cells/GhostGallery.cs): its sun torch rises on the plinth's near edge, lying across it,
+            // once the seals are validated.
+            Gallery = GhostGallery.Build(this, new Vector3(0f, 1.11f, 1.05f), 90f);
 
-            // Side table with the VOID stamp; a spot where the noisemaker is set down.
+            // Side table with the VOID stamp (the noisemaker's old spot beside it is kept for anything set down there).
             MeshFactory.Box("SideTable", g, new Vector3(-3f, 0.45f, -4.5f), new Vector3(1.2f, 0.9f, 0.6f), wood, true);
             var vs = new GameObject("VoidStamp");
             vs.transform.SetParent(g, false);
@@ -126,16 +135,17 @@ namespace TwelfthStamp
 
     public class BerlinEncounter : Encounter
     {
+        /// <summary>Saved once the gallery is won, so a retry or a return does not ask for it again.</summary>
+        public const string WeakenedFlag = "berlin_passenger_weakened";
         BerlinCell B => (BerlinCell)Cell;
-        // Read-only state for the guide (Guide/GuideBook.cs).
-        public bool NoiseOn => m_NoiseOn;
-        public bool ThreatUp => m_ThreatUp;
-        Grabbable m_Noise;
-        AudioSource m_NoiseLoop;
-        bool m_NoiseOn, m_Exposed, m_ThreatUp;
-        float m_ExposeTime, m_InvestigateCooldown;
+        bool m_Exposed, m_ThreatUp, m_Risen;
+        float m_DoorFade;
 
+        // Read-only state for the guide (Guide/GuideBook.Berlin.cs) and the tests.
+        public bool ThreatUp => m_ThreatUp;
+        /// <summary>The Passenger is worn down (the shooting gallery is won): the VOID stamp can cancel the forgery.</summary>
         public bool Exposed => m_Exposed;
+        public GhostGallery Gallery => B.Gallery;
 
         public override string Objective
         {
@@ -143,10 +153,15 @@ namespace TwelfthStamp
             {
                 var c = Game.Campaign;
                 if (!c.IsVerified(CountryId.Germany)) return "Validate the eleven seals at the registration plinth (" + c.VerifiedCount + " / 11 verified).";
-                if (!m_Exposed) return "Draw it away with the noisemaker, and open a tear to Egypt at the seam facing the doors so sunlight exposes the forgery.";
-                if (!c.HasFlag(StoryFlags.ForgedCancelled)) return "Take the VOID stamp and cancel the forged HOME seal in your passport.";
-                if (Game.Tears.Active != null && !Game.Tears.Active.Anchor.HomeSeam) return "Seal the resource tear. Then open the real way home on the blank wall.";
-                return "Open the genuine way home on the blank wall. Not the door that looks like home.";
+                if (!m_Exposed)
+                {
+                    var g = B.Gallery;
+                    if (!g.TorchHeld) return "Take the sun torch from the plinth: it holds a beam of Egypt's light.";
+                    return "Shoot the glowing target on its chest: aim and fire " + Hud.KeyTag(Intent.Interact) + ". It flickers to a new place after every hit; don't let it reach you.   Its strength: " + g.PipsText();
+                }
+                if (!c.HasFlag(StoryFlags.ForgedCancelled)) return "Take the VOID stamp from the side table and cancel the forged HOME seal in your passport.";
+                if (Game.Tears.Active != null && !Game.Tears.Active.Anchor.HomeSeam) return "Seal the tear. Then open the real way home on the blank wall.";
+                return "It is rising again: open the genuine way home on the blank wall and get out. Not the door that looks like home.";
             }
         }
 
@@ -166,11 +181,19 @@ namespace TwelfthStamp
             B.Plinth.Reveal(false);
             B.VoidStamp.OnActivate = OnVoid;
             Game.Tears.Opened -= OnTearOpened; Game.Tears.Opened += OnTearOpened;
-            m_Exposed = c.HasFlag(StoryFlags.ForgedCancelled);
+            var gallery = B.Gallery;
+            gallery.Hit -= OnGalleryHit; gallery.Hit += OnGalleryHit;
+            gallery.Beaten -= OnGalleryBeaten; gallery.Beaten += OnGalleryBeaten;
+            gallery.Stop();
+            m_Exposed = c.HasFlag(StoryFlags.ForgedCancelled) || c.HasFlag(WeakenedFlag);
+            m_ThreatUp = false;
+            m_Risen = false;
+            m_DoorFade = m_Exposed ? 1f : 0f;
+            SetDoorGlow(m_DoorFade);
             B.HomeSeam.Revealed = c.HasFlag(StoryFlags.ForgedCancelled);
-            if (c.HasResource(ResourceId.Noisemaker) && m_Noise == null) SpawnNoisemaker();
             Game.Passenger?.Despawn();
             if (c.IsVerified(CountryId.Germany)) RaiseThreat();
+            else gallery.RetireTorch();
             RefreshLights();
             Hud.I?.SetObjective(Objective, false);
         }
@@ -178,32 +201,15 @@ namespace TwelfthStamp
         public override void OnExit()
         {
             Game.Tears.Opened -= OnTearOpened;
-            if (m_NoiseOn) ToggleNoise();
+            B.Gallery.Hit -= OnGalleryHit;
+            B.Gallery.Beaten -= OnGalleryBeaten;
+            B.Gallery.Stop();
         }
 
-        void SpawnNoisemaker()
+        public override void ResetLocal()
         {
-            var go = new GameObject("CarriedNoisemaker");
-            go.transform.SetParent(B.transform, false);
-            go.transform.position = B.NoisemakerSpot.position;
-            if (!PropLibrary.NoisemakerModel(go.transform))
-            {
-                MeshFactory.Box("Body", go.transform, new Vector3(0, 0.07f, 0), new Vector3(0.22f, 0.14f, 0.09f), Mats.Lit(new Color(1f, 0.95f, 0.9f), 0.4f, 0f, "leather_navy"), false);
-                MeshFactory.Box("Grille", go.transform, new Vector3(-0.04f, 0.07f, -0.047f), new Vector3(0.11f, 0.1f, 0.005f), Mats.Lit(new Color(0.75f, 0.7f, 0.6f), 0.6f, 0.9f, "metal_brushed"), false);
-            }
-            go.AddComponent<BoxCollider>().size = new Vector3(0.24f, 0.16f, 0.11f);
-            m_Noise = PropLibrary.MakeGrabbable(go, "noisemaker", "Take the noisemaker (from New York)", true);
-            m_Noise.ActivatePrompt = "Switch the noisemaker on/off";
-            m_Noise.OnActivate = (g, w) => ToggleNoise();
-            m_Noise.SetHome();
-            Cell.Recache();
-        }
-
-        void ToggleNoise()
-        {
-            m_NoiseOn = !m_NoiseOn;
-            if (m_NoiseOn) m_NoiseLoop = AudioDirector.I?.Loop("noisemaker_loop", m_Noise.transform, 0.9f, Bus.SFX, 1f, 2f, 30f);
-            else if (m_NoiseLoop != null) { AudioDirector.I?.FadeOutAndStop(m_NoiseLoop, 0.2f); m_NoiseLoop = null; }
+            B.Gallery.Stop();
+            Game.Passenger?.Despawn();
         }
 
         public void OnVerified()
@@ -227,7 +233,16 @@ namespace TwelfthStamp
         {
             if (m_ThreatUp) return;
             m_ThreatUp = true;
+            var c = Game.Campaign;
             var pc = Game.Passenger;
+            if (m_Exposed)
+            {
+                // Worn down on an earlier try: it kneels before the false doors, or (the forgery cancelled) it is up again.
+                B.Gallery.RetireTorch();
+                B.Gallery.ShowKneeling();
+                if (c.HasFlag(StoryFlags.ForgedCancelled)) Rise();
+                return;
+            }
             pc.GuardPoint = B.transform.TransformPoint(new Vector3(-7.6f, 0f, 1f));
             pc.RetreatPoint = B.transform.TransformPoint(new Vector3(-7.8f, 0f, 7.5f));
             pc.RetreatSeconds = 16f;
@@ -239,12 +254,34 @@ namespace TwelfthStamp
             AudioDirector.I?.Play("pp_open", pc.ChestPosition, 0.8f);
             Hud.I?.ShowCaption("it opens a passport of its own and studies you", 3.5f);
             StartCoroutine(BackToGuard(pc));
+            // The boss game: a torch of Egypt's sunlight rises on the plinth. Taking it starts the gallery (Update).
+            B.Gallery.OfferTorch();
+            Hud.I?.ShowToast("A torch of Egypt's sunlight rises on the plinth. Take it, and shoot the glowing target on the Passenger's chest five times.", 5f);
         }
 
         IEnumerator BackToGuard(PassengerController pc)
         {
             yield return new WaitForSeconds(4f);
             if (pc.State == PassengerState.Mimic) { pc.Body.ShowImitationPassport(false); pc.SetState(PassengerState.Guard); }
+        }
+
+        void OnGalleryHit(GhostGallery g)
+        {
+            if (!IsLive) return;
+            Hud.I?.ShowCaption(g.Hits < GhostGallery.HitsToWin ? "HIT!   " + g.Hits + " / " + GhostGallery.HitsToWin + "   it flickers away" : "HIT!   " + g.Hits + " / " + GhostGallery.HitsToWin, 1.6f);
+            Hud.I?.SetObjective(Objective, false);
+        }
+
+        void OnGalleryBeaten(GhostGallery g)
+        {
+            if (!IsLive || m_Exposed) return;
+            m_Exposed = true;
+            Game.Campaign.SetFlag(WeakenedFlag);
+            g.RetireTorch(); // its light is spent: the hand is free for the VOID stamp
+            AudioDirector.I?.Play("glasses_break", B.DecoyDoors[1].position + Vector3.up, 0.8f, 0.7f);
+            Hud.I?.ShowToast("It kneels before the false doors, and without it they are only paint and ink. Forged. Now the VOID stamp on the side table.", 5f);
+            Game.SaveNow();
+            Hud.I?.SetObjective(Objective, false);
         }
 
         void OnTearOpened(Tear t)
@@ -257,7 +294,7 @@ namespace TwelfthStamp
         {
             var c = Game.Campaign;
             if (!c.IsVerified(CountryId.Germany)) { Hud.I?.ShowToast("Validate the eleven seals first.", 2.5f); return; }
-            if (!m_Exposed) { Hud.I?.ShowToast("Expose the forgery in daylight first: open a tear to Egypt facing the doors.", 3.5f); return; }
+            if (!m_Exposed) { Hud.I?.ShowToast("Wear it down first: shoot the glowing target on its chest five times with the sun torch.", 3.5f); return; }
             if (c.HasFlag(StoryFlags.ForgedCancelled)) return;
             if (!Game.Passport.IsOpen) Game.Passport.Open(who != null ? (Game.Mode == GameMode.VR ? Game.Input.PassportHand : HandSide.Desktop) : HandSide.Desktop);
             c.SetFlag(StoryFlags.ForgedCancelled);
@@ -266,9 +303,32 @@ namespace TwelfthStamp
             Game.Passport.Refresh();
             B.HomeSeam.Revealed = true;
             foreach (var d in B.DecoyDoors) d.gameObject.SetActive(false);
-            Hud.I?.ShowToast("VOID. The forged authorisation is cancelled.", 3.5f);
+            Hud.I?.ShowToast("VOID. The forged authorisation is cancelled. It is getting up: escape through the real way home on the blank wall.", 4.5f);
             Game.SaveNow();
+            Rise();
             Hud.I?.SetObjective(Objective, false);
+        }
+
+        /// <summary>The forgery cancelled, it gets up from its knees and comes for you, slowly: the escape.</summary>
+        void Rise()
+        {
+            if (m_Risen) return;
+            m_Risen = true;
+            B.Gallery.Stop();
+            var pc = Game.Passenger;
+            if (pc == null || !pc.Visible) return;
+            pc.Threatening = true;
+            pc.AllowChase = false;
+            pc.WalkSpeed = GhostGallery.WalkSpeed;
+            pc.SetState(PassengerState.Stalk);
+            AudioDirector.I?.Play("pass_breath", pc.ChestPosition, 0.9f, 0.85f);
+            Hud.I?.ShowCaption("it rises from its knees and comes for you, slowly", 3f);
+        }
+
+        void SetDoorGlow(float fade)
+        {
+            for (int i = 0; i < B.DecoyGlows.Count; i++)
+                B.DecoyGlows[i].SetColor("_Color", new Color(1f, 0.72f, 0.42f, 0.9f * (1f - Mathf.Clamp01(fade) * 0.85f)));
         }
 
         void RefreshLights()
@@ -287,35 +347,18 @@ namespace TwelfthStamp
         {
             if (!IsLive || Game.Paused) return;
             var c = Game.Campaign;
-            // Egyptian sunlight on the middle decoy door exposes the forgery (all three doors fail together).
-            if (!m_Exposed && c.IsVerified(CountryId.Germany))
+            // The gallery starts the moment the sun torch is in a hand.
+            if (m_ThreatUp && !m_Exposed && c.IsVerified(CountryId.Germany) && !B.Gallery.Running && !B.Gallery.Weakened && B.Gallery.TorchHeld && !Game.Story.Busy)
             {
-                var door = B.DecoyDoors[1];
-                var front = door.position - door.forward * 0.35f;
-                float e = Mathf.Max(LightVolumes.Exposure(front + Vector3.up * 0.9f, true),
-                          Mathf.Max(LightVolumes.Exposure(front + Vector3.up * 1.3f, true), LightVolumes.Exposure(front + Vector3.up * 1.7f, true)));
-                m_ExposeTime = e > 0.25f ? m_ExposeTime + Time.deltaTime : Mathf.Max(0f, m_ExposeTime - Time.deltaTime);
-                for (int i = 0; i < B.DecoyGlows.Count; i++)
-                    B.DecoyGlows[i].SetColor("_Color", new Color(1f, 0.72f, 0.42f, 0.9f * (1f - Mathf.Clamp01(m_ExposeTime / 1.2f) * 0.85f)));
-                if (m_ExposeTime > 1.2f)
-                {
-                    m_Exposed = true;
-                    AudioDirector.I?.Play("glasses_break", B.DecoyDoors[1].position + Vector3.up, 0.8f, 0.7f);
-                    Hud.I?.ShowToast("In real daylight the doors are only paint and ink. Forged.", 3.5f);
-                    Hud.I?.SetObjective(Objective, false);
-                }
+                B.Gallery.Begin();
+                Hud.I?.SetObjective(Objective, false);
             }
-            // The noisemaker buys time.
-            var pc = Game.Passenger;
-            m_InvestigateCooldown -= Time.deltaTime;
-            if (m_NoiseOn && m_Noise != null && pc != null && pc.Visible && m_InvestigateCooldown <= 0f && pc.State != PassengerState.Repelled && pc.State != PassengerState.Retreat)
-            {
-                pc.Investigate(m_Noise.transform.position, 16f);
-                m_InvestigateCooldown = 1.5f;
-            }
+            // Worn down, the false doors lose their warm glow: only paint and ink.
+            if (m_Exposed && m_DoorFade < 1f) { m_DoorFade = Mathf.Min(1f, m_DoorFade + Time.deltaTime / 1.2f); SetDoorGlow(m_DoorFade); }
             // The home tear opens at the wall it guarded: it comes for the threshold.
+            var pc = Game.Passenger;
             var tear = Game.Tears.Active;
-            if (tear != null && tear.Anchor.HomeSeam && tear.Size >= TearSize.Window && pc != null && pc.Visible && pc.State != PassengerState.Repelled)
+            if (tear != null && tear.Anchor.HomeSeam && tear.Size >= TearSize.Window && pc != null && pc.Visible && pc.Threatening && pc.State != PassengerState.Repelled)
             {
                 pc.WalkSpeed = 1.15f;
                 if (pc.State != PassengerState.Retreat) pc.GoTo(tear.OpeningCenter + tear.Anchor.Forward * 0.8f, PassengerState.Stalk);
