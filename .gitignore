@@ -90,3 +90,6 @@ Desktop.ini
 /Promo/**/*.mov
 /Promo/**/*.wav
 /Promo/**/*.m4a
+
+# Promo production media (too large for git)
+Promo/
